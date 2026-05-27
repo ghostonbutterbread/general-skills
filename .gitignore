@@ -1,0 +1,10 @@
+.env
+*.env
+*.secret
+*.secrets
+*password*
+*passwd*
+*token*
+*.log
+__pycache__/
+
