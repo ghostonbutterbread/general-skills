@@ -1,8 +1,7 @@
 # {program} Account Inventory
 
-Non-secret account and resource-control table. Bitwarden stores credentials; this file stores testing meaning.
+Non-secret account table. Bitwarden stores credentials; this file stores account lifecycle and Bitwarden references.
 
-| Account alias | Username/email | Role/team/tenant | Purpose | Destructible | Safe mutable resources | Lifecycle status | Bitwarden item reference | Cleanup notes | Last checked |
-|---|---|---|---|---|---|---|---|---|---|
-| example | example@example.com | personal | baseline account | no | private test design only | active | Bitwarden: example item | none | YYYY-MM-DD |
-
+| Account alias | Username/email | Lifecycle status | Bitwarden item reference | Destructible account | Cleanup notes | Last checked |
+|---|---|---|---|---|---|---|
+| example | example@example.com | active | Bitwarden: example item | no | none | YYYY-MM-DD |
