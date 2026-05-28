@@ -1,6 +1,8 @@
 # Account Table
 
-Use this file to keep non-secret testing context visible to agents.
+Use this file to keep non-secret account and Bitwarden-reference context visible to agents.
+
+Version 1 intentionally tracks only account-level state. Do not try to model every team, role, resource, design, invoice, or permission here yet.
 
 ## Canonical Paths
 
@@ -23,13 +25,9 @@ Use a markdown table or repeated blocks. Keep it grep-friendly.
 ```text
 Account alias:
 Username/email:
-Target/program:
-Role/team/tenant:
-Purpose:
-Destructible: yes|no
-Safe mutable resources:
 Lifecycle status: pending-creation|active|removed-from-shared-resource|pending-deletion|deleted
 Bitwarden item reference:
+Destructible account: yes|no
 Cleanup notes:
 Last checked:
 ```
@@ -37,16 +35,27 @@ Last checked:
 ## Lifecycle Semantics
 
 - `pending-creation`: account is planned or signup is in progress; do not use for testing yet.
-- `active`: account exists and may be used according to its role/destructible/resource fields.
+- `active`: account exists and may be used according to its account-level destructible status and current task policy.
 - `removed-from-shared-resource`: account was removed from a design/team/folder/invoice/resource as part of a test. The account still exists.
 - `pending-deletion`: deletion is approved or in progress; do not use for new tests.
 - `deleted`: target account was permanently deleted. The Bitwarden login item should be deleted after this is confirmed.
 
-## Mutability Semantics
+## Destructible Semantics
 
-- `Destructible: no`: default. Agents may not delete the account or destructive resources.
-- `Destructible: yes`: account may be burned/deleted if the current task explicitly requires it.
-- `Safe mutable resources`: exact private owned resources agents may modify for proof, such as a test design, avatar, folder, team, invoice permission set, or dummy upload.
+- `Destructible account: no`: default. Agents may not delete or burn the account.
+- `Destructible account: yes`: account may be burned/deleted if the current task explicitly requires it.
+- Resource-level mutability is intentionally out of scope for v1. Put exact mutable resources in program notes or handoffs.
+
+## Required Update Points
+
+Agents must update this table in the same turn when:
+
+- a Bitwarden item is created for a target account
+- a Bitwarden item reference changes
+- signup fails or is blocked
+- an account moves from `pending-creation` to `active`
+- deletion is approved, started, or completed
+- a Bitwarden item is deleted after permanent account deletion
 
 ## Secret Handling
 
