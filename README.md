@@ -5,4 +5,4 @@ Reusable local OpenClaw/Codex skills that are not tied to one bug bounty harness
 ## Skills
 
 - `bitwarden` - Bitwarden CLI workflow for storing and referencing test-account credentials without exposing secrets.
-
+- `account-manager` - Non-secret account inventory workflow for roles, mutability, lifecycle state, and Bitwarden item references.

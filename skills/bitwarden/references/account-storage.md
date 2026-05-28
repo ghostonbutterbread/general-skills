@@ -11,7 +11,7 @@ Target/program:
 Purpose:
 Destructible: yes|no
 Destructible reason:
-Lifecycle status: active|removed-from-shared-resource|pending-deletion|deleted
+Lifecycle status: pending-creation|active|removed-from-shared-resource|pending-deletion|deleted
 Credential store item:
 Cleanup notes:
 ```
@@ -24,9 +24,9 @@ Separate resource cleanup from account deletion:
 - For shared-resource removal, keep the Bitwarden login item active. Update the target account/resource table with the resource relationship and cleanup note.
 - Permanently deleting the target account means the credential is no longer usable and Bitwarden must be updated.
 - For permanent deletion, update local notes first with `Lifecycle status: pending-deletion`, perform the approved deletion, then update notes to `Lifecycle status: deleted`.
-- After permanent deletion is confirmed, update the Bitwarden item. Prefer moving it to a clearly named archived/deleted state if later audit may matter; delete the Bitwarden item only when Ryushe explicitly wants it removed from the vault.
+- After permanent deletion is confirmed, delete the Bitwarden login item. Keep the non-secret account table row for audit history with `Lifecycle status: deleted`.
 
-Recommended deleted-item note before archiving/deleting:
+Recommended account-table note before deleting the Bitwarden item:
 
 ```text
 Target account permanently deleted on YYYY-MM-DD.
@@ -43,7 +43,7 @@ Agents must not infer destructibility or deletion permission from a Bitwarden it
 - If using a local password file, pass it to `bw unlock --passwordfile`; do not `cat` it.
 - Use `bw generate` for target-account passwords.
 - Use `bw create item` or `bw edit item` through encoded JSON.
-- Run `bw sync` after creating, editing, archiving, or deleting items.
+- Run `bw sync` after creating, editing, or deleting items.
 - Output only item ids, item names, and non-secret metadata.
 
 ## Unsafe Patterns
