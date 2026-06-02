@@ -6,3 +6,4 @@ Reusable local OpenClaw/Codex skills that are not tied to one bug bounty harness
 
 - `bitwarden` - Bitwarden CLI workflow for storing and referencing test-account credentials without exposing secrets.
 - `account-manager` - Non-secret account inventory workflow for roles, mutability, lifecycle state, and Bitwarden item references.
+- `resilio-sync` - Resilio Sync handoff rules for `/srv/resilio` and large local file-set sharing.
