@@ -28,14 +28,18 @@ chmod +x /tmp/tmpmail
 mv /tmp/tmpmail ~/.local/bin/tmpmail
 ```
 
+Tell the user it has been installed, then give them this dependency command so the setup can be completed:
+
+```bash
+sudo apt install curl jq w3m xclip
+```
+
 Make sure `~/.local/bin` is on `PATH` before using it:
 
 ```bash
 export PATH="$HOME/.local/bin:$PATH"
 command -v tmpmail
 ```
-
-Dependencies commonly needed by `tmpmail`: `curl`, `jq`, `w3m`, and `xclip`.
 
 If the fetched script looks unexpected, stop and report it instead of installing.
 
