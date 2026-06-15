@@ -22,6 +22,7 @@ python3 /home/ryushe/safe-fetch/scripts/safe_fetch.py <url-or-file> --mode resea
 ## Contract
 
 - Raw content is evidence. Store it in quarantine, do not paste it into normal privileged context.
+- Default quarantine storage is `/home/ryushe/safe-fetch/quarantine/`.
 - The model-visible value is the returned `SanitizedDocument`.
 - Preserve `raw_artifact` and `sha256` so research agents can reopen exact evidence in a sealed lab if needed.
 - Treat `risk_flags` as routing hints:
