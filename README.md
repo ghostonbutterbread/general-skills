@@ -10,3 +10,4 @@ Reusable local OpenClaw/Codex skills that are not tied to one bug bounty harness
 - `safe-fetch` - Default external web-content ingestion through quarantine and sanitization unless explicitly bypassed.
 - `faq` - Problem-oriented solved fixes, script lookup, and central/program FAQ routing before agents re-solve recurring issues.
 - `tmpmail` - tmpmail CLI workflow for disposable terminal inboxes in owned test flows.
+- `tmux` - Long-running session protocol for attachable recon, fuzzing, Arjun, scanner, SSH, and interactive CLI jobs.
