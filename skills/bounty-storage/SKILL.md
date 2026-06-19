@@ -33,9 +33,9 @@ bounty scripts and records; keep heavy inputs and generated outputs in
 
 ## Core Rule
 
-Put canonical truth in `~/Shared`. Put long persistent bounty runs and heavy
-artifacts in `/mnt/bounty`. Put disposable run scratch on the machine doing the
-work.
+Put canonical truth in `~/Shared`. Put long persistent bounty runs, stable heavy
+artifact libraries, and bulky artifacts in `/mnt/bounty`. Put disposable run
+scratch on the machine doing the work.
 
 Do not put large raw corpora in `~/Shared` unless Ryushe explicitly asks for
 cloud-backed retention.
@@ -55,6 +55,7 @@ safe for future agents to treat as canonical:
 - lead summaries and handoffs
 - run manifests and compact export summaries
 - artifact maps that point to `/mnt/bounty`
+- artifact health notes for missing, stale, moved, or regenerated heavy data
 - blocked queues, auth-required queues, redownload queues
 - small JSONL/SQLite indexes that point to heavy artifacts
 - sanitized request contracts and replay notes
@@ -103,7 +104,8 @@ Preferred path: `/mnt/bounty`
 Use for long-running bounty runs and large working data that multiple
 machines/agents may need but that does not need cloud backup.
 
-Use a program-first layout:
+Use a program-first layout. Keep stable category/corpus directories for normal
+agent lookup, and keep `runs/<run_id>/` directories for history/provenance:
 
 ```text
 /mnt/bounty/<program>/
@@ -119,6 +121,8 @@ Use a program-first layout:
       javascript/
         urls/
         downloads/
+          by-host/
+          by-sha256/
         sourcemaps/
         chunks/
         indexes/
@@ -126,6 +130,11 @@ Use a program-first layout:
       pages/
       api/
     screenshots/
+      admin/
+      auth/
+      billing/
+      settings/
+      unknown/
       runs/<run_id>/
       index.jsonl
     proxy/
@@ -166,7 +175,9 @@ Examples:
 
 ```text
 /mnt/bounty/canva/web/recon/fuzzing/accounts-api/runs/<run_id>/
-/mnt/bounty/canva/web/recon/javascript/downloads/
+/mnt/bounty/canva/web/recon/javascript/downloads/by-host/static.canva.com/
+/mnt/bounty/canva/web/recon/javascript/downloads/by-sha256/ab/abcdef...js
+/mnt/bounty/canva/web/screenshots/admin/
 /mnt/bounty/canva/web/screenshots/runs/<run_id>/
 /mnt/bounty/canva/web/proxy/flows/<flow-set>/
 /mnt/bounty/canva/apk/static/jadx/runs/<run_id>/
@@ -179,6 +190,27 @@ parameter fuzz run writes raw output under
 `/mnt/bounty/<program>/web/recon/fuzzing/<target-slug>/runs/<run_id>/`, then
 appends new unique discovered URLs or params into the appropriate Shared list
 with a dedupe tool such as `anew`.
+
+For JavaScript, `downloads/by-host/` is the human browse path and
+`downloads/by-sha256/` is the dedupe path. The host path keeps the URL origin
+obvious; the SHA-256 path stores each unique JavaScript body once by content
+hash.
+
+For screenshots, stable folders such as `admin/`, `auth/`, `billing/`, and
+`settings/` are the browseable library. `screenshots/runs/<run_id>/` preserves
+what happened during a specific run.
+
+## Artifact Maps And Health
+
+Shared artifact maps are the first place agents should look for heavy bounty
+artifacts. They should point to stable category/corpus paths first and run IDs
+second for provenance.
+
+When following a Shared artifact pointer, check that the target exists. If it is
+missing, deleted, stale, or moved, update the artifact map with `status:
+missing`, `stale`, `moved`, or `regenerate` and record the new path or
+regeneration command when known. Do not silently recreate unrelated folders or
+trust stale pointers.
 
 ## Canonical Aggregates
 
