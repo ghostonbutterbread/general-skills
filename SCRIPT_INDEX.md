@@ -14,6 +14,7 @@ home and record format; detailed usage belongs next to the script itself.
 | One skill's helper | `skills/<skill>/scripts/` | The script supports one skill, such as `faq`, `bitwarden`, or `tmux`. |
 | Project-local helper | `<repo>/scripts/` or `<repo>/tools/` | The script depends on that repo's code, schema, or test fixtures. |
 | Bug bounty lane helper | `~/projects/bug_bounty_harness/skills/<skill>/scripts/` | The script is reusable for one bounty lane or harness workflow. |
+| Shared bounty helper | `~/Shared/bounty_recon/_shared/scripts/` | The script is small, useful across bounty programs or machines, and should be cloud-backed for agents to discover. |
 | Operator/local workspace helper | `/home/ryushe/.openclaw/workspace/scripts/` | The script is tied to this OpenClaw workspace, host, or runtime. |
 
 ## Registry Rules
@@ -24,6 +25,9 @@ home and record format; detailed usage belongs next to the script itself.
   likely to recur.
 - Put the script in the narrowest durable home that future agents will search.
 - Add or update a script record in the nearest `scripts/README.md`.
+- For shared bounty helpers, keep only the script and small records in
+  `~/Shared`; put heavy inputs, fixtures, generated output, and corpora in
+  `/mnt/bounty` or scratch.
 - Keep scripts reusable by accepting files/stdin/flags instead of hard-coding
   one target path.
 - Preserve raw input files; write derived outputs separately.

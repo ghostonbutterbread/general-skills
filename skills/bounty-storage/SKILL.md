@@ -9,9 +9,13 @@ Use this before writing bug bounty artifacts, run outputs, downloaded corpora,
 large recon datasets, screenshots, proxy data, browser profiles, or durable
 findings state.
 
-This is the storage policy. Workflow skills such as `/huge-ingest`, `/js`,
-`/url-ingest`, `/hunter-loop`, `/tmux`, `/recon`, and vulnerability-lane skills
-should load this when they need to decide where files belong.
+Canonical policy document:
+
+`/home/ryushe/projects/ai-policies/policies/bug-bounty/bounty-storage.md`
+
+Workflow skills such as `/huge-ingest`, `/js`, `/url-ingest`, `/hunter-loop`,
+`/tmux`, `/recon`, and vulnerability-lane skills should load this when they need
+to decide where files belong.
 
 ## Core Rule
 
@@ -38,6 +42,7 @@ safe for future agents to treat as canonical:
 - blocked queues, auth-required queues, redownload queues
 - small JSONL/SQLite indexes that point to heavy artifacts
 - sanitized request contracts and replay notes
+- small reusable bug bounty scripts and script records
 
 Recommended bounty layout:
 
@@ -55,6 +60,11 @@ Recommended bounty layout:
   recon/
   findings/
   reports/
+
+~/Shared/bounty_recon/_shared/
+  scripts/
+  script-index.md
+  templates/
 ```
 
 ### Mounted Bounty Artifacts
@@ -165,6 +175,23 @@ If proxy or browser artifacts contain sensitive headers/cookies, keep them in
 controlled scratch or a clearly labeled restricted artifact path and write a
 sanitized manifest/handoff instead.
 
+## Reusable Scripts
+
+Small reusable bounty scripts can live in:
+
+`~/Shared/bounty_recon/_shared/scripts/`
+
+Do not put virtual environments, dependencies, bulky fixtures, generated output,
+raw target data, or secrets there. If a script depends on a repo, keep the source
+in that repo and put only a small Shared record or wrapper pointing to the repo
+path and commit.
+
+## Edge Cases
+
+Read the canonical policy for edge-case handling around missing mounts, partial
+cloud sync, concurrent agents, path drift, duplicate corpora, retention,
+secrets, symlinks, and context drift.
+
 ## Agent Handoff
 
 When handing work to another agent, pass:
@@ -178,4 +205,3 @@ When handing work to another agent, pass:
 
 Do not pass huge directories, raw proxy dumps, browser profiles, or secret-bearing
 files as prompt content.
-
