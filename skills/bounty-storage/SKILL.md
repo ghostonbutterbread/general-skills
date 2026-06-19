@@ -75,7 +75,17 @@ Recommended bounty layout:
 ~/Shared/web_bounty/<program>/web/
   recon/
     urls/
+      urls.txt
+      params.txt
+      endpoints.txt
     js/
+      js_urls.txt
+    artifact-map.md
+  findings/
+  reports/
+
+~/Shared/bounty_recon/<program>/apk/
+  recon/
     artifact-map.md
   findings/
   reports/
@@ -97,33 +107,44 @@ Use a program-first layout:
 
 ```text
 /mnt/bounty/<program>/
-  recon/
-    fuzzing/
-      <target-slug>/
+  web/
+    recon/
+      fuzzing/
+        <target-slug>/
+          runs/<run_id>/
+          index.jsonl
+      subdomains/
         runs/<run_id>/
         index.jsonl
-    subdomains/
+      javascript/
+        urls/
+        downloads/
+        sourcemaps/
+        chunks/
+        indexes/
+        runs/<run_id>/
+      pages/
+      api/
+    screenshots/
       runs/<run_id>/
       index.jsonl
-    javascript/
-      urls/
-      downloads/
-      sourcemaps/
-      chunks/
-      indexes/
+    proxy/
+      flows/
+      har/
       runs/<run_id>/
-    pages/
-    api/
-  screenshots/
+    videos/
+    browser-profiles/
+    cdp-traces/
+  apk/
+    static/
+      decompile/
+      jadx/
+      apktool/
+    dynamic/
+      traces/
+      frida/
+      screenshots/
     runs/<run_id>/
-    index.jsonl
-  proxy/
-    flows/
-    har/
-    runs/<run_id>/
-  videos/
-  browser-profiles/
-  cdp-traces/
 
 /mnt/bounty/cache/
   content-addressed/<sha256-prefix>/<sha256>
@@ -144,19 +165,55 @@ Examples:
 Examples:
 
 ```text
-/mnt/bounty/canva/recon/fuzzing/accounts-api/runs/<run_id>/
-/mnt/bounty/canva/recon/javascript/downloads/
-/mnt/bounty/canva/screenshots/runs/<run_id>/
-/mnt/bounty/canva/proxy/flows/<flow-set>/
+/mnt/bounty/canva/web/recon/fuzzing/accounts-api/runs/<run_id>/
+/mnt/bounty/canva/web/recon/javascript/downloads/
+/mnt/bounty/canva/web/screenshots/runs/<run_id>/
+/mnt/bounty/canva/web/proxy/flows/<flow-set>/
+/mnt/bounty/canva/apk/static/jadx/runs/<run_id>/
 ```
 
 Agents should write stable artifact pointers into `~/Shared` so another machine
 can find the heavy data without copying it. Curated aggregate lists live in
 Shared; heavy evidence and raw output live in `/mnt/bounty`. For example, a
 parameter fuzz run writes raw output under
-`/mnt/bounty/<program>/recon/fuzzing/<target-slug>/runs/<run_id>/`, then appends
-new unique discovered URLs or params into the appropriate Shared list with a
-dedupe tool such as `anew`.
+`/mnt/bounty/<program>/web/recon/fuzzing/<target-slug>/runs/<run_id>/`, then
+appends new unique discovered URLs or params into the appropriate Shared list
+with a dedupe tool such as `anew`.
+
+## Canonical Aggregates
+
+To avoid drift, append only to known aggregate files unless the run manifest
+explicitly declares a new aggregate:
+
+```text
+~/Shared/web_bounty/<program>/web/recon/urls/urls.txt
+~/Shared/web_bounty/<program>/web/recon/urls/endpoints.txt
+~/Shared/web_bounty/<program>/web/recon/urls/params.txt
+~/Shared/web_bounty/<program>/web/recon/js/js_urls.txt
+~/Shared/bounty_recon/<program>/apk/recon/endpoints.txt
+~/Shared/bounty_recon/<program>/apk/recon/deeplinks.txt
+~/Shared/bounty_recon/<program>/apk/recon/permissions.txt
+```
+
+Do not create ad hoc files inside aggregate directories just because a tool used
+a different output name. Raw output stays in `/mnt/bounty`; only curated unique
+items get appended to Shared.
+
+## Long-Running Runs
+
+Long persistent runs should use `/tmux`, a manifest under `~/.tmux_sessions/`,
+raw output under `/mnt/bounty`, and a compact Shared manifest/artifact-map entry.
+Agents can check completion with:
+
+```bash
+python3 ~/Shared/bounty_recon/_shared/scripts/bounty_run_watch.py --program <program> --update
+```
+
+For active monitoring:
+
+```bash
+python3 ~/Shared/bounty_recon/_shared/scripts/bounty_run_watch.py --program <program> --watch --interval 120 --update
+```
 
 ### Local Run Scratch
 
@@ -203,7 +260,8 @@ Every large run should leave a compact manifest in `~/Shared` with:
 - shared output path
 - heavy artifact root
 - scratch path
-- category path, such as `recon/fuzzing/<target-slug>` or `recon/javascript`
+- surface, such as `web` or `apk`
+- category path, such as `web/recon/fuzzing/<target-slug>` or `web/recon/javascript`
 - counts: inputs, fetched, reused, skipped, blocked, failed, parsed, packetized
 - blocked/auth-required/redownload queue paths
 - index paths and packet directories
