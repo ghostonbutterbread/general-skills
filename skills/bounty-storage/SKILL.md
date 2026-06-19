@@ -257,6 +257,22 @@ Agents must treat those files as authoritative. They should not recreate a fresh
 program tree in Shared until the archive manifest says where the active Shared
 path is or Ryushe approves restoration.
 
+Before writing Shared program state, resolve the target path:
+
+```bash
+python3 ~/Shared/bounty_recon/_shared/scripts/bounty_path_resolve.py <program> --surface web
+```
+
+For scripts:
+
+```bash
+shared_program_path="$(python3 ~/Shared/bounty_recon/_shared/scripts/bounty_path_resolve.py <program> --surface web --path-only)"
+```
+
+If the resolver reports `restore_required=true`, do not create a fresh Shared
+tree. Use the archive manifest's active/moved path, or ask Ryushe to restore the
+program first.
+
 ### Local Run Scratch
 
 Preferred local scratch: `~/workdir/<program>/<run_id>/`
