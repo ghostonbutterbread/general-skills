@@ -17,6 +17,20 @@ Workflow skills such as `/huge-ingest`, `/js`, `/url-ingest`, `/hunter-loop`,
 `/tmux`, `/recon`, and vulnerability-lane skills should load this when they need
 to decide where files belong.
 
+## First Move
+
+When working on a bounty engagement and scripts are relevant, check:
+
+`~/Shared/bounty_recon/_shared/script-index.md`
+
+Then check:
+
+`~/Shared/bounty_recon/_shared/scripts/README.md`
+
+This is how agents know the Shared script lane exists. Use it for small reusable
+bounty scripts and records; keep heavy inputs and generated outputs in
+`/mnt/bounty` or scratch.
+
 ## Core Rule
 
 Put canonical truth in `~/Shared`. Put heavy working artifacts in `/mnt/bounty`.
@@ -188,9 +202,12 @@ path and commit.
 
 ## Edge Cases
 
-Read the canonical policy for edge-case handling around missing mounts, partial
-cloud sync, concurrent agents, path drift, duplicate corpora, retention,
-secrets, symlinks, and context drift.
+Read the canonical policy for the only policy-level edge cases:
+
+- `/mnt/bounty` missing or not writable
+- concurrent agents writing at once
+- different machines having different local paths
+- retention: keep vs regenerate vs expire
 
 ## Agent Handoff
 
