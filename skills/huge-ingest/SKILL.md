@@ -16,7 +16,7 @@ lanes those skills consume.
 
 ## Load Order
 
-1. Read `references/bounty-storage-lanes.md` for bug bounty storage routing.
+1. Load `/bounty-storage` for bug bounty storage routing.
 2. Identify input type: URLs, JS/source, pages, proxy flows, screenshots,
    reports, binaries, or mixed.
 3. Create or locate a run manifest before deep reading.
@@ -128,6 +128,7 @@ explains where the heavy data lives and how to regenerate it.
 
 ## Related Skills
 
+- `/bounty-storage` for Shared vs `/mnt/bounty` vs scratch routing
 - `/coordination` for parent/child run tracking
 - `/tmux` for long-running or attachable ingestion jobs
 - `/script_manager` when a repeatable extractor/parser should become reusable
@@ -135,4 +136,3 @@ explains where the heavy data lives and how to regenerate it.
 - `/url-ingest` for URL queueing, dedupe, and tested-state tracking
 - `/live-map` and `/hunter-loop` for app mapping and specialist dispatch
 - `/analyze-endpoint` for request contracts after a lead has request evidence
-

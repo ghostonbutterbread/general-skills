@@ -14,6 +14,7 @@ Reusable local OpenClaw/Codex skills that are not tied to one bug bounty harness
 - `coordination` - Parent/child task splitting protocol for broad runs, focused subagents, and interactable child-run metadata.
 - `script_manager` - Reusable script promotion, storage, indexing, and handoff rules so repeated agent workflows become durable helpers.
 - `huge-ingest` - Large dataset ingestion protocol for URL/code/page/proxy/artifact corpora, bounded packets, lane dispatch, and bounty storage routing.
+- `bounty-storage` - Bug bounty storage policy for `~/Shared`, `/mnt/bounty`, and local scratch lanes.
 
 ## Script Index
 

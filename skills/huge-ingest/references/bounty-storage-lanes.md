@@ -1,14 +1,19 @@
 # Bounty Storage Lanes
 
-Status: draft
+Status: deprecated
 Owner: Ghost
 Canonical path: `skills/huge-ingest/references/bounty-storage-lanes.md`
 Last reviewed: 2026-06-19
 
+> Deprecated: This file is retained for history only.
+> Canonical replacement: `/bounty-storage`
+> Do not add new behavior here.
+
 ## Intent
 
 Keep cloud-backed `~/Shared` small and important while still giving all agents a
-common place to work with large bounty datasets.
+common place to work with large bounty datasets. Load `/bounty-storage` for the
+current policy.
 
 ## Tier 1: Cloud-backed Shared Truth
 
@@ -79,4 +84,3 @@ Every large ingest should produce a small manifest in `~/Shared` containing:
 Agents should pass pointers, packet IDs, hashes, and narrow excerpts. They should
 not copy huge corpora into `~/Shared`, prompts, chat messages, or child-agent
 context.
-
