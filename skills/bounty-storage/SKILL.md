@@ -199,6 +199,27 @@ Do not create ad hoc files inside aggregate directories just because a tool used
 a different output name. Raw output stays in `/mnt/bounty`; only curated unique
 items get appended to Shared.
 
+## Trusted Promoters
+
+Some tools already own their own canonical append/dedupe behavior. Use the
+tool's native flow first, then write a Shared manifest or artifact-map pointer.
+
+Approved trusted promoters:
+
+```text
+recon-ry
+```
+
+For `recon-ry`, the durable project root may remain the tool-owned project
+directory, such as `/home/ryushe/bounties/<program>/` on Hoster. Its stable root
+files, such as `urls.txt`, `alive.txt`, `params.txt`, and `jsfiles.txt`, are the
+tool-owned canonical recon view. Agents should ingest or index those outputs
+into Shared only when a Shared manifest/counts record is needed.
+
+If a tool is not on this list, it follows the generic lifecycle: raw output in
+`/mnt/bounty`, curated promotion into fixed Shared aggregate files, and a
+manifest stating what was promoted.
+
 ## Long-Running Runs
 
 Long persistent runs should use `/tmux`, a manifest under `~/.tmux_sessions/`,
@@ -214,6 +235,27 @@ For active monitoring:
 ```bash
 python3 ~/Shared/bounty_recon/_shared/scripts/bounty_run_watch.py --program <program> --watch --interval 120 --update
 ```
+
+## Moving Programs Out Of Shared
+
+If `~/Shared` fills up, a program can be archived or moved without breaking the
+system as long as Shared keeps a small pointer stub:
+
+```text
+~/Shared/web_bounty/<program>/ARCHIVED.md
+~/Shared/web_bounty/<program>/archive-manifest.json
+```
+
+or:
+
+```text
+~/Shared/bounty_recon/<program>/ARCHIVED.md
+~/Shared/bounty_recon/<program>/archive-manifest.json
+```
+
+Agents must treat those files as authoritative. They should not recreate a fresh
+program tree in Shared until the archive manifest says where the active Shared
+path is or Ryushe approves restoration.
 
 ### Local Run Scratch
 
