@@ -33,8 +33,9 @@ bounty scripts and records; keep heavy inputs and generated outputs in
 
 ## Core Rule
 
-Put canonical truth in `~/Shared`. Put heavy working artifacts in `/mnt/bounty`.
-Put disposable run scratch on the machine doing the work.
+Put canonical truth in `~/Shared`. Put long persistent bounty runs and heavy
+artifacts in `/mnt/bounty`. Put disposable run scratch on the machine doing the
+work.
 
 Do not put large raw corpora in `~/Shared` unless Ryushe explicitly asks for
 cloud-backed retention.
@@ -53,6 +54,7 @@ safe for future agents to treat as canonical:
 - tested/not-tested ledgers and coverage summaries
 - lead summaries and handoffs
 - run manifests and compact export summaries
+- artifact maps that point to `/mnt/bounty`
 - blocked queues, auth-required queues, redownload queues
 - small JSONL/SQLite indexes that point to heavy artifacts
 - sanitized request contracts and replay notes
@@ -72,6 +74,9 @@ Recommended bounty layout:
 
 ~/Shared/web_bounty/<program>/web/
   recon/
+    urls/
+    js/
+    artifact-map.md
   findings/
   reports/
 
@@ -85,24 +90,40 @@ Recommended bounty layout:
 
 Preferred path: `/mnt/bounty`
 
-Use for large working data that multiple machines/agents may need but that does
-not need cloud backup:
+Use for long-running bounty runs and large working data that multiple
+machines/agents may need but that does not need cloud backup.
+
+Use a program-first layout:
 
 ```text
-/mnt/bounty/artifacts/<program>/
-  runs/<run_id>/
-  corpus/
-    js/
+/mnt/bounty/<program>/
+  recon/
+    fuzzing/
+      <target-slug>/
+        runs/<run_id>/
+        index.jsonl
+    subdomains/
+      runs/<run_id>/
+      index.jsonl
+    javascript/
+      urls/
+      downloads/
+      sourcemaps/
+      chunks/
+      indexes/
+      runs/<run_id>/
     pages/
-    source/
-    proxy-flows/
     api/
   screenshots/
+    runs/<run_id>/
+    index.jsonl
+  proxy/
+    flows/
+    har/
+    runs/<run_id>/
   videos/
   browser-profiles/
   cdp-traces/
-  chunks/
-  indexes/
 
 /mnt/bounty/cache/
   content-addressed/<sha256-prefix>/<sha256>
@@ -118,9 +139,24 @@ Examples:
 - browser profiles, CDP traces, and HAR files
 - chunk stores and parser intermediate output
 - redownloadable corpora where URLs/manifests are preserved
+- persistent fuzzing, recon, subdomain, JavaScript, screenshot, and proxy runs
+
+Examples:
+
+```text
+/mnt/bounty/canva/recon/fuzzing/accounts-api/runs/<run_id>/
+/mnt/bounty/canva/recon/javascript/downloads/
+/mnt/bounty/canva/screenshots/runs/<run_id>/
+/mnt/bounty/canva/proxy/flows/<flow-set>/
+```
 
 Agents should write stable artifact pointers into `~/Shared` so another machine
-can find the heavy data without copying it.
+can find the heavy data without copying it. Curated aggregate lists live in
+Shared; heavy evidence and raw output live in `/mnt/bounty`. For example, a
+parameter fuzz run writes raw output under
+`/mnt/bounty/<program>/recon/fuzzing/<target-slug>/runs/<run_id>/`, then appends
+new unique discovered URLs or params into the appropriate Shared list with a
+dedupe tool such as `anew`.
 
 ### Local Run Scratch
 
@@ -141,8 +177,10 @@ Use scratch for:
 - partial output before promotion
 - experiments that may be deleted
 
-Scratch is not canonical. Before finishing, export a manifest or summary to
-`~/Shared` and move heavy retained artifacts to `/mnt/bounty` when available.
+Scratch is not canonical. Long persistent runs should prefer `/mnt/bounty`
+directly when it is writable. Use scratch only for temporary staging or when the
+mount is missing, then export a manifest or summary to `~/Shared` and move heavy
+retained artifacts to `/mnt/bounty` when available.
 
 ## Fallback Order
 
@@ -165,9 +203,11 @@ Every large run should leave a compact manifest in `~/Shared` with:
 - shared output path
 - heavy artifact root
 - scratch path
+- category path, such as `recon/fuzzing/<target-slug>` or `recon/javascript`
 - counts: inputs, fetched, reused, skipped, blocked, failed, parsed, packetized
 - blocked/auth-required/redownload queue paths
 - index paths and packet directories
+- curated Shared lists updated from the run
 - cleanup/retention notes
 - exact command, script, or tmux session needed to resume or regenerate
 
