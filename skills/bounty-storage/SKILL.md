@@ -407,7 +407,28 @@ sanitized manifest/handoff instead.
 
 ## Reusable Scripts
 
-Small reusable bounty scripts can live in:
+Script location depends on ownership:
+
+```text
+Universal bug-hunting harness behavior -> /home/ryushe/projects/bug_bounty_harness/
+Program-specific bounty helper         -> ~/Shared/web_bounty/<program>/web/scripts/
+                                      or ~/Shared/bounty_recon/<program>/scripts/
+Non-bounty general utility             -> ~/scripts/
+Shared discovery/index/wrappers         -> ~/Shared/bounty_recon/_shared/scripts/
+```
+
+Use BBH when the script is reusable bug-hunting or harness behavior. Examples:
+artifact-map helpers, path resolvers, run watchers, parsers, normalizers, replay
+helpers, and anything a future bounty workflow should import or maintain.
+
+Use the program Shared scripts folder when the script is small and only exists
+because one program has specific exports, URL shapes, artifact quirks, or naming
+conventions.
+
+Use `~/scripts/` when the script is a general local utility and not part of the
+bounty harness or a target-specific bounty workflow.
+
+Small shared bounty wrapper/index records can live in:
 
 `~/Shared/bounty_recon/_shared/scripts/`
 
