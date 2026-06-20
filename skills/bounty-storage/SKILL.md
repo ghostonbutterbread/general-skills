@@ -221,6 +221,16 @@ Use the Shared helper for concurrent-safe updates and health checks:
 python3 ~/Shared/bounty_recon/_shared/scripts/bounty_artifact_map.py <program> screenshots --entry-json '<json>' --check
 ```
 
+Canonical source for universal bounty helpers should live in BBH. For this
+helper, the source path is:
+
+```text
+/home/ryushe/projects/bug_bounty_harness/agents/bounty_artifact_map.py
+```
+
+The Shared script path can be a small wrapper/discovery entry. Program-specific
+small scripts may live directly in Shared when documented.
+
 Markdown `artifact-map.md` files are human summaries. JSON maps are the
 machine-readable source for agents.
 
@@ -405,6 +415,9 @@ Do not put virtual environments, dependencies, bulky fixtures, generated output,
 raw target data, or secrets there. If a script depends on a repo, keep the source
 in that repo and put only a small Shared record or wrapper pointing to the repo
 path and commit.
+
+Universal harness scripts belong in BBH first; Shared should expose them through
+the script index or a compatibility wrapper.
 
 ## Edge Cases
 
