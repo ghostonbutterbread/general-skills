@@ -206,6 +206,24 @@ Shared artifact maps are the first place agents should look for heavy bounty
 artifacts. They should point to stable category/corpus paths first and run IDs
 second for provenance.
 
+Prefer machine-readable per-artifact maps:
+
+```text
+~/Shared/web_bounty/<program>/web/recon/artifacts/screenshots-map.json
+~/Shared/web_bounty/<program>/web/recon/artifacts/javascript-map.json
+~/Shared/web_bounty/<program>/web/recon/artifacts/proxy-flows-map.json
+~/Shared/bounty_recon/<program>/apk/recon/artifacts/static-map.json
+```
+
+Use the Shared helper for concurrent-safe updates and health checks:
+
+```bash
+python3 ~/Shared/bounty_recon/_shared/scripts/bounty_artifact_map.py <program> screenshots --entry-json '<json>' --check
+```
+
+Markdown `artifact-map.md` files are human summaries. JSON maps are the
+machine-readable source for agents.
+
 When following a Shared artifact pointer, check that the target exists. If it is
 missing, deleted, stale, or moved, update the artifact map with `status:
 missing`, `stale`, `moved`, or `regenerate` and record the new path or
