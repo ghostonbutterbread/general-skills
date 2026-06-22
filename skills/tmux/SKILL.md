@@ -71,13 +71,18 @@ Keep names lowercase and shell-safe: letters, numbers, dash, underscore.
 
 ## Start Pattern
 
+Resolve storage with `/bounty-storage` first. Long-running bounty output should
+default to `/mnt/bounty`; keep only compact manifests, pointers, and curated
+promotions in Shared.
+
 Create an artifact directory first, then start tmux detached:
 
 ```bash
 run_id="$(date -u +%Y%m%dT%H%M%SZ)"
 session="superdrug-arjun-$run_id"
-artifact_dir="/home/ryushe/Shared/bounty_recon/superdrug/ghost/arjun/$run_id"
-mkdir -p "$artifact_dir" /home/ryushe/.tmux_sessions
+artifact_dir="/mnt/bounty/superdrug/web/recon/fuzzing/arjun/runs/$run_id"
+shared_manifest_dir="/home/ryushe/Shared/web_bounty/superdrug/web/recon/fuzzing/arjun"
+mkdir -p "$artifact_dir" "$shared_manifest_dir" /home/ryushe/.tmux_sessions
 
 tmux new-session -d -s "$session" -c /home/ryushe/projects/bug_bounty_harness \
   "arjun -i '$artifact_dir/input_urls.txt' --rate-limit 2 -t 2 -d 0.5 -T 10 --disable-redirects --stable -o '$artifact_dir/arjun.json' -oT '$artifact_dir/arjun.txt' 2>&1 | tee -a '$artifact_dir/run.log'; printf '\n[tmux-run-complete] %s\n' \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\" | tee -a '$artifact_dir/run.log'"
@@ -102,6 +107,23 @@ cat > "/home/ryushe/.tmux_sessions/$session.json" <<EOF
   "check_command": "tmux capture-pane -t $session -p -S - | tail -80",
   "attach_command": "tmux attach -t $session",
   "stop_command": "tmux kill-session -t $session"
+}
+EOF
+```
+
+Then write a compact Shared run pointer, not raw tool output:
+
+```bash
+cat > "$shared_manifest_dir/$run_id.manifest.json" <<EOF
+{
+  "run_id": "$run_id",
+  "program": "superdrug",
+  "tool_or_skill": "tmux/arjun",
+  "status": "running",
+  "heavy_artifact_root": "$artifact_dir",
+  "tmux_manifest": "/home/ryushe/.tmux_sessions/$session.json",
+  "created_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+  "curated_shared_outputs": []
 }
 EOF
 ```
