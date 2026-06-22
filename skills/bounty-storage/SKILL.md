@@ -19,7 +19,8 @@ to decide where files belong.
 
 ## First Move
 
-When working on a bounty engagement and scripts are relevant, check:
+When working on a bounty engagement and scripts are relevant, check the
+cloud-backed Shared script lane first:
 
 `~/Shared/bounty_recon/_shared/script-index.md`
 
@@ -27,18 +28,49 @@ Then check:
 
 `~/Shared/bounty_recon/_shared/scripts/README.md`
 
-This is how agents know the Shared script lane exists. Use it for small reusable
-bounty scripts and records; keep heavy inputs and generated outputs in
-`/mnt/bounty` or scratch.
+If that Shared lane is absent on the current host, fall back to the source repo
+index:
+
+`/home/ryushe/projects/general-skills/SCRIPT_INDEX.md`
+
+This is how agents know whether a reusable helper already exists. Use Shared for
+small reusable bounty script wrappers and records; keep heavy inputs and
+generated outputs in `/mnt/bounty` or scratch.
 
 ## Core Rule
 
-Put canonical truth in `~/Shared`. Put long persistent bounty runs, stable heavy
-artifact libraries, and bulky artifacts in `/mnt/bounty`. Put disposable run
-scratch on the machine doing the work.
+Resolve the program family/lane first, then apply storage tiering:
+
+1. Use Bounty Core or the Shared path resolver to decide the active
+   `family/program/lane` path.
+2. Put canonical truth in the resolved `~/Shared` lane.
+3. Put long persistent bounty runs, stable heavy artifact libraries, and bulky
+   non-secret artifacts in `/mnt/bounty`.
+4. Put disposable run scratch on the machine doing the work.
+
+When a harness command exposes `agents/storage_resolver.py`,
+`bounty_core.storage`, `context/target_profile.json`, or the Shared
+`bounty_path_resolve.py` helper, use that resolved path instead of hard-coding
+legacy roots such as `~/Shared/bounty_recon/{program}/ghost/...`.
 
 Do not put large raw corpora in `~/Shared` unless Ryushe explicitly asks for
 cloud-backed retention.
+
+## Secret-Bearing Artifact Rule
+
+Raw cookies, bearer tokens, auth headers, CSRF tokens, reset links, passwords,
+private request bodies, API keys, and raw sensitive files do not belong in
+`~/Shared` or `/mnt/bounty`.
+
+Store only sanitized manifests, indexes, request contracts, packet metadata,
+header/cookie names, hashes, counts, and replay templates in Shared. Store
+sanitized or non-secret heavy dumps in `/mnt/bounty`.
+
+Raw secret-bearing captures may only live in an explicitly restricted local
+storage location with owner-only permissions, such as an approved auth-seed or
+proxy-store packet path. Do not promote those raw captures into Shared or
+`/mnt/bounty` unless Ryushe explicitly approves the exact storage location and
+retention reason.
 
 ## Storage Lanes
 
@@ -401,9 +433,10 @@ For credentials, store references only:
 - role and test-resource ownership
 - non-secret setup notes
 
-If proxy or browser artifacts contain sensitive headers/cookies, keep them in
-controlled scratch or a clearly labeled restricted artifact path and write a
-sanitized manifest/handoff instead.
+If proxy or browser artifacts contain sensitive headers/cookies, keep the raw
+capture only in controlled local restricted storage with owner-only permissions
+and write a sanitized manifest/handoff into Shared. `/mnt/bounty` is for
+non-secret or sanitized heavy artifacts, not reusable auth material.
 
 ## Reusable Scripts
 
