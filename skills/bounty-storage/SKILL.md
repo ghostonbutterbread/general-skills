@@ -5,493 +5,78 @@ description: "Route bug bounty files between cloud-backed Shared, mounted bounty
 
 # Bounty Storage
 
-Use this before writing bug bounty artifacts, run outputs, downloaded corpora,
-large recon datasets, screenshots, proxy data, browser profiles, or durable
-findings state.
+Use before writing bug bounty artifacts, run outputs, downloaded corpora, large
+recon datasets, screenshots, proxy data, browser profiles, or durable findings
+state.
 
-Canonical policy document:
+Canonical policy:
 
 `/home/ryushe/projects/ai-policies/policies/bug-bounty/bounty-storage.md`
 
-Workflow skills such as `/huge-ingest`, `/js`, `/url-ingest`, `/hunter-loop`,
-`/tmux`, `/recon`, and vulnerability-lane skills should load this when they need
-to decide where files belong.
+## Hot Rules
+
+Resolve the active program family/lane first, then choose storage:
+
+1. Canonical truth and small indexes/manifests -> resolved `~/Shared` lane.
+2. Large persistent non-secret artifacts -> `/mnt/bounty`.
+3. Disposable active work -> local scratch on the machine doing the work.
+4. Always leave a small Shared manifest or artifact-map pointer for large data.
+
+Never put raw cookies, bearer tokens, auth headers, CSRF tokens, reset links,
+passwords, API keys, private request bodies, private headers, or raw sensitive
+files in `~/Shared` or `/mnt/bounty`. Store only sanitized manifests, indexes,
+hashes, field names, counts, and replay templates there.
+
+Do not hard-code legacy roots when a resolver exists. Prefer
+`agents/storage_resolver.py`, `bounty_core.storage`, `context/target_profile.json`,
+or the Shared `bounty_path_resolve.py` helper.
 
 ## First Move
 
-When working on a bounty engagement and scripts are relevant, check the
-cloud-backed Shared script lane first:
-
-`~/Shared/bounty_recon/_shared/script-index.md`
-
-Then check:
-
-`~/Shared/bounty_recon/_shared/scripts/README.md`
-
-If that Shared lane is absent on the current host, fall back to the source repo
-index:
-
-`/home/ryushe/projects/general-skills/SCRIPT_INDEX.md`
-
-This is how agents know whether a reusable helper already exists. Use Shared for
-small reusable bounty script wrappers and records; keep heavy inputs and
-generated outputs in `/mnt/bounty` or scratch.
-
-## Core Rule
-
-Resolve the program family/lane first, then apply storage tiering:
-
-1. Use Bounty Core or the Shared path resolver to decide the active
-   `family/program/lane` path.
-2. Put canonical truth in the resolved `~/Shared` lane.
-3. Put long persistent bounty runs, stable heavy artifact libraries, and bulky
-   non-secret artifacts in `/mnt/bounty`.
-4. Put disposable run scratch on the machine doing the work.
-
-When a harness command exposes `agents/storage_resolver.py`,
-`bounty_core.storage`, `context/target_profile.json`, or the Shared
-`bounty_path_resolve.py` helper, use that resolved path instead of hard-coding
-legacy roots such as `~/Shared/bounty_recon/{program}/ghost/...`.
-
-Do not put large raw corpora in `~/Shared` unless Ryushe explicitly asks for
-cloud-backed retention.
-
-## Secret-Bearing Artifact Rule
-
-Raw cookies, bearer tokens, auth headers, CSRF tokens, reset links, passwords,
-private request bodies, API keys, and raw sensitive files do not belong in
-`~/Shared` or `/mnt/bounty`.
-
-Store only sanitized manifests, indexes, request contracts, packet metadata,
-header/cookie names, hashes, counts, and replay templates in Shared. Store
-sanitized or non-secret heavy dumps in `/mnt/bounty`.
-
-Raw secret-bearing captures may only live in an explicitly restricted local
-storage location with owner-only permissions, such as an approved auth-seed or
-proxy-store packet path. Do not promote those raw captures into Shared or
-`/mnt/bounty` unless Ryushe explicitly approves the exact storage location and
-retention reason.
-
-## Storage Lanes
-
-### Shared Truth
-
-Path: `~/Shared`
-
-Use for artifacts that should be backed up, easy for Ryushe to inspect, and
-safe for future agents to treat as canonical:
-
-- program scope, rules, policy, and account/resource notes
-- findings, proof packets, and final reports
-- tested/not-tested ledgers and coverage summaries
-- lead summaries and handoffs
-- run manifests and compact export summaries
-- artifact maps that point to `/mnt/bounty`
-- artifact health notes for missing, stale, moved, or regenerated heavy data
-- blocked queues, auth-required queues, redownload queues
-- small JSONL/SQLite indexes that point to heavy artifacts
-- sanitized request contracts and replay notes
-- small reusable bug bounty scripts and script records
-
-Recommended bounty layout:
+If scripts are relevant, check existing helper indexes before writing a new one:
 
 ```text
-~/Shared/bounty_recon/<program>/
-  scope/
-  credentials/              # references only, no secrets
-  agent_shared/
-    findings/
-    hunter-loop/
-    application-map/
-  ghost/<skill-or-lane>/
-
-~/Shared/web_bounty/<program>/web/
-  recon/
-    urls/
-      urls.txt
-      params.txt
-      endpoints.txt
-    js/
-      js_urls.txt
-    artifact-map.md
-  findings/
-  reports/
-
-~/Shared/bounty_recon/<program>/apk/
-  recon/
-    artifact-map.md
-  findings/
-  reports/
-
-~/Shared/bounty_recon/_shared/
-  scripts/
-  script-index.md
-  templates/
+~/Shared/bounty_recon/_shared/script-index.md
+~/Shared/bounty_recon/_shared/scripts/README.md
+/home/ryushe/projects/general-skills/SCRIPT_INDEX.md
 ```
 
-### Mounted Bounty Artifacts
+Small reusable wrappers and records can live in Shared. Heavy inputs, raw
+outputs, dependencies, virtualenvs, fixtures, and generated corpora should not.
 
-Preferred path: `/mnt/bounty`
+## Storage Decision
 
-Use for long-running bounty runs and large working data that multiple
-machines/agents may need but that does not need cloud backup.
+- Shared: scope, rules, sanitized credentials references, findings, proof
+  packets, reports, ledgers, compact summaries, manifests, artifact maps,
+  curated aggregate lists, sanitized request contracts, small reusable scripts.
+- `/mnt/bounty`: raw JS/source bundles, scraped pages, screenshots/videos, proxy
+  flows/HARs, browser profiles, CDP traces, parser intermediates, long fuzz/recon
+  runs, redownloadable corpora with manifests.
+- Scratch: active downloads, parser temp files, partial output, retry state, tool
+  logs, throwaway experiments.
+- Restricted local evidence only: raw secret-bearing captures or exact sensitive
+  proof when approved and protected with owner-only permissions.
 
-Use a program-first layout. Keep stable category/corpus directories for normal
-agent lookup, and keep `runs/<run_id>/` directories for history/provenance:
-
-```text
-/mnt/bounty/<program>/
-  web/
-    recon/
-      fuzzing/
-        <target-slug>/
-          runs/<run_id>/
-          index.jsonl
-      subdomains/
-        runs/<run_id>/
-        index.jsonl
-      javascript/
-        urls/
-        downloads/
-          by-host/
-          by-sha256/
-        sourcemaps/
-        chunks/
-        indexes/
-        runs/<run_id>/
-      pages/
-      api/
-    screenshots/
-      admin/
-      auth/
-      billing/
-      settings/
-      unknown/
-      runs/<run_id>/
-      index.jsonl
-    proxy/
-      flows/
-      har/
-      runs/<run_id>/
-    videos/
-    browser-profiles/
-    cdp-traces/
-  apk/
-    static/
-      decompile/
-      jadx/
-      apktool/
-    dynamic/
-      traces/
-      frida/
-      screenshots/
-    runs/<run_id>/
-
-/mnt/bounty/cache/
-  content-addressed/<sha256-prefix>/<sha256>
-  downloads/
-```
-
-Examples:
-
-- raw JavaScript/source bundles
-- scraped HTML/page bodies
-- screenshot and video sets
-- proxy flow dumps and large request histories
-- browser profiles, CDP traces, and HAR files
-- chunk stores and parser intermediate output
-- redownloadable corpora where URLs/manifests are preserved
-- persistent fuzzing, recon, subdomain, JavaScript, screenshot, and proxy runs
-
-Examples:
-
-```text
-/mnt/bounty/canva/web/recon/fuzzing/accounts-api/runs/<run_id>/
-/mnt/bounty/canva/web/recon/javascript/downloads/by-host/static.canva.com/
-/mnt/bounty/canva/web/recon/javascript/downloads/by-sha256/ab/abcdef...js
-/mnt/bounty/canva/web/screenshots/admin/
-/mnt/bounty/canva/web/screenshots/runs/<run_id>/
-/mnt/bounty/canva/web/proxy/flows/<flow-set>/
-/mnt/bounty/canva/apk/static/jadx/runs/<run_id>/
-```
-
-Agents should write stable artifact pointers into `~/Shared` so another machine
-can find the heavy data without copying it. Curated aggregate lists live in
-Shared; heavy evidence and raw output live in `/mnt/bounty`. For example, a
-parameter fuzz run writes raw output under
-`/mnt/bounty/<program>/web/recon/fuzzing/<target-slug>/runs/<run_id>/`, then
-appends new unique discovered URLs or params into the appropriate Shared list
-with a dedupe tool such as `anew`.
-
-For JavaScript, `downloads/by-host/` is the human browse path and
-`downloads/by-sha256/` is the dedupe path. The host path keeps the URL origin
-obvious; the SHA-256 path stores each unique JavaScript body once by content
-hash.
-
-For screenshots, stable folders such as `admin/`, `auth/`, `billing/`, and
-`settings/` are the browseable library. `screenshots/runs/<run_id>/` preserves
-what happened during a specific run.
-
-## Artifact Maps And Health
-
-Shared artifact maps are the first place agents should look for heavy bounty
-artifacts. They should point to stable category/corpus paths first and run IDs
-second for provenance.
-
-Prefer machine-readable per-artifact maps:
-
-```text
-~/Shared/web_bounty/<program>/web/recon/artifacts/screenshots-map.json
-~/Shared/web_bounty/<program>/web/recon/artifacts/javascript-map.json
-~/Shared/web_bounty/<program>/web/recon/artifacts/proxy-flows-map.json
-~/Shared/bounty_recon/<program>/apk/recon/artifacts/static-map.json
-```
-
-Use the Shared helper for concurrent-safe updates and health checks:
-
-```bash
-python3 ~/Shared/bounty_recon/_shared/scripts/bounty_artifact_map.py <program> screenshots --entry-json '<json>' --check
-```
-
-Canonical source for universal bounty helpers should live in BBH. For this
-helper, the source path is:
-
-```text
-/home/ryushe/projects/bug_bounty_harness/agents/bounty_artifact_map.py
-```
-
-The Shared script path can be a small wrapper/discovery entry. Program-specific
-small scripts may live directly in Shared when documented.
-
-Markdown `artifact-map.md` files are human summaries. JSON maps are the
-machine-readable source for agents.
-
-When following a Shared artifact pointer, check that the target exists. If it is
-missing, deleted, stale, or moved, update the artifact map with `status:
-missing`, `stale`, `moved`, or `regenerate` and record the new path or
-regeneration command when known. Do not silently recreate unrelated folders or
-trust stale pointers.
-
-## Canonical Aggregates
-
-To avoid drift, append only to known aggregate files unless the run manifest
-explicitly declares a new aggregate:
-
-```text
-~/Shared/web_bounty/<program>/web/recon/urls/urls.txt
-~/Shared/web_bounty/<program>/web/recon/urls/endpoints.txt
-~/Shared/web_bounty/<program>/web/recon/urls/params.txt
-~/Shared/web_bounty/<program>/web/recon/js/js_urls.txt
-~/Shared/bounty_recon/<program>/apk/recon/endpoints.txt
-~/Shared/bounty_recon/<program>/apk/recon/deeplinks.txt
-~/Shared/bounty_recon/<program>/apk/recon/permissions.txt
-```
-
-Do not create ad hoc files inside aggregate directories just because a tool used
-a different output name. Raw output stays in `/mnt/bounty`; only curated unique
-items get appended to Shared.
-
-## Trusted Promoters
-
-Some tools already own their own canonical append/dedupe behavior. Use the
-tool's native flow first, then write a Shared manifest or artifact-map pointer.
-
-Approved trusted promoters:
-
-```text
-recon-ry
-```
-
-For `recon-ry`, the durable project root may remain the tool-owned project
-directory, such as `/home/ryushe/bounties/<program>/` on Hoster. Its stable root
-files, such as `urls.txt`, `alive.txt`, `params.txt`, and `jsfiles.txt`, are the
-tool-owned canonical recon view. Agents should ingest or index those outputs
-into Shared only when a Shared manifest/counts record is needed.
-
-If a tool is not on this list, it follows the generic lifecycle: raw output in
-`/mnt/bounty`, curated promotion into fixed Shared aggregate files, and a
-manifest stating what was promoted.
-
-## Long-Running Runs
-
-Long persistent runs should use `/tmux`, a manifest under `~/.tmux_sessions/`,
-raw output under `/mnt/bounty`, and a compact Shared manifest/artifact-map entry.
-Agents can check completion with:
-
-```bash
-python3 ~/Shared/bounty_recon/_shared/scripts/bounty_run_watch.py --program <program> --update
-```
-
-For active monitoring:
-
-```bash
-python3 ~/Shared/bounty_recon/_shared/scripts/bounty_run_watch.py --program <program> --watch --interval 120 --update
-```
-
-## Moving Programs Out Of Shared
-
-If `~/Shared` fills up, a program can be archived or moved without breaking the
-system as long as Shared keeps a small pointer stub:
-
-```text
-~/Shared/web_bounty/<program>/ARCHIVED.md
-~/Shared/web_bounty/<program>/archive-manifest.json
-```
-
-or:
-
-```text
-~/Shared/bounty_recon/<program>/ARCHIVED.md
-~/Shared/bounty_recon/<program>/archive-manifest.json
-```
-
-Agents must treat those files as authoritative. They should not recreate a fresh
-program tree in Shared until the archive manifest says where the active Shared
-path is or Ryushe approves restoration.
-
-Before writing Shared program state, resolve the target path:
-
-```bash
-python3 ~/Shared/bounty_recon/_shared/scripts/bounty_path_resolve.py <program> --surface web
-```
-
-For scripts:
-
-```bash
-shared_program_path="$(python3 ~/Shared/bounty_recon/_shared/scripts/bounty_path_resolve.py <program> --surface web --path-only)"
-```
-
-If the resolver reports `restore_required=true`, do not create a fresh Shared
-tree. Use the archive manifest's active/moved path, or ask Ryushe to restore the
-program first.
-
-### Local Run Scratch
-
-Preferred local scratch: `~/workdir/<program>/<run_id>/`
-
-Accept existing project or host conventions when already established:
-
-- Hoster active jobs: `/home/ryushe/artifacts/<program>/<run_id>/`
-- local active jobs: `/home/ryushe/artifacts/<program>/<run_id>/`
-- task-owned temp dirs under `/tmp` only for throwaway data
-
-Use scratch for:
-
-- active downloads
-- parser temp files
-- tool logs
-- retry state
-- partial output before promotion
-- experiments that may be deleted
-
-Scratch is not canonical. Long persistent runs should prefer `/mnt/bounty`
-directly when it is writable. Use scratch only for temporary staging or when the
-mount is missing, then export a manifest or summary to `~/Shared` and move heavy
-retained artifacts to `/mnt/bounty` when available.
+Open `references/storage-layout.md` for canonical layouts and path examples.
+Open `references/run-manifests.md` for large-run manifests, artifact maps,
+archive pointers, and handoff requirements.
 
 ## Fallback Order
 
-When writing a large artifact:
+For large artifacts:
 
-1. If `/mnt/bounty` exists and is writable, use it.
-2. Else use the current run host's artifact directory.
-3. Else use `~/workdir/<program>/<run_id>/`.
-4. Always write a small manifest into `~/Shared` that records the actual heavy
-   artifact path and regeneration command.
+1. `/mnt/bounty` if writable.
+2. Current host artifact directory.
+3. `~/workdir/<program>/<run_id>/`.
+4. Write a compact Shared manifest with actual path and regeneration command.
 
-Do not silently dump large data into `~/Shared` because `/mnt/bounty` is missing.
+Do not silently dump large data into `~/Shared` because `/mnt/bounty` is absent.
 
-## Run Manifest
+## Exit Checklist
 
-Every large run should leave a compact manifest in `~/Shared` with:
-
-- `run_id`, `program`, `tool_or_skill`, `host`, `started_at`, `finished_at`
-- scope assumptions and input sources
-- shared output path
-- heavy artifact root
-- scratch path
-- surface, such as `web` or `apk`
-- category path, such as `web/recon/fuzzing/<target-slug>` or `web/recon/javascript`
-- counts: inputs, fetched, reused, skipped, blocked, failed, parsed, packetized
-- blocked/auth-required/redownload queue paths
-- index paths and packet directories
-- curated Shared lists updated from the run
-- cleanup/retention notes
-- exact command, script, or tmux session needed to resume or regenerate
-
-Prefer JSON for machine use plus a short Markdown summary for humans.
-
-## Sensitive Data
-
-Never store real secrets, cookies, bearer tokens, passwords, reset links, API
-keys, or private headers in Shared or bounty artifact storage.
-
-For credentials, store references only:
-
-- Bitwarden item reference
-- account nickname or lane
-- role and test-resource ownership
-- non-secret setup notes
-
-If proxy or browser artifacts contain sensitive headers/cookies, keep the raw
-capture only in controlled local restricted storage with owner-only permissions
-and write a sanitized manifest/handoff into Shared. `/mnt/bounty` is for
-non-secret or sanitized heavy artifacts, not reusable auth material.
-
-## Reusable Scripts
-
-Script location depends on ownership:
-
-```text
-Universal bug-hunting harness behavior -> /home/ryushe/projects/bug_bounty_harness/
-Program-specific bounty helper         -> ~/Shared/web_bounty/<program>/web/scripts/
-                                      or ~/Shared/bounty_recon/<program>/scripts/
-Non-bounty general utility             -> ~/scripts/
-Shared discovery/index/wrappers         -> ~/Shared/bounty_recon/_shared/scripts/
-```
-
-Use BBH when the script is reusable bug-hunting or harness behavior. Examples:
-artifact-map helpers, path resolvers, run watchers, parsers, normalizers, replay
-helpers, and anything a future bounty workflow should import or maintain.
-
-Use the program Shared scripts folder when the script is small and only exists
-because one program has specific exports, URL shapes, artifact quirks, or naming
-conventions.
-
-Use `~/scripts/` when the script is a general local utility and not part of the
-bounty harness or a target-specific bounty workflow.
-
-Small shared bounty wrapper/index records can live in:
-
-`~/Shared/bounty_recon/_shared/scripts/`
-
-Do not put virtual environments, dependencies, bulky fixtures, generated output,
-raw target data, or secrets there. If a script depends on a repo, keep the source
-in that repo and put only a small Shared record or wrapper pointing to the repo
-path and commit.
-
-Universal harness scripts belong in BBH first; Shared should expose them through
-the script index or a compatibility wrapper.
-
-## Edge Cases
-
-Read the canonical policy for the only policy-level edge cases:
-
-- `/mnt/bounty` missing or not writable
-- concurrent agents writing at once
-- different machines having different local paths
-- retention: keep vs regenerate vs expire
-
-## Agent Handoff
-
-When handing work to another agent, pass:
-
-- manifest path
-- packet ID
-- artifact pointer
-- hash/chunk/range
-- compact evidence excerpt
-- allowed scope and stop condition
-
-Do not pass huge directories, raw proxy dumps, browser profiles, or secret-bearing
-files as prompt content.
+- Heavy data is outside Shared unless explicitly cloud-backed.
+- Shared has a manifest, artifact map, or curated aggregate pointer.
+- Raw secrets are absent from Shared, `/mnt/bounty`, prompts, commits, and chat.
+- Missing/stale/moved artifact pointers are marked instead of silently trusted.
+- Handoffs include manifest path, artifact pointer, hash/chunk/range, compact
+  evidence excerpt, allowed scope, and stop condition.
