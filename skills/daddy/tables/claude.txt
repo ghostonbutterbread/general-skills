@@ -2,9 +2,6 @@
 # Ordered strongest to weakest. Put aliases on the same line, comma-separated.
 # Keep this as local routing policy, not an official capability claim.
 
-claude-opus
-claude-strong
-claude-sonnet
-claude-balanced
-claude-haiku
-claude-fast
+fabel,fable,claude-fabel,claude-fable
+opus,claude-opus
+sonnet,claude-sonnet

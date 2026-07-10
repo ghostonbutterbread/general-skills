@@ -40,13 +40,13 @@ Example:
 
 ```text
 # tables/claude.txt, strongest to weakest
-claude-strong
-claude-balanced
-claude-fast
+fabel
+opus
+sonnet
 ```
 
-For `current_model: claude-balanced`, `up` resolves to `claude-strong` and
-`down` resolves to `claude-fast`.
+For `current_model: opus`, `up` resolves to `fabel` and `down` resolves to
+`sonnet`.
 
 If the current model is not visible, ask the parent agent or launcher for
 relative lane metadata instead of guessing:
@@ -71,7 +71,7 @@ Before routing, check the provider table:
 - `tables/claude.txt`
 
 Each non-comment line is one rank from strongest to weakest. Aliases may be
-listed on the same line with commas, such as `sol,soul`.
+listed on the same line with commas, such as `gpt-5.6-sol,sol,soul`.
 
 If a model is missing from the table but has a numeric family version, infer
 ordering only inside that same family. For example, `gpt-5.6` is above
@@ -85,7 +85,7 @@ add it to the table instead of guessing.
 Agents may use:
 
 ```bash
-python3 skills/daddy/scripts/daddy_resolve.py --provider chatgpt --current tera --movement up
+python3 skills/daddy/scripts/daddy_resolve.py --provider chatgpt --current terra --movement up
 ```
 
 ## Relative Movement
@@ -331,20 +331,21 @@ model_route_decision:
 
 ## Quick Tests
 
-Given `tables/chatgpt.txt` contains `sol`, `tera`, `luna` in that order:
+Given `tables/chatgpt.txt` starts with `gpt-5.6-sol`, `gpt-5.6-terra`,
+`gpt-5.6-luna`, `gpt-5.5` in that order:
 
-- Deduplicate 10,000 URLs -> `down` -> `luna`.
-- Implement a normal parser change -> `base` -> `tera`.
-- Decide whether an auth bypass is reportable -> `up` -> `sol`.
-- Ask for `2up` -> `sol`, clamped to strongest available.
+- Deduplicate 10,000 URLs from `terra` -> `down` -> `gpt-5.6-luna`.
+- Implement a normal parser change from `terra` -> `base` -> `terra`.
+- Decide whether an auth bypass is reportable from `terra` -> `up` -> `gpt-5.6-sol`.
+- Ask for `2up` from `terra` -> `gpt-5.6-sol`, clamped to strongest available.
 
-Given `tables/claude.txt` contains `claude-strong`, `claude-balanced`,
-`claude-fast` in that order:
+Given `tables/claude.txt` contains `fabel`, `opus`, `sonnet` in that order:
 
-- Summarize noisy recon logs -> `down` -> `claude-fast`.
-- Review exploit-chain logic -> `up` -> `claude-strong`.
+- Summarize noisy recon logs from `opus` -> `down` -> `sonnet`.
+- Review exploit-chain logic from `opus` -> `up` -> `fabel`.
 
-Given current model `sol` and `tables/chatgpt.txt` lists `gpt-5.6` above it:
+Given current model `gpt-5.5` and `tables/chatgpt.txt` lists the
+`gpt-5.6-*` ranks above it:
 
-- Ask for `up` -> `gpt-5.6`.
-- Ask for `down` -> `tera`.
+- Ask for `up` -> `gpt-5.6-luna`.
+- Ask for `down` -> `gpt-5`.
