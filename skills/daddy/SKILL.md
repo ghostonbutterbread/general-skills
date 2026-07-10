@@ -28,23 +28,25 @@ First determine the current model from the CLI/session/runtime if available:
 current_model: <runtime model id>
 ```
 
-Resolve movement from the ladder containing that model:
+Resolve movement from the model table containing that model. Tables live under
+`tables/` and are ordered strongest to weakest:
 
-```yaml
-model_ladders:
-  chatgpt: [luna, tera, sol]
-  claude: [claude-fast, claude-balanced, claude-strong]
+```text
+tables/chatgpt.txt
+tables/claude.txt
 ```
 
 Example:
 
-```yaml
-current_model: claude-balanced
-ladder: [claude-fast, claude-balanced, claude-strong]
-down: claude-fast
-base: claude-balanced
-up: claude-strong
+```text
+# tables/claude.txt, strongest to weakest
+claude-strong
+claude-balanced
+claude-fast
 ```
+
+For `current_model: claude-balanced`, `up` resolves to `claude-strong` and
+`down` resolves to `claude-fast`.
 
 If the current model is not visible, ask the parent agent or launcher for
 relative lane metadata instead of guessing:
@@ -61,15 +63,40 @@ available_relative_lanes:
 The skill does not require a `provider`, `base_model`, or `model_reasoning`
 config. Those are runtime or launcher concerns.
 
+## Model Tables
+
+Before routing, check the provider table:
+
+- `tables/chatgpt.txt`
+- `tables/claude.txt`
+
+Each non-comment line is one rank from strongest to weakest. Aliases may be
+listed on the same line with commas, such as `sol,soul`.
+
+If a model is missing from the table but has a numeric family version, infer
+ordering only inside that same family. For example, `gpt-5.6` is above
+`gpt-5.5`, and `gpt-4.2` sits between `gpt-4.5` and `gpt-4.1` if those models
+exist in the table. Do not use numeric inference across providers or unrelated
+families.
+
+If a missing model has no comparable number, ask the launcher or parent agent to
+add it to the table instead of guessing.
+
+Agents may use:
+
+```bash
+python3 skills/daddy/scripts/daddy_resolve.py --provider chatgpt --current tera --movement up
+```
+
 ## Relative Movement
 
 Supported movements:
 
-- `2down` - two steps below the current model, clamped to the lowest available model.
-- `down` or `1down` - one step below the current model.
+- `2down` - two steps weaker than the current model, clamped to the lowest available model.
+- `down` or `1down` - one step weaker than the current model.
 - `base` - stay on the current model.
-- `up` or `1up` - one step above the current model.
-- `2up` - two steps above the current model, clamped to the strongest available model.
+- `up` or `1up` - one step stronger than the current model.
+- `2up` - two steps stronger than the current model, clamped to the strongest available model.
 - `max` - strongest available model in the resolved ladder.
 
 `daddy` means `up` by default: spawn or ask the model one tier above the current
@@ -294,7 +321,7 @@ model_route_decision:
 
 - Do not hardcode a default base model inside this skill.
 - Do not require provider config unless the launcher cannot resolve ambiguity.
-- Do not guess model ladders from vibes; use runtime/launcher metadata.
+- Do not guess model ladders from vibes; use `tables/*.txt` or runtime/launcher metadata.
 - Do not escalate because a task is boring.
 - Do not dump entire repos, logs, transcripts, proxy histories, secrets, cookies, tokens, or private state into another model.
 - Do not let the child model silently change the original goal.
@@ -304,19 +331,20 @@ model_route_decision:
 
 ## Quick Tests
 
-Given current model `tera` and ladder `[luna, tera, sol]`:
+Given `tables/chatgpt.txt` contains `sol`, `tera`, `luna` in that order:
 
 - Deduplicate 10,000 URLs -> `down` -> `luna`.
 - Implement a normal parser change -> `base` -> `tera`.
 - Decide whether an auth bypass is reportable -> `up` -> `sol`.
 - Ask for `2up` -> `sol`, clamped to strongest available.
 
-Given current model `claude-balanced` and ladder `[claude-fast, claude-balanced,
-claude-strong]`:
+Given `tables/claude.txt` contains `claude-strong`, `claude-balanced`,
+`claude-fast` in that order:
 
 - Summarize noisy recon logs -> `down` -> `claude-fast`.
 - Review exploit-chain logic -> `up` -> `claude-strong`.
 
-Given current model `sol` and ladder `[luna, tera, sol]`:
+Given current model `sol` and `tables/chatgpt.txt` lists `gpt-5.6` above it:
 
-- Ask for `up` -> stay on `sol` and record that no higher model exists.
+- Ask for `up` -> `gpt-5.6`.
+- Ask for `down` -> `tera`.

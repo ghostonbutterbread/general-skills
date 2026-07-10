@@ -7,7 +7,7 @@ measure real model quality, latency, or token billing.
 
 from __future__ import annotations
 
-LADDER = ["luna", "tera", "sol"]
+LADDER = ["sol", "tera", "luna"]
 CURRENT_MODEL = "tera"
 COST_UNITS = {"luna": 0.35, "tera": 1.0, "sol": 3.0}
 ROUTING_OVERHEAD_UNITS = 0.08
@@ -22,7 +22,7 @@ SCENARIOS = {
 
 def move(route: str) -> str:
     idx = LADDER.index(CURRENT_MODEL)
-    offsets = {"down": -1, "base": 0, "up": 1}
+    offsets = {"down": 1, "base": 0, "up": -1}
     return LADDER[max(0, min(len(LADDER) - 1, idx + offsets[route]))]
 
 
