@@ -7,9 +7,9 @@ measure real model quality, latency, or token billing.
 
 from __future__ import annotations
 
-LADDER = ["sol", "tera", "luna"]
-CURRENT_MODEL = "tera"
-COST_UNITS = {"luna": 0.35, "tera": 1.0, "sol": 3.0}
+LADDER = ["gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna"]
+CURRENT_MODEL = "gpt-5.6-terra"
+COST_UNITS = {"gpt-5.6-luna": 0.35, "gpt-5.6-terra": 1.0, "gpt-5.6-sol": 3.0}
 ROUTING_OVERHEAD_UNITS = 0.08
 
 SCENARIOS = {
