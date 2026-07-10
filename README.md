@@ -12,6 +12,7 @@ Reusable local OpenClaw/Codex skills that are not tied to one bug bounty harness
 - `tmpmail` - tmpmail CLI workflow for disposable terminal inboxes in owned test flows.
 - `tmux` - Long-running session protocol for attachable recon, fuzzing, Arjun, scanner, SSH, and interactive CLI jobs.
 - `coordination` - Parent/child task splitting protocol for broad runs, focused subagents, and interactable child-run metadata.
+- `daddy` - Relative model-up/down routing for CLI agents, with benchmark guardrails for cost and quality tradeoffs.
 - `script_manager` - Reusable script promotion, storage, indexing, and handoff rules so repeated agent workflows become durable helpers.
 - `skill-seeds` - Lightweight shared proposal format for new or changed skills, with Ghost as the only promotion point.
 - `huge-ingest` - Large dataset ingestion protocol for URL/code/page/proxy/artifact corpora, bounded packets, lane dispatch, and bounty storage routing.
