@@ -2,6 +2,8 @@
 # Ordered strongest to weakest. Put aliases on the same line, comma-separated.
 # Keep this as local routing policy, not an official capability claim.
 
-fabel,fable,claude-fabel,claude-fable
-opus,claude-opus
-sonnet,claude-sonnet
+# Official Claude API model IDs from https://platform.claude.com/docs/en/about-claude/models/overview
+claude-fable-5,fable,fabel,claude-fable,claude-fabel
+claude-opus-4-8,opus,claude-opus
+claude-sonnet-5,sonnet,claude-sonnet
+claude-haiku-4-5-20251001,claude-haiku-4-5,haiku,claude-haiku

@@ -2,11 +2,7 @@
 # Ordered strongest to weakest. Put aliases on the same line, comma-separated.
 # Keep this as local routing policy, not an official capability claim.
 
-gpt-5.6-sol,sol,soul
+# Official OpenAI frontier text model IDs from https://developers.openai.com/api/docs/models
+gpt-5.6-sol,gpt-5.6,sol,soul
 gpt-5.6-terra,terra,tera
 gpt-5.6-luna,luna
-gpt-5.5
-gpt-5,gpt-5.0
-gpt-4.5
-gpt-4.1
-gpt-4,gpt-4.0
