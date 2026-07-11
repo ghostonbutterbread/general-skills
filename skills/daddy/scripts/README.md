@@ -29,6 +29,6 @@ Scripts owned by the `daddy` skill.
   python3 skills/daddy/scripts/daddy_resolve.py --provider chatgpt --current terra --movement up
   python3 skills/daddy/scripts/daddy_resolve.py --provider chatgpt --current gpt-5.7 --movement down
   ```
-- Tests: run examples and verify `terra up` resolves to `gpt-5.6-sol`, while unknown numeric models infer only within the same family.
+- Tests: run examples and verify `terra up` resolves to `gpt-5.6-sol`, while `gpt-5.7 down` resolves to `gpt-5.6-sol`.
 - Owner: general-skills/daddy
 - Last verified: 2026-07-10

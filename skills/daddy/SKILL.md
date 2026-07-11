@@ -40,13 +40,13 @@ Example:
 
 ```text
 # tables/claude.txt, strongest to weakest
-fabel
-opus
-sonnet
+claude-fable-5
+claude-opus-4-8
+claude-sonnet-5
 ```
 
-For `current_model: opus`, `up` resolves to `fabel` and `down` resolves to
-`sonnet`.
+For `current_model: opus`, `up` resolves to `claude-fable-5` and `down`
+resolves to `claude-sonnet-5`.
 
 If the current model is not visible, ask the parent agent or launcher for
 relative lane metadata instead of guessing:
@@ -74,10 +74,9 @@ Each non-comment line is one rank from strongest to weakest. Aliases may be
 listed on the same line with commas, such as `gpt-5.6-sol,sol,soul`.
 
 If a model is missing from the table but has a numeric family version, infer
-ordering only inside that same family. For example, `gpt-5.6` is above
-`gpt-5.5`, and `gpt-4.2` sits between `gpt-4.5` and `gpt-4.1` if those models
-exist in the table. Do not use numeric inference across providers or unrelated
-families.
+ordering only inside that same family. For example, `gpt-5.7` sits above the
+listed `gpt-5.6-*` models. Do not use numeric inference across providers or
+unrelated families.
 
 If a missing model has no comparable number, ask the launcher or parent agent to
 add it to the table instead of guessing.
@@ -332,20 +331,21 @@ model_route_decision:
 ## Quick Tests
 
 Given `tables/chatgpt.txt` starts with `gpt-5.6-sol`, `gpt-5.6-terra`,
-`gpt-5.6-luna`, `gpt-5.5` in that order:
+`gpt-5.6-luna` in that order:
 
 - Deduplicate 10,000 URLs from `terra` -> `down` -> `gpt-5.6-luna`.
 - Implement a normal parser change from `terra` -> `base` -> `terra`.
 - Decide whether an auth bypass is reportable from `terra` -> `up` -> `gpt-5.6-sol`.
 - Ask for `2up` from `terra` -> `gpt-5.6-sol`, clamped to strongest available.
 
-Given `tables/claude.txt` contains `fabel`, `opus`, `sonnet` in that order:
+Given `tables/claude.txt` contains `claude-fable-5`, `claude-opus-4-8`,
+`claude-sonnet-5`, and `claude-haiku-4-5-20251001` in that order:
 
-- Summarize noisy recon logs from `opus` -> `down` -> `sonnet`.
-- Review exploit-chain logic from `opus` -> `up` -> `fabel`.
+- Summarize noisy recon logs from `opus` -> `down` -> `claude-sonnet-5`.
+- Review exploit-chain logic from `opus` -> `up` -> `claude-fable-5`.
 
-Given current model `gpt-5.5` and `tables/chatgpt.txt` lists the
-`gpt-5.6-*` ranks above it:
+Given current model `gpt-5.7` is missing from `tables/chatgpt.txt` but has a
+numeric same-family version above `gpt-5.6`:
 
-- Ask for `up` -> `gpt-5.6-luna`.
-- Ask for `down` -> `gpt-5`.
+- Ask for `up` -> stay on `gpt-5.7`, because no known stronger GPT model is listed.
+- Ask for `down` -> `gpt-5.6-sol`.
