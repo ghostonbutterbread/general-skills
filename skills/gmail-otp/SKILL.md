@@ -60,12 +60,13 @@ $GMAIL_OTP auth-url
 ```
 
 4. Open the exact URL printed by `auth-url`, approve only the two Gmail scopes,
-   then copy the complete localhost redirect URL from the browser address bar.
-   A browser connection failure on `localhost:1` after approval is expected.
+   then copy the complete `http://localhost:8765/...` redirect URL from the
+   browser address bar. A browser connection failure after approval is expected
+   because no local web server is needed.
 5. Exchange it and check the result:
 
 ```bash
-$GMAIL_OTP auth-code 'http://localhost:1/?code=...&state=...'
+$GMAIL_OTP auth-code 'http://localhost:8765/?code=...&state=...'
 $GMAIL_OTP status
 ```
 

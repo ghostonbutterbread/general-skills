@@ -20,7 +20,8 @@ SCOPES = (
     "https://www.googleapis.com/auth/gmail.readonly",
     "https://www.googleapis.com/auth/gmail.send",
 )
-REDIRECT_URI = "http://localhost:1"
+# 8765 avoids browser-blocked low-numbered ports while remaining a loopback-only redirect.
+REDIRECT_URI = "http://localhost:8765"
 MAX_MESSAGE_CHARS = 12_000
 OTP_PATTERN = re.compile(r"(?<!\d)(?:\d[ -]?){4,10}(?!\d)")
 
