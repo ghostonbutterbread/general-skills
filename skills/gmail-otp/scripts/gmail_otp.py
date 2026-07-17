@@ -293,5 +293,21 @@ def main() -> None:
     args.func(args)
 
 
+def run() -> None:
+    try:
+        main()
+    except Exception as exc:
+        # Keep API failures actionable without dumping request URLs or OAuth data.
+        response = getattr(exc, "resp", None)
+        status = getattr(response, "status", None)
+        if exc.__class__.__name__ == "HttpError":
+            error = "Gmail API request was rejected."
+            if status == 403 and "accessNotConfigured" in str(exc):
+                error = "Gmail API is disabled for this OAuth project. Enable Gmail API, wait briefly, then retry."
+            print(json.dumps({"ok": False, "error": error, "http_status": status}), file=sys.stderr)
+            raise SystemExit(1)
+        raise
+
+
 if __name__ == "__main__":
-    main()
+    run()
