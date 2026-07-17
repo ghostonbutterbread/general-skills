@@ -17,6 +17,7 @@ Reusable local OpenClaw/Codex skills that are not tied to one bug bounty harness
 - `skill-seeds` - Lightweight shared proposal format for new or changed skills, with Ghost as the only promotion point.
 - `huge-ingest` - Large dataset ingestion protocol for URL/code/page/proxy/artifact corpora, bounded packets, lane dispatch, and bounty storage routing.
 - `bounty-storage` - Bug bounty storage policy for `~/Shared`, `/mnt/bounty`, and local scratch lanes.
+- `gmail-otp` - Narrow Gmail OAuth inbox reader for user-initiated login/password-reset OTPs, with sending hard-allowlisted to `ryushe.dev@gmail.com`.
 
 ## Script Index
 
