@@ -8,6 +8,7 @@ Reusable local OpenClaw/Codex skills that are not tied to one bug bounty harness
 - `account-manager` - Non-secret account inventory workflow for roles, mutability, lifecycle state, and Bitwarden item references.
 - `resilio-sync` - Resilio Sync handoff rules for `/srv/resilio` and large local file-set sharing.
 - `safe-fetch` - Default external web-content ingestion through quarantine and sanitization unless explicitly bypassed.
+- `nightly-learning` - Report-only AppSec learning intake from a curated source registry, with safe-fetch provenance and manual promotion only.
 - `faq` - Problem-oriented solved fixes, script lookup, and central/program FAQ routing before agents re-solve recurring issues.
 - `papercuts` - Concise, sanitized records of agent workflow friction that later maintenance passes can verify and eliminate.
 - `tmpmail` - tmpmail CLI workflow for disposable terminal inboxes in owned test flows.
