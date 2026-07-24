@@ -77,7 +77,9 @@ systemd-run --user --unit=<run-id>
 
 It sets `XDG_RUNTIME_DIR` and `DBUS_SESSION_BUS_ADDRESS`, verifies the user
 manager is running, validates unit names, and preserves command argv. Do not
-replace it with bare `tmux`, `nohup`, `setsid`, or `&` from SSH.
+replace it with bare `tmux`, `nohup`, `setsid`, or `&` from SSH. For incident
+diagnosis and resource-change safety, see
+[`references/systemd-cgroup-isolation.md`](references/systemd-cgroup-isolation.md).
 
 For an interactive CLI that Ryushe must attach to, start the named tmux session
 **inside** the dispatched service and keep that service foreground with its
