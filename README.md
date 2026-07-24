@@ -10,7 +10,8 @@ Reusable local OpenClaw/Codex skills that are not tied to one bug bounty harness
 - `safe-fetch` - Default external web-content ingestion through quarantine and sanitization unless explicitly bypassed.
 - `faq` - Problem-oriented solved fixes, script lookup, and central/program FAQ routing before agents re-solve recurring issues.
 - `tmpmail` - tmpmail CLI workflow for disposable terminal inboxes in owned test flows.
-- `tmux` - Long-running session protocol for attachable recon, fuzzing, Arjun, scanner, SSH, and interactive CLI jobs.
+- `tmux` - Long-running session protocol for attachable recon, fuzzing, Arjun, scanner, and interactive CLI jobs; Hoster workloads defer to `hoster-ssh`.
+- `hoster-ssh` - Bounded Hoster SSH dispatch and lifecycle protocol: durable workloads run in named user-systemd services, not `ssh.service`.
 - `coordination` - Parent/child task splitting protocol for broad runs, focused subagents, and interactable child-run metadata.
 - `daddy` - Relative model-up/down routing for CLI agents, with benchmark guardrails for cost and quality tradeoffs.
 - `script_manager` - Reusable script promotion, storage, indexing, and handoff rules so repeated agent workflows become durable helpers.

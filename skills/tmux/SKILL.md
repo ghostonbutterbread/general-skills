@@ -15,8 +15,14 @@ attach and watch it directly.
 ## Core Rule
 
 Do not kill long-running recon, fuzzing, Arjun, subdomain, crawler, scanner, or
-SSH work just because the current turn is ending. Put it in a named tmux session,
-log it to disk, record a manifest, and report how to attach/check/stop it.
+SSH work just because the current turn is ending. Put local work in a named tmux
+session, log it to disk, record a manifest, and report how to attach/check/stop
+it.
+
+**Hoster exception:** never start bare tmux, `nohup`, `setsid`, or `&` through
+an SSH login to Hoster. Load `hoster-ssh` and dispatch the tmux session inside
+its named `systemd-run --user` service; a detached tmux session does not escape
+`ssh.service` by itself.
 
 ## Session Registry
 
@@ -229,8 +235,12 @@ Use tmux by default for:
 - subdomain enumeration
 - passive recon collectors
 - JS crawling or browser crawling that may run longer than a few minutes
-- SSH sessions where the remote command should survive disconnects
+- interactive CLIs on the local machine
+- SSH work on non-Hoster machines where tmux is the declared remote supervisor
 - anything Ryushe may want to attach to directly
+
+For any durable workload on Hoster, use `hoster-ssh` instead; it launches a
+named tmux session only inside a Hoster user-systemd service.
 
 Prefer direct shell execution only for:
 
