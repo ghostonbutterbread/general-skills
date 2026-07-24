@@ -65,7 +65,7 @@ run_id="$(date -u +%Y%m%dT%H%M%SZ)"
 python3 "$HELPER" \
   --unit="hoster-agent-$run_id" \
   --memory-high=2G --memory-max=3G --cpu-weight=100 \
-  -- /bin/bash -lc 'cd /home/ryushe/projects/example && exec <agent-command>'
+  -- /bin/bash -lc 'cd /home/ryushe/projects/bug_bounty_harness-stable && exec <agent-command>'
 ```
 
 The helper uses one-shot SSH and runs this shape remotely:
