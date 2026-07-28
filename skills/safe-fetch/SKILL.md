@@ -9,15 +9,21 @@ Use this whenever external web content, documents, feeds, GitHub pages/issues, a
 
 ## Command
 
+The helper is shipped with this skill at `scripts/safe_fetch.py`; invoke the synced installation rather than an unmanaged host-local checkout.
+
 ```bash
-python3 /home/ryushe/safe-fetch/scripts/safe_fetch.py <url-or-file> --json
+SAFE_FETCH_SCRIPT="$HOME/.hermes/synced-skills/safe-fetch/scripts/safe_fetch.py"
+test -f "$SAFE_FETCH_SCRIPT" && python3 "$SAFE_FETCH_SCRIPT" <url-or-file> --json
 ```
 
 For intentionally hostile prompt-injection research:
 
 ```bash
-python3 /home/ryushe/safe-fetch/scripts/safe_fetch.py <url-or-file> --mode research --json
+SAFE_FETCH_SCRIPT="$HOME/.hermes/synced-skills/safe-fetch/scripts/safe_fetch.py"
+test -f "$SAFE_FETCH_SCRIPT" && python3 "$SAFE_FETCH_SCRIPT" <url-or-file> --mode research --json
 ```
+
+**Missing helper is a hard stop, not permission to use WebFetch or another direct external-content tool.** Restore the synced skill (including `scripts/safe_fetch.py`) from the canonical `~/projects/general-skills` checkout, then repeat the preflight. The script's `--help` must succeed before it is used for external content.
 
 ## Contract
 
