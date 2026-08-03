@@ -1,6 +1,6 @@
 ---
 name: account-tui-colors
-description: "Use when launching, configuring, or handing off Claude Code, Codex CLI, or OpenCode under an account or lane identified by a color. Align that agent's TUI accent/theme to the effective account color, with deterministic nearest-color fallback."
+description: "Use when launching, configuring, or handing off Claude Code, Codex CLI, or OpenCode under a PwnFox account profile. Resolve the current main account's color, keep it stable across secondary-account comparisons, and repaint only when the active account changes."
 version: 1.0.0
 author: Hermes Agent
 license: MIT
@@ -15,9 +15,10 @@ metadata:
 
 ## Overview
 
-When a coding agent runs in an account- or lane-specific context, its TUI must
-visibly use that account's effective color. This makes parallel sessions easy to
-distinguish and prevents an operator from acting in the wrong lane.
+When a coding agent runs through a PwnFox account profile, its TUI must visibly
+use the color assigned to the **current main account**. This makes parallel
+sessions easy to distinguish and keeps the visual cue aligned with the identity
+driving the work.
 
 Applies to **Claude Code**, **Codex CLI**, and **OpenCode**. It changes only
 user-local UI configuration; it must never edit repository configuration,
@@ -25,19 +26,44 @@ authentication, secret files, or an unrelated agent's theme.
 
 ## When to Use
 
-- Launching or handing off Claude Code, Codex CLI, or OpenCode for a named
-  account, PwnFox lane, or color-coded worker.
-- The account color changes during a durable agent session.
-- A user asks for a coding-agent TUI to match an account/lane color.
+- Launching or handing off Claude Code, Codex CLI, or OpenCode through a PwnFox
+  account profile.
+- The work's current main account changes during a durable agent session.
+- A user asks for a coding-agent TUI to track the PwnFox account in use.
 
-Do not use when there is no account/lane color. Do not infer one from a project
-brand, terminal theme, or a user name.
+Do not use when the PwnFox profile/account cannot be resolved. Do not infer a
+color from a project brand, terminal theme, user name, or coding-provider
+credentials.
+
+## Active Account Color Contract
+
+1. At launch, infer the TUI color from the selected PwnFox profile: resolve its
+   account alias and `proxy_identity.pwnfox` color from the approved account
+   registry/resolver metadata. This is profile/lease metadata, **not** a request
+   to inspect cookies, tokens, or CLI provider credentials.
+2. Treat that identity as the **main account** and retain its alias and effective
+   hue as runtime handoff state for the coding-agent session.
+3. In a two-account workflow such as IDOR, keep the main account's color while
+   a secondary account is used solely for comparison, replay, or object access.
+   Do not repaint for every secondary request.
+4. Re-resolve and repaint **before the next action** only when the operator or
+   workflow changes the selected PwnFox profile/main identity. If the former
+   secondary account becomes the account driving the work, it is now main and
+   its color must replace the old color.
+5. Record each real transition as `old-account/color → new-account/color` in the
+   handoff/run note. Reusing a secondary account without promoting it is not a
+   transition and produces no UI change.
+
+Example: an IDOR run starts as `blue` and sends replay/comparison requests as
+`green`; the TUI stays blue. If the work switches to green as its main account,
+change the TUI to green once before continuing.
 
 ## Resolve the Effective Color
 
-1. Take an explicitly supplied account/lane color first. If the work is using a
-   registered testing account, resolve its `proxy_identity.pwnfox` color through
-   `account-management`; do not guess from an alias.
+1. First use the selected PwnFox profile's registered account/color. An explicit
+   active-account override in the launch/handoff is authoritative when present.
+   If neither is available, stop and ask which PwnFox profile is main; never
+   guess from an alias alone.
 2. Normalize only for comparison: lowercase and remove spaces, hyphens, and
    underscores. Keep the original value in the handoff/report.
 3. Use an exact supported hue when possible. Otherwise apply this deterministic
@@ -150,8 +176,9 @@ Minimal custom purple theme:
 
 Before handing the agent over, report:
 
-- source account/lane color and effective TUI hue;
+- selected PwnFox profile, inferred main account, and effective TUI hue;
 - any fallback, explicitly (for example, `magenta → purple`);
+- each actual main-account transition, if one occurred;
 - tool and user-local theme/profile/config path changed;
 - verification that the chosen theme is active, or the exact blocker (such as
   an older tool version or a non-truecolor terminal).
@@ -163,8 +190,9 @@ Before handing the agent over, report:
    `magenta → purple`.
 2. **Changing a repo config for personal lane identity.** Themes belong in user
    config or isolated session/profile state, not in committed project files.
-3. **Overwriting an active parallel lane's global theme.** Use a per-profile or
-   per-session config where available.
+3. **Repainting for every secondary request.** Keep the selected main account's
+   color through comparison/replay work. Repaint only when that secondary account
+   becomes the main PwnFox profile driving the work.
 4. **Changing success/warning/error to the account hue.** Keep them semantically
    recognizable; change the primary/accent identity only.
 5. **Treating a printed configuration edit as proof.** Verify the selection via
@@ -172,7 +200,9 @@ Before handing the agent over, report:
 
 ## Verification Checklist
 
-- [ ] Account/lane color came from explicit context or the approved registry.
+- [ ] Selected PwnFox profile resolved to an approved main account and color.
+- [ ] A secondary IDOR/comparison account did not trigger a repaint.
+- [ ] A main-account/profile switch repainted before the next action.
 - [ ] Effective hue was exact or determined by the table.
 - [ ] `magenta` was recorded and rendered as `purple`.
 - [ ] Only the selected tool's user-local or isolated config was changed.
