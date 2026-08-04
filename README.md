@@ -9,6 +9,7 @@ Reusable local OpenClaw/Codex skills that are not tied to one bug bounty harness
 - `resilio-sync` - Resilio Sync handoff rules for `/srv/resilio` and large local file-set sharing.
 - `safe-fetch` - Default external web-content ingestion through quarantine and sanitization unless explicitly bypassed.
 - `faq` - Problem-oriented solved fixes, script lookup, and central/program FAQ routing before agents re-solve recurring issues.
+- `papercuts` - Concise, sanitized records of agent workflow friction that later maintenance passes can verify and eliminate.
 - `tmpmail` - tmpmail CLI workflow for disposable terminal inboxes in owned test flows.
 - `tmux` - Long-running session protocol for attachable recon, fuzzing, Arjun, scanner, and interactive CLI jobs; Hoster workloads defer to `hoster-ssh`.
 - `hoster-ssh` - Bounded Hoster SSH dispatch and lifecycle protocol: durable workloads run in named user-systemd services, not `ssh.service`.
