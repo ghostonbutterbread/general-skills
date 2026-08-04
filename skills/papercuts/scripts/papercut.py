@@ -74,15 +74,16 @@ def command_add(args: argparse.Namespace) -> None:
     path = record_path(args.file)
     summary = validate_safe(args.summary, "summary")
     context = validate_safe(args.context, "context")
-    impact = validate_safe(args.impact, "impact")
+    impact = validate_safe(args.impact, "impact") if args.impact else None
     evidence = validate_safe(args.evidence, "evidence") if args.evidence else None
     stamp = datetime.now(timezone.utc)
     identifier = stamp.strftime("PC-%Y%m%d-%H%M%S")
     lines = [
         f"- [ ] **{identifier}** [{args.category}] {summary}",
         f"  - Context: {context}",
-        f"  - Impact: {impact}",
     ]
+    if impact:
+        lines.append(f"  - Impact: {impact}")
     if evidence:
         lines.append(f"  - Evidence/workaround: {evidence}")
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -141,7 +142,7 @@ def build_parser() -> argparse.ArgumentParser:
     add.add_argument("--category", choices=CATEGORIES, required=True)
     add.add_argument("--summary", required=True)
     add.add_argument("--context", required=True)
-    add.add_argument("--impact", required=True)
+    add.add_argument("--impact", help="optional short reason this is worth revisiting")
     add.add_argument("--evidence", help="sanitized error fragment or workaround")
     add.set_defaults(handler=command_add)
 

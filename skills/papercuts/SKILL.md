@@ -18,16 +18,15 @@ FAQ, script, or project documentation.
 
 ## When to Use
 
-Record one when all are true:
+Record one whenever a concrete tool, browser/auth flow, instruction, or workflow
+issue blocks progress or creates needless friction. Capture it immediately after
+a safe workaround—or before handing off a blocker—without stopping to diagnose
+it deeply.
 
-- the agent encountered a concrete obstacle or needless detour;
-- it cost meaningful work, caused a failed call, or is likely to recur; and
-- the agent either recovered, found a safe workaround, or is ending blocked.
-
-Do not record routine command failures, speculative complaints, duplicate
-entries, user-caused preference choices, or sensitive details. Do not interrupt
-an active task to repair every papercut; continue the task when safe, then log
-one compact entry before handoff.
+A one-line description is enough. Do not record speculative complaints,
+duplicates, user preference choices, or sensitive details. Do not interrupt an
+active task to repair every papercut; log the friction quickly, then continue
+when safe.
 
 ## Quick Capture
 
@@ -37,10 +36,8 @@ On this Hermes host, run the synced helper from the relevant project root:
 PAPERCUTS_TOOL="$HOME/.hermes/synced-skills/papercuts/scripts/papercut.py"
 python3 "$PAPERCUTS_TOOL" add \
   --category tool \
-  --summary "`fd` is unavailable although nearby instructions use it" \
-  --context "general-skills beta worktree; listing peer files" \
-  --impact "Had to fall back to shell globbing; docs should name an available alternative." \
-  --evidence "`fd: command not found`"
+  --summary "Browser login kept failing" \
+  --context "OAuth flow in the test browser"
 ```
 
 The helper writes `PAPERCUTS.md` at the nearest Git root. Use `--file` to
@@ -59,16 +56,15 @@ python3 "$PAPERCUTS_TOOL" close \
 
 ## Entry Standard
 
-Make each entry actionable in 2–5 lines:
+Keep entries short—usually one or two lines:
 
 1. **Category:** `tool`, `docs`, `workflow`, `environment`, `integration`, or
    `other`.
 2. **Summary:** what failed or created friction, in plain language.
-3. **Context:** the task, tool, command class, or project surface—not a raw
+3. **Context:** a few words naming the task, tool, or surface—not a raw
    transcript.
-4. **Impact:** wasted work, blocked outcome, or why another agent will hit it.
-5. **Evidence or workaround:** a sanitized error fragment, stable path, or the
-   fix that allowed progress.
+4. **Optional detail:** a sanitized error fragment, workaround, or brief reason
+   to revisit it. Use `--impact` only when the reason is not obvious.
 
 Never place credentials, cookies, tokens, authorization URLs, private target
 data, raw request/response dumps, personal data, or customer content in a

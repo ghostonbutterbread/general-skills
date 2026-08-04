@@ -23,7 +23,7 @@ class PapercutCliTests(unittest.TestCase):
             add = self.run_cli(
                 "--file", str(record), "add", "--category", "tool",
                 "--summary", "Missing helper", "--context", "unit test",
-                "--impact", "cost one retry", "--evidence", "fallback worked",
+                "--evidence", "fallback worked",
             )
             self.assertEqual(add.returncode, 0, add.stderr)
             identifier = add.stdout.split()[1]
