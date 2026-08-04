@@ -31,10 +31,11 @@ one compact entry before handoff.
 
 ## Quick Capture
 
-From the relevant project root, append a record:
+On this Hermes host, run the synced helper from the relevant project root:
 
 ```bash
-python3 /home/ryushe/projects/general-skills/skills/papercuts/scripts/papercut.py add \
+PAPERCUTS_TOOL="$HOME/.hermes/synced-skills/papercuts/scripts/papercut.py"
+python3 "$PAPERCUTS_TOOL" add \
   --category tool \
   --summary "`fd` is unavailable although nearby instructions use it" \
   --context "general-skills beta worktree; listing peer files" \
@@ -48,10 +49,10 @@ only appends to the selected Markdown file.
 
 ```bash
 # Show unresolved entries.
-python3 /home/ryushe/projects/general-skills/skills/papercuts/scripts/papercut.py list
+python3 "$PAPERCUTS_TOOL" list
 
 # Close a verified fix without deleting its evidence.
-python3 /home/ryushe/projects/general-skills/skills/papercuts/scripts/papercut.py close \
+python3 "$PAPERCUTS_TOOL" close \
   --id PC-20260804-123456 \
   --resolution "Replaced the unavailable-command example and verified the fallback."
 ```
