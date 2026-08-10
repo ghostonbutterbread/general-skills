@@ -30,7 +30,7 @@ when safe.
 
 ## Quick Capture
 
-On this Hermes host, run the synced helper from the relevant project root:
+Run the synced helper from any project or host:
 
 ```bash
 PAPERCUTS_TOOL="$HOME/.hermes/synced-skills/papercuts/scripts/papercut.py"
@@ -40,9 +40,20 @@ python3 "$PAPERCUTS_TOOL" add \
   --context "OAuth flow in the test browser"
 ```
 
-The helper writes `PAPERCUTS.md` at the nearest Git root. Use `--file` to
-choose an explicit shared or project record. It never makes network calls and
-only appends to the selected Markdown file.
+By default, the helper writes the shared `~/Shared/PAPERCUTS.md`; this lets
+agents on machines that mount `Shared` contribute to the same review queue.
+Every new entry records its source from `PAPERCUTS_SOURCE`, or the machine
+hostname when that is unset. Set the identity explicitly when a host runs more
+than one agent:
+
+```bash
+PAPERCUTS_SOURCE="hoster:recon-agent" python3 "$PAPERCUTS_TOOL" add \
+  --category environment --summary "Remote helper absent" --context "Hoster review"
+```
+
+Use `--file` only for an intentional project-local or alternate shared record.
+It never makes network calls and serializes helper writes with an advisory lock
+next to the selected Markdown file.
 
 ```bash
 # Show unresolved entries.

@@ -4,10 +4,14 @@
 from __future__ import annotations
 
 import argparse
+import fcntl
 import os
 import re
+import socket
 import subprocess
 import sys
+import uuid
+from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -45,7 +49,7 @@ def record_path(raw_path: str | None) -> Path:
     configured = os.environ.get("PAPERCUTS_FILE")
     if configured:
         return Path(configured).expanduser().resolve()
-    return nearest_git_root(Path.cwd()) / "PAPERCUTS.md"
+    return Path.home() / "Shared" / "PAPERCUTS.md"
 
 
 def validate_safe(value: str, label: str) -> str:
@@ -60,7 +64,7 @@ def validate_safe(value: str, label: str) -> str:
 def load_or_initialize(path: Path) -> str:
     if not path.exists():
         return HEADER + OPEN_HEADER + CLOSED_HEADER
-    content = path.read_text(encoding="utf-8")
+    content = path.read_text(encoding="utf-8").rstrip() + "\n\n"
     if not content.startswith(HEADER) or OPEN_HEADER not in content or CLOSED_HEADER not in content:
         fail(f"{path} must contain '# Papercuts', '## Open', and '## Closed' headings")
     return content
@@ -70,24 +74,39 @@ def insert_before_closed(content: str, entry: str) -> str:
     return content.replace(CLOSED_HEADER, entry + "\n" + CLOSED_HEADER, 1)
 
 
+@contextmanager
+def locked_record(path: Path):
+    """Serialize helper updates to one record across cooperating processes."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    lock_path = path.with_name(path.name + ".lock")
+    with lock_path.open("a+", encoding="utf-8") as lock_file:
+        fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX)
+        try:
+            yield
+        finally:
+            fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
+
+
 def command_add(args: argparse.Namespace) -> None:
     path = record_path(args.file)
     summary = validate_safe(args.summary, "summary")
     context = validate_safe(args.context, "context")
     impact = validate_safe(args.impact, "impact") if args.impact else None
     evidence = validate_safe(args.evidence, "evidence") if args.evidence else None
+    source = validate_safe(args.source or os.environ.get("PAPERCUTS_SOURCE") or socket.gethostname(), "source")
     stamp = datetime.now(timezone.utc)
-    identifier = stamp.strftime("PC-%Y%m%d-%H%M%S")
+    identifier = f"{stamp.strftime('PC-%Y%m%d-%H%M%S')}-{uuid.uuid4().hex[:8]}"
     lines = [
         f"- [ ] **{identifier}** [{args.category}] {summary}",
         f"  - Context: {context}",
+        f"  - Source: {source}",
     ]
     if impact:
         lines.append(f"  - Impact: {impact}")
     if evidence:
         lines.append(f"  - Evidence/workaround: {evidence}")
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(insert_before_closed(load_or_initialize(path), "\n".join(lines)), encoding="utf-8")
+    with locked_record(path):
+        path.write_text(insert_before_closed(load_or_initialize(path), "\n".join(lines)), encoding="utf-8")
     print(f"added {identifier} to {path}")
 
 
@@ -109,39 +128,41 @@ def command_close(args: argparse.Namespace) -> None:
     if not path.exists():
         fail(f"no papercuts record at {path}")
     resolution = validate_safe(args.resolution, "resolution")
-    content = load_or_initialize(path)
-    open_start = content.index(OPEN_HEADER) + len(OPEN_HEADER)
-    closed_start = content.index(CLOSED_HEADER, open_start)
-    open_body = content[open_start:closed_start]
-    closed_body = content[closed_start + len(CLOSED_HEADER) :]
-    pattern = re.compile(
-        rf"(?ms)^- \[ \] \*\*{re.escape(args.identifier)}\*\*.*?(?=^- \[ |\Z)"
-    )
-    match = pattern.search(open_body)
-    if not match:
-        fail(f"open entry {args.identifier!r} was not found")
-    assert match is not None
-    entry = match.group(0).rstrip().replace("- [ ]", "- [x]", 1)
-    entry += f"\n  - Resolution: {resolution}"
-    remaining_open = (open_body[: match.start()] + open_body[match.end() :]).strip()
-    rebuilt = content[:open_start]
-    rebuilt += (remaining_open + "\n\n") if remaining_open else ""
-    rebuilt += CLOSED_HEADER
-    rebuilt += (closed_body.strip() + "\n\n") if closed_body.strip() else ""
-    rebuilt += entry + "\n"
-    path.write_text(rebuilt, encoding="utf-8")
+    with locked_record(path):
+        content = load_or_initialize(path)
+        open_start = content.index(OPEN_HEADER) + len(OPEN_HEADER)
+        closed_start = content.index(CLOSED_HEADER, open_start)
+        open_body = content[open_start:closed_start]
+        closed_body = content[closed_start + len(CLOSED_HEADER) :]
+        pattern = re.compile(
+            rf"(?ms)^- \[ \] \*\*{re.escape(args.identifier)}\*\*.*?(?=^- \[ |\Z)"
+        )
+        match = pattern.search(open_body)
+        if not match:
+            fail(f"open entry {args.identifier!r} was not found")
+        assert match is not None
+        entry = match.group(0).rstrip().replace("- [ ]", "- [x]", 1)
+        entry += f"\n  - Resolution: {resolution}"
+        remaining_open = (open_body[: match.start()] + open_body[match.end() :]).strip()
+        rebuilt = content[:open_start]
+        rebuilt += (remaining_open + "\n\n") if remaining_open else ""
+        rebuilt += CLOSED_HEADER
+        rebuilt += (closed_body.strip() + "\n\n") if closed_body.strip() else ""
+        rebuilt += entry + "\n"
+        path.write_text(rebuilt, encoding="utf-8")
     print(f"closed {args.identifier} in {path}")
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--file", help="record path (default: $PAPERCUTS_FILE or nearest Git root/PAPERCUTS.md)")
+    parser.add_argument("--file", help="record path (default: $PAPERCUTS_FILE or ~/Shared/PAPERCUTS.md)")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     add = subparsers.add_parser("add", help="append one sanitized papercut")
     add.add_argument("--category", choices=CATEGORIES, required=True)
     add.add_argument("--summary", required=True)
     add.add_argument("--context", required=True)
+    add.add_argument("--source", help="writer identity (default: $PAPERCUTS_SOURCE or hostname)")
     add.add_argument("--impact", help="optional short reason this is worth revisiting")
     add.add_argument("--evidence", help="sanitized error fragment or workaround")
     add.set_defaults(handler=command_add)
