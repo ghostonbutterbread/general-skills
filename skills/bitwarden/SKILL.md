@@ -1,11 +1,32 @@
 ---
 name: bitwarden
-description: "Use Bitwarden CLI for credential-store references without exposing secrets."
+description: "Unlock and use Bitwarden CLI for owned test-account credentials, login fallback, and secret references."
 ---
 
 # Bitwarden
 
-Use when creating, finding, or recording credential-store items for owned test accounts.
+Use when Ryushe says "Bitwarden", "pull from Bitwarden", "login to",
+"log into", "use stored creds", "test account creds", or when an owned account
+credential is needed after normal session reuse fails.
+
+## Login Credential Order
+
+For target login work, use this order:
+
+1. Check account inventory or the current task handoff for existing approved
+   browser/session state, auth seed, stored cookies, or secret-store references
+   for the owned test account.
+2. Try the current stored credentials/session material in the agent lane.
+3. If those fail and Ryushe asks for or allows proxy lookup, inspect the
+   approved proxy lane for request shape and account/session evidence. If no
+   connection or matching traffic is available, move on.
+4. Use Bitwarden as the credential fallback. Search by program, domain, account
+   alias, or Bitwarden item reference.
+5. Log in only to owned or approved test accounts. If ownership or destructible
+   status is unclear, load `/account-management` before proceeding.
+
+Do not block on missing proxy access. A failed proxy lookup is not a failed
+login flow; it just means Bitwarden becomes the next source.
 
 ## Required Rules
 
@@ -28,15 +49,29 @@ Use when creating, finding, or recording credential-store items for owned test a
    ```bash
    source skills/bitwarden/scripts/bw-session.sh
    ```
-4. Create or update the target-account item without printing generated secrets:
+4. For login to an existing target account, search by program, domain, account
+   alias, or known Bitwarden reference. Use only the minimum fields needed for
+   the login step, and keep raw secrets out of model-visible output.
+5. Create or update a target-account item without printing generated secrets:
    ```bash
    skills/bitwarden/scripts/bw-create-login.sh \
      "Canva.cn ryushe+ai" \
      "ryushe+ai@bugcrowdninja.com" \
      "https://www.canva.cn/"
    ```
-5. Record only the item name/id and non-secret metadata in the relevant account handoff.
-6. For account cleanup or deletion, follow the lifecycle rules in `references/account-storage.md`.
+6. Record only the item name/id and non-secret metadata in the relevant account handoff.
+7. For account cleanup or deletion, follow the lifecycle rules in `references/account-storage.md`.
+
+## Handoff Rules
+
+- Record durable references as `bitwarden:<item-name-or-id>` only.
+- Store non-secret identity details with `/account-management`: account alias,
+  approved email/username, user ID, role/tenant, PwnFox color, and destructible
+  status.
+- If a child agent needs login context, pass an account alias and Bitwarden
+  reference, not the secret value.
+- If a browser automation tool cannot consume the secret without printing or
+  persisting it, stop and ask Ryushe for a manual handoff.
 
 ## Stop Conditions
 
