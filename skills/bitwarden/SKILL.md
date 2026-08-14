@@ -5,28 +5,15 @@ description: "Unlock and use Bitwarden CLI for owned test-account credentials, l
 
 # Bitwarden
 
-Use when Ryushe says "Bitwarden", "pull from Bitwarden", "login to",
-"log into", "use stored creds", "test account creds", or when an owned account
-credential is needed after normal session reuse fails.
+Use when Ryushe explicitly requests Bitwarden, or when the selected owned
+account's `account-registry`/program auth policy chooses its opaque Bitwarden
+reference for a login or recovery step.
 
-## Login Credential Order
-
-For target login work, use this order:
-
-1. Check account inventory or the current task handoff for existing approved
-   browser/session state, auth seed, stored cookies, or secret-store references
-   for the owned test account.
-2. Try the current stored credentials/session material in the agent lane.
-3. If those fail and Ryushe asks for or allows proxy lookup, inspect the
-   approved proxy lane for request shape and account/session evidence. If no
-   connection or matching traffic is available, move on.
-4. Use Bitwarden as the credential fallback. Search by program, domain, account
-   alias, or Bitwarden item reference.
-5. Log in only to owned or approved test accounts. If ownership or destructible
-   status is unclear, load `/account-management` before proceeding.
-
-Do not block on missing proxy access. A failed proxy lookup is not a failed
-login flow; it just means Bitwarden becomes the next source.
+`account-registry` owns the login/recovery order: exact healthy browser,
+profile provisioning, Bitwarden/password plus approved mailbox/OTP when the
+policy declares it, browser verification, then private operator handoff only
+for a declared human-only blocker. Do not invent a proxy, email, OTP, or manual
+fallback order here; use this skill only for its selected vault step.
 
 ## Required Rules
 
