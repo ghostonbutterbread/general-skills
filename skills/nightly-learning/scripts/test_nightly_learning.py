@@ -1,4 +1,4 @@
-"""Tests for the report-only passive AppSec learning runner."""
+"""Tests for the category-isolated, report-only learning runner."""
 from __future__ import annotations
 
 import importlib.util
@@ -44,6 +44,7 @@ def test_beta_writes_auditable_report_without_notes_or_cards(tmp_path: Path) -> 
 
     assert report_path.is_file()
     assert report["mode"] == "beta-report-only"
+    assert report["category"] == "appsec-general"
     assert report["counts"] == {"new": 1, "duplicate": 0, "needs_review": 0, "failed": 0}
     assert not (tmp_path / "cards").exists()
     assert "no cards, notes, skills" in (tmp_path / "reports" / "2026-07-20.md").read_text(encoding="utf-8")
@@ -59,3 +60,16 @@ def test_beta_routes_non_allow_documents_to_review(tmp_path: Path) -> None:
 
     assert report["counts"] == {"new": 0, "duplicate": 0, "needs_review": 1, "failed": 0}
     assert report["records"][0]["risk_flags"] == ["prompt_injection"]
+
+
+def test_category_runtime_paths_are_isolated_and_reject_path_traversal(tmp_path: Path) -> None:
+    reports, ledger = nightly_learning.runtime_paths(tmp_path, "ai-research")
+
+    assert reports == tmp_path / "ai-research" / "reports"
+    assert ledger == tmp_path / "ai-research" / "seen.sqlite"
+    for unsafe in ("", ".", "..", "../other", "a/b", "a\\b"):
+        try:
+            nightly_learning.runtime_paths(tmp_path, unsafe)
+        except ValueError:
+            continue
+        raise AssertionError(f"unsafe category accepted: {unsafe!r}")

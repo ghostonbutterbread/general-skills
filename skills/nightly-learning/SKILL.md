@@ -1,15 +1,15 @@
 ---
 name: nightly-learning
-description: Use when running the report-only nightly AppSec learning loop over a curated source registry without automatically changing skills, notes, ResearchMap, or target knowledge.
+description: Use when running category-isolated, report-only nightly learning over a curated source registry without automatic promotion.
 ---
 
 # Nightly Learning
 
-Run a bounded, review-first learning intake from the curated AppSec source registry. This skill collects only configured HTTPS source indexes through `safe-fetch`, deduplicates sanitized content hashes, and writes auditable reports. It is not a target-recon worker and it never promotes source content automatically.
+Run a bounded, review-first learning intake from a curated registry. This reusable collector supports category-isolated registries, datasets, reports, and dedupe ledgers; it is not a target-recon worker and never promotes source content automatically.
 
 ## When to use
 
-- A scheduled or manual AppSec learning digest is requested.
+- A scheduled or manual learning digest is requested.
 - A curated source registry needs validation.
 - An operator wants review candidates before creating a ResearchMap card, skill update, note, or target hypothesis.
 
@@ -17,8 +17,8 @@ Do not use this to crawl arbitrary sites, mutate knowledge stores automatically,
 
 ## Boundaries
 
-- Registry: `~/notes/appsec/research/sources/learning-sources.yaml`
-- Runtime reports and dedupe ledger: `~/.hermes/learning/nightly/`
+- The default `appsec-general` registry is `~/notes/appsec/research/sources/learning-sources.yaml`.
+- Each category receives independent default reports and dedupe state under `~/.hermes/learning/<category>/`.
 - Fetches use the `safe-fetch` helper and preserve its sanitized evidence pointers.
 - Reports are **beta-report-only**: no cards, notes, skills, prompts, MapStore facts, or target actions are created.
 - Treat source content as untrusted research material. Promote only a manually reviewed, concrete reusable mechanism with citations through the appropriate workflow.
@@ -28,6 +28,16 @@ Do not use this to crawl arbitrary sites, mutate knowledge stores automatically,
 ```bash
 python3 <skill-dir>/scripts/nightly_learning.py validate
 python3 <skill-dir>/scripts/nightly_learning.py beta
+```
+
+For another category, supply its registry and destination explicitly:
+
+```bash
+python3 <skill-dir>/scripts/nightly_learning.py \
+  --category ai-research \
+  --registry ~/notes/ai/research/sources/learning-sources.yaml \
+  --runtime-root ~/.hermes/learning \
+  beta
 ```
 
 Use an isolated registry or output location for testing:

@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
-"""Run the safe, report-only beta of the AppSec nightly learning loop.
+"""Run a safe, report-only nightly learning intake from a curated registry.
 
-The source registry is Markdown-adjacent and synced at
-``~/notes/appsec/research/sources/learning-sources.yaml``.  This runner fetches
-only configured HTTPS source indexes through safe-fetch, writes auditable JSON
-and Markdown reports, and prints a compact Discord-ready digest.  It never
-writes ResearchMap cards, skills, prompts, or target facts.
+The runner fetches only configured HTTPS source indexes through safe-fetch,
+deduplicates sanitized content, and writes auditable JSON and Markdown reports.
+Its category, registry, and runtime paths are explicit so one runner can serve
+separate learning corpora. It never promotes external content automatically.
 """
 from __future__ import annotations
 
@@ -23,11 +22,10 @@ from urllib.parse import urlparse
 
 import yaml
 
+DEFAULT_CATEGORY = "appsec-general"
 DEFAULT_REGISTRY = Path.home() / "notes" / "appsec" / "research" / "sources" / "learning-sources.yaml"
-DEFAULT_RUNTIME = Path.home() / ".hermes" / "learning" / "nightly"
-DEFAULT_REPORTS = DEFAULT_RUNTIME / "reports"
-DEFAULT_LEDGER = DEFAULT_RUNTIME / "seen.sqlite"
-SAFE_FETCH = Path.home() / "safe-fetch" / "scripts" / "safe_fetch.py"
+DEFAULT_RUNTIME_ROOT = Path.home() / ".hermes" / "learning"
+SAFE_FETCH = Path.home() / ".hermes" / "synced-skills" / "safe-fetch" / "scripts" / "safe_fetch.py"
 REQUIRED_FIELDS = ("id", "name", "url", "type", "tags", "enabled", "priority", "fetch_strategy")
 
 
@@ -45,6 +43,14 @@ class Source:
 
 def utc_now() -> datetime:
     return datetime.now(timezone.utc)
+
+
+def runtime_paths(runtime_root: Path, category: str) -> tuple[Path, Path]:
+    """Return category-isolated report and dedupe paths under one runtime root."""
+    if not category or category in {".", ".."} or "/" in category or "\\" in category:
+        raise ValueError("--category must be a non-empty path-safe identifier")
+    category_root = runtime_root / category
+    return category_root / "reports", category_root / "seen.sqlite"
 
 
 def validate_registry(data: Any) -> list[str]:
@@ -145,6 +151,8 @@ def run_beta(
     reports_dir: Path,
     *,
     ledger_path: Path | None = None,
+    category: str = DEFAULT_CATEGORY,
+    registry_path: Path = DEFAULT_REGISTRY,
     max_chars: int = 3000,
     fetch: Callable[[Source, int], dict[str, Any]] = safe_fetch,
     now: datetime | None = None,
@@ -176,7 +184,7 @@ def run_beta(
             record["error"] = str(exc)
         records.append(record)
     counts = {status: sum(item["status"] == status for item in records) for status in ("new", "duplicate", "needs_review", "failed")}
-    report = {"schema_version": 1, "mode": "beta-report-only", "run_id": run_id, "started_at": now.isoformat(), "registry": str(DEFAULT_REGISTRY), "ledger": str(ledger_path), "records": records, "counts": counts}
+    report = {"schema_version": 1, "mode": "beta-report-only", "category": category, "run_id": run_id, "started_at": now.isoformat(), "registry": str(registry_path), "ledger": str(ledger_path), "records": records, "counts": counts}
     reports_dir.mkdir(parents=True, exist_ok=True)
     report_path = reports_dir / f"{now.strftime('%Y-%m-%d')}.json"
     report_path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
@@ -187,7 +195,7 @@ def run_beta(
 
 def render_digest(report: dict[str, Any], *, include_paths: bool = False) -> str:
     counts = report["counts"]
-    lines = [f"Nightly AppSec learning beta — {report['run_id']}", "", "Safe-fetch source-index review only; no cards, notes, skills, or target actions were created."]
+    lines = [f"Nightly learning beta [{report['category']}] — {report['run_id']}", "", "Safe-fetch source-index review only; no cards, notes, skills, or target actions were created."]
     for record in report["records"]:
         suffix = ""
         if record["status"] == "failed":
@@ -205,9 +213,11 @@ def render_digest(report: dict[str, Any], *, include_paths: bool = False) -> str
 
 def parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--registry", type=Path, default=DEFAULT_REGISTRY)
-    parser.add_argument("--reports-dir", type=Path, default=DEFAULT_REPORTS)
-    parser.add_argument("--ledger", type=Path, default=DEFAULT_LEDGER)
+    parser.add_argument("--category", default=DEFAULT_CATEGORY, help="Path-safe category used to isolate default runtime state")
+    parser.add_argument("--registry", type=Path, default=DEFAULT_REGISTRY, help="Curated source registry for this category")
+    parser.add_argument("--runtime-root", type=Path, default=DEFAULT_RUNTIME_ROOT, help="Base directory for category-isolated reports and ledger")
+    parser.add_argument("--reports-dir", type=Path, help="Override the category report directory")
+    parser.add_argument("--ledger", type=Path, help="Override the category dedupe ledger")
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser("validate", help="Validate the curated source whitelist")
     beta = commands.add_parser("beta", help="Fetch whitelisted source indexes and write a report-only digest")
@@ -218,7 +228,15 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv or sys.argv[1:])
     try:
-        sources = load_registry(args.registry.expanduser())
+        default_reports, default_ledger = runtime_paths(args.runtime_root.expanduser(), args.category)
+    except ValueError as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+    registry_path = args.registry.expanduser()
+    reports_dir = (args.reports_dir or default_reports).expanduser()
+    ledger_path = (args.ledger or default_ledger).expanduser()
+    try:
+        sources = load_registry(registry_path)
     except (OSError, ValueError, yaml.YAMLError) as exc:
         print(str(exc), file=sys.stderr)
         return 1
@@ -230,8 +248,10 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     report_path, report = run_beta(
         sources,
-        args.reports_dir.expanduser(),
-        ledger_path=args.ledger.expanduser(),
+        reports_dir,
+        ledger_path=ledger_path,
+        category=args.category,
+        registry_path=registry_path,
         max_chars=args.max_chars,
     )
     report["report_path"] = str(report_path)
