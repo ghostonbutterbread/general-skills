@@ -73,3 +73,12 @@ def test_category_runtime_paths_are_isolated_and_reject_path_traversal(tmp_path:
         except ValueError:
             continue
         raise AssertionError(f"unsafe category accepted: {unsafe!r}")
+
+
+def test_beta_returns_success_when_report_records_source_failures(tmp_path: Path, monkeypatch) -> None:
+    source = nightly_learning.Source("broken", "Broken", "https://example.test/", "web_index", ["test"], True, 1, "html_index")
+    report = {"category": "test", "run_id": "test-run", "counts": {"new": 0, "duplicate": 0, "needs_review": 0, "failed": 1}, "records": []}
+    monkeypatch.setattr(nightly_learning, "load_registry", lambda _path: [source])
+    monkeypatch.setattr(nightly_learning, "run_beta", lambda *_args, **_kwargs: (tmp_path / "report.json", report))
+
+    assert nightly_learning.main(["--registry", str(tmp_path / "sources.yaml"), "beta"]) == 0

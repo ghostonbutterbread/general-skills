@@ -256,7 +256,9 @@ def main(argv: list[str] | None = None) -> int:
     )
     report["report_path"] = str(report_path)
     print(render_digest(report))
-    return 0 if report["counts"]["failed"] == 0 else 1
+    # A completed report is a successful collector run even when individual
+    # sources failed; failures remain explicit in the delivered digest.
+    return 0
 
 
 if __name__ == "__main__":
