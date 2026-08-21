@@ -39,4 +39,9 @@ Keep v1 simple. The purpose is to make agents reliably update account existence,
 - Removing a user from a shared design/team/folder/resource is not account deletion. Keep lifecycle `active` unless the actual account is deleted.
 - Do not let agents infer destructibility from account existence or Bitwarden existence.
 - The account table is the authority for whether the account itself may be burned/deleted. Program-specific notes can define resource-level mutation later.
+- An agent may reclassify an existing verified-owned, low-residue account as
+  destructible before a destructive test when it records why the account has no
+  important data, roles, or entitlements; the intended destructive scope; and
+  its cleanup/burn plan. Do not use age, an alias, or a sparse-looking UI as the
+  basis for this classification.
 - If account ownership, destructible status, or cleanup state is unclear, stop and ask Ryushe.

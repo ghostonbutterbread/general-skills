@@ -44,6 +44,11 @@ Last checked:
 
 - `Destructible account: no`: default. Agents may not delete or burn the account.
 - `Destructible account: yes`: account may be burned/deleted if the current task explicitly requires it.
+- An existing verified-owned account may be reclassified from `no` to `yes`
+  before a destructive test only after the record captures why it has no
+  important data, roles, or entitlements, the intended destructive scope, and
+  its cleanup/burn plan. Do not infer suitability from age, alias, or a
+  sparse-looking UI.
 - Resource-level mutability is intentionally out of scope for v1. Put exact mutable resources in program notes or handoffs.
 
 ## Required Update Points
@@ -56,6 +61,7 @@ Agents must update this table in the same turn when:
 - an account moves from `pending-creation` to `active`
 - deletion is approved, started, or completed
 - a Bitwarden item is deleted after permanent account deletion
+- an account is reclassified as destructible or non-destructible
 
 ## Secret Handling
 
