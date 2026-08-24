@@ -39,7 +39,8 @@ name: proposed-skill-name
 source: claude | codex | ryushe | ghost | other
 created: YYYY-MM-DDTHH:MM:SSZ
 status: new
-project: unknown | general-skills | bounty-harness | ai-policies | openclaw | <repo/path>
+project: proposed canonical repository (for example, general-skills | mobile-security | <repo>)
+canonical_target: <repository>/<repository-relative path>
 type: new | update | merge | deprecate
 ---
 
@@ -52,7 +53,8 @@ What this should help an agent do, and when it should trigger.
 Skill name, slash command, phrase, or workflow signal.
 
 ## Target
-Best guess for where this belongs. Use `unknown` if unsure.
+Name the proposed canonical repository and repository-relative path explicitly.
+Use `unknown` only when neither can be proposed.
 
 ## Body draft
 Rough skill content, update notes, or replacement guidance.
@@ -84,16 +86,27 @@ sensitive files in seeds. Use sanitized examples and artifact pointers only.
 
 ## Repository Layout When Authoring
 
-This repository is flat: place a shared general skill at `skills/<name>/`.
-For another repository, inspect its README, contributor guidance, and existing
-`skills/` tree before choosing a target path; other repositories may use their
-own layout. Do not infer a target repository's layout from this one.
+Repositories are the top-level capability boundary. `general-skills` stays
+flat: a shared general skill belongs at `skills/<name>/`, not in a nested
+category taxonomy.
 
-- Do not impose a global static category table. The target repository's declared
-  layout is authoritative; ask the owner only when that layout does not make a
-  placement clear.
-- Record the chosen repository-relative target in the seed's `## Target`
-  section so promotion can verify the placement.
+- General, coding, and security are broad umbrella capability classes. Put a
+  coding or security skill in its existing dedicated capability repository; do
+  not create arbitrary nested category taxonomies or a repository for each
+  subdomain. For example, recon is a security subdomain and belongs in the
+  security/BBH capability repository, not in a separate recon repository.
+- For a genuinely new top-level capability class that is not general, coding,
+  or security, propose a new dedicated flat repository rather than adding it
+  to `general-skills`. For example, mobile security is a distinct class and
+  should propose a flat `mobile-security` repository.
+- For another repository, inspect its README, contributor guidance, and
+  existing `skills/` tree before choosing a path. The target repository's
+  declared layout is authoritative; do not infer it from this repository.
+- In both `project` and `## Target`, mark the proposed canonical repository and
+  repository-relative path explicitly (for example,
+  `general-skills/skills/<name>` or `mobile-security/skills/<name>`). This is
+  required even for a seed; Ghost verifies the proposed placement during
+  promotion.
 
 ## Claude And Side-Agent Guidance
 
