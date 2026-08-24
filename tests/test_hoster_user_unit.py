@@ -8,7 +8,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-SCRIPT = ROOT / "skills" / "hoster-ssh" / "scripts" / "hoster_user_unit.py"
+SCRIPT = ROOT / "skills" / "operations" / "hoster-ssh" / "scripts" / "hoster_user_unit.py"
 
 
 def load_module():
