@@ -10,8 +10,8 @@ home and record format; detailed usage belongs next to the script itself.
 
 | Scope | Canonical Home | Use When |
 |---|---|---|
-| General reusable automation | `skills/operations/script_manager/scripts/` | The script is useful across projects and does not belong to one domain skill. |
-| One skill's helper | `skills/<category>/<skill>/scripts/` | The script supports one skill, such as `faq`, `bitwarden`, or `tmux`. |
+| General reusable automation | `skills/script_manager/scripts/` | The script is useful across projects and does not belong to one domain skill. |
+| One skill's helper | `skills/<skill>/scripts/` | The script supports one skill, such as `faq`, `bitwarden`, or `tmux`. |
 | Project-local helper | `<repo>/scripts/` or `<repo>/tools/` | The script depends on that repo's code, schema, or test fixtures. |
 | Bug bounty lane helper | `~/projects/bug_bounty_harness/skills/<skill>/scripts/` | The script is reusable for one bounty lane or harness workflow. |
 | Shared bounty helper | `~/Shared/bounty_recon/_shared/scripts/` | The script is small, useful across bounty programs or machines, and should be cloud-backed for agents to discover. |
