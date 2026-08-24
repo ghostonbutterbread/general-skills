@@ -3,7 +3,8 @@
 ## Intent
 
 Move the user-approved general skills into the repository's categorized layout
-without relocating `bounty-storage` or `huge-ingest`.
+and complete the paired ownership transfer of `bounty-storage` and `huge-ingest`
+to BBH.
 
 ## Branch and target
 
@@ -30,8 +31,9 @@ without relocating `bounty-storage` or `huge-ingest`.
 - `uv run --with pytest --with pyyaml python -m pytest skills/learning/nightly-learning/scripts/test_nightly_learning.py -q` — 5 passed.
 - Gmail OTP byte-compilation and both Daddy script examples passed.
 - A `git grep` check found no stale root-level paths for the 16 migrated skills.
-- `skills/bounty-storage/SKILL.md` and `skills/huge-ingest/SKILL.md` remain at
-  their original root-level paths.
+- BBH adoption commit `078ba7e` owns full canonical copies of both transferred
+  skills; this branch removes the former general-skills copies after that
+  adoption was independently verified.
 
 ## Activation boundary
 

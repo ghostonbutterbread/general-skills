@@ -35,8 +35,9 @@ Reusable local OpenClaw/Codex skills that are not tied to one bug bounty harness
 ### Pending categorization
 
 - `tmpmail` - tmpmail CLI workflow for disposable terminal inboxes in owned test flows.
-- `huge-ingest` - Large dataset ingestion protocol for URL/code/page/proxy/artifact corpora, bounded packets, lane dispatch, and bounty storage routing.
-- `bounty-storage` - Bug bounty storage policy for `~/Shared`, `/mnt/bounty`, and local scratch lanes.
+
+`bounty-storage` and `huge-ingest` are canonically owned by BBH as of its paired
+adoption change; they are intentionally not general-skills entries.
 
 ## Script Index
 
