@@ -36,6 +36,15 @@ class SkillLayoutTests(unittest.TestCase):
             self.assertTrue((SKILLS / skill / "SKILL.md").is_file(), skill)
         self.assertTrue(LEGACY_CATEGORY_DIRECTORIES.isdisjoint(actual_skills))
 
+    def test_skill_seed_guidance_keeps_capability_boundaries_explicit(self):
+        guidance = (SKILLS / "skill-seeds" / "SKILL.md").read_text()
+
+        self.assertIn("Repositories are the top-level capability boundary.", guidance)
+        self.assertIn("`general-skills` stays\nflat", guidance)
+        self.assertIn("security/BBH capability repository", guidance)
+        self.assertIn("flat `mobile-security` repository", guidance)
+        self.assertIn("canonical repository and\n  repository-relative path explicitly", guidance)
+
 
 if __name__ == "__main__":
     unittest.main()
