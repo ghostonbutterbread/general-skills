@@ -90,6 +90,25 @@ python3 "$HELPER" --unit="hoster-claude-$run_id" -- \
   /bin/bash -lc 'tmux new-session -d -s hoster-claude-'"$run_id"' "exec claude"; exec sleep infinity'
 ```
 
+## Workspace Attach and Recovery
+
+For the persistent `hoster-ghost-workspace.service`, use the remote `hoster-workspace` wrapper rather than a direct service restart. A normal attach starts an inactive service, waits briefly for its named tmux socket, snapshots non-secret topology, and attaches. It never restarts an active service.
+
+```bash
+ssh hoster-workspace
+```
+
+Before adding an interactive Claude or Codex pane, record non-secret resume metadata: label, agent kind, session ID, cwd, and intended tmux position. Do not record credentials, bearer URLs, terminal scrollback, or prompts.
+
+```bash
+STATE="$HOME/.local/lib/hoster-workspace/hoster_workspace_state.py"
+python3 "$STATE" --record --label research-1 --agent claude --resume-id <session-id> \
+  --cwd /absolute/project/path --session workspace --window claude-pair-1 --pane 0
+python3 "$STATE" --snapshot
+```
+
+Snapshots write `~/.local/state/hoster-workspace/latest.json` and a dated copy. If a socket/session is absent while the service is active, normal attach fails closed. Inspect first; run `hoster-workspace --repair-empty` only after proving no workspace session exists. Never make this repair automatic: restarting the service kills all workspace panes.
+
 ## Inspect, Attach, and Stop
 
 Use the same user-systemd environment for all remote lifecycle operations:
