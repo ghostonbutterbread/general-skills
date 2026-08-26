@@ -18,6 +18,8 @@ Reusable local OpenClaw/Codex skills that are not tied to one bug bounty harness
 - `bitwarden` - Bitwarden CLI workflow for storing and referencing test-account credentials without exposing secrets.
 - `account-tui-colors` - Terminal color guidance for account-oriented workflows.
 - `gmail-otp` - Narrow Gmail OAuth inbox reader for user-initiated login/password-reset OTPs, with sending hard-allowlisted to `ryushe.dev@gmail.com`.
+- `security-reporting` - Evidence-bound, triager-facing security report and PoC workflow.
+- `evidence-first-vulnerability-reporting` - Two-artifact evidence and submission report workflow.
 - `nightly-learning` - Report-only AppSec learning intake from a curated source registry, with safe-fetch provenance and manual promotion only.
 - `i-have-adhd` - ADHD-friendly output mode: lead with the next action, show state, suppress tangents, and cap lists at 15 items.
 
