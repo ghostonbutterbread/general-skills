@@ -11,6 +11,7 @@ Reusable local OpenClaw/Codex skills that are not tied to one bug bounty harness
 - `skill-seeds` - Lightweight shared proposal format for new or changed skills, with Ghost as the only promotion point.
 - `tmux` - Long-running session protocol for attachable recon, fuzzing, Arjun, scanner, and interactive CLI jobs; Hoster workloads defer to `hoster-ssh`.
 - `hoster-ssh` - Bounded Hoster SSH dispatch and lifecycle protocol: durable workloads run in named user-systemd services, not `ssh.service`.
+- `hoster-tmux-child-reaper` - Explicit Hoster-entry preflight that safely reaps only completed agent-created tmux child scopes; never timer-driven or a general pane cleaner.
 - `script_manager` - Reusable script promotion, storage, indexing, and handoff rules so repeated agent workflows become durable helpers.
 - `resilio-sync` - Resilio Sync handoff rules for `/srv/resilio` and large local file-set sharing.
 - `daddy` - Relative model-up/down routing for CLI agents, with benchmark guardrails for cost and quality tradeoffs.

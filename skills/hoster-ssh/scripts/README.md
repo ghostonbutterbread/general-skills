@@ -17,7 +17,7 @@
   ```
 - **Verification:**
   ```bash
-  python3 -m unittest tests/test_hoster_user_unit.py -v
+  python3 -m unittest discover -s tests -p 'test_hoster_user_unit.py' -v
   ```
 - **Owner/scope:** `hoster-ssh`; Hoster-only durable workload dispatch.
 - **Last verified:** 2026-07-24.
