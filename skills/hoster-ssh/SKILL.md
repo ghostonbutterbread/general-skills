@@ -33,6 +33,20 @@ ssh -i "${HOSTER_SSH_KEY:-$HOME/.ssh/hoster}" \
   ryushe@hoster 'hostname; uptime'
 ```
 
+## Hoster-Entry Cleanup Sidecar
+
+For meaningful Hoster work, start a short-lived native cleanup sidecar from
+`hoster-tmux-child-reaper` as the main worker begins its task. The sidecar
+reconciles only the helper's ownership-proven empty `tmux-spawn` scopes and
+returns a compact `cleanup: success | needs-attention | failed` receipt. It is
+not a tmux pane or a durable workload, and the main task should not wait for a
+routine receipt before starting.
+
+The sidecar must inspect first, may apply only the helper's eligible results,
+and must not manually kill, restart, or remediate protected/ambiguous scopes.
+Use its receipt as task context; `needs-attention` is not permission to disrupt
+running work. Do not use a timer, cron, or background loop.
+
 ## Durable Launch Contract
 
 1. **Check for a reusable healthy run first.** Inspect the task's recorded

@@ -37,15 +37,15 @@ home and record format; detailed usage belongs next to the script itself.
 ## Known General Scripts
 
 ### `skills/hoster-tmux-child-reaper/scripts/tmux_spawn_reaper.py`
-- Purpose: report and narrowly reap completed, explicitly registered, **empty** agent-created `tmux-spawn-*.scope` child-pane residue on Hoster.
-- Inputs: Hoster user-systemd environment, a prior `--register-pane <pid>` ownership receipt, optional `--apply`.
-- Outputs: JSON inspection/apply receipt.
-- Safe to run on: Hoster, as an explicit agent-entry preflight.
+- Purpose: provide the bounded mechanical step for a short-lived Hoster-entry cleanup sidecar: report and narrowly reap completed, explicitly registered, **empty** `tmux-spawn-*.scope` residue while the main worker begins its task.
+- Inputs: Hoster user-systemd environment, prior launcher-owned `--register-pane <pid>` provenance when applicable, optional `--apply` after inspection.
+- Outputs: JSON inspection/apply receipt; the sidecar reduces it to `cleanup: success | needs-attention | failed` for its parent.
+- Safe to run on: Hoster, only as an explicit Hoster-entry sidecar.
 - Mutates: only `--apply`, and only ownership-proven, empty scopes.
 - Example: `python3 tmux_spawn_reaper.py`
 - Tests: `python3 -m unittest discover -s tests -p 'test_tmux_spawn_reaper.py' -v`
 - Owner: `hoster-tmux-child-reaper` skill.
-- Last verified: pending focused test and Hoster sync/deployment.
+- Last verified: General Skills beta `e7097ca`; focused tests and Hoster runtime projection.
 
 When one is added, record:
 
