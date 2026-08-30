@@ -21,7 +21,12 @@ import urllib.request
 import uuid
 
 
-DEFAULT_QUARANTINE = Path.home() / "safe-fetch" / "quarantine"
+DEFAULT_QUARANTINE = Path(
+    os.environ.get(
+        "SAFE_FETCH_QUARANTINE",
+        Path(os.environ.get("XDG_STATE_HOME", Path.home() / ".local" / "state")) / "safe-fetch" / "quarantine",
+    )
+).expanduser()
 MAX_DEFAULT_CHARS = 200_000
 ZERO_WIDTH = dict.fromkeys(map(ord, "\u200b\u200c\u200d\ufeff"), None)
 CONTROL_RE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")

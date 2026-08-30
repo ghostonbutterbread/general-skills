@@ -4,13 +4,32 @@
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import os
 import re
 from dataclasses import dataclass
 from pathlib import Path
 
 
-DEFAULT_CENTRAL = Path("/home/ryushe/notes/appsec/faq")
+CONFIG_HELPER = Path(__file__).resolve().parents[3] / "scripts" / "general_skills_config.py"
+
+
+def configured_central() -> Path:
+    """Resolve the user-configurable cross-program FAQ root."""
+    spec = importlib.util.spec_from_file_location("general_skills_config", CONFIG_HELPER)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f"General Skills config helper is unavailable: {CONFIG_HELPER}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module.configured_path(
+        "faq",
+        "central",
+        environment="FAQ_CENTRAL",
+        default="~/notes/appsec/faq",
+    )
+
+
+DEFAULT_CENTRAL = configured_central()
 DEFAULT_SHARED = Path(os.environ.get("HARNESS_SHARED_BASE", "~/Shared")).expanduser()
 
 

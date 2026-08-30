@@ -14,11 +14,11 @@ not have to rediscover the same workflow from chat history.
 
 ## First Move
 
-1. Search for an existing script before writing one:
+1. Search the current project and the installed General Skills projection before writing one:
    ```bash
-   rg -n "<task keyword>|<file type>|<tool name>" /home/ryushe/projects/general-skills /home/ryushe/.openclaw/workspace/scripts /home/ryushe/projects -g '*.md' -g '*.py' -g '*.sh'
+   rg -n "<task keyword>|<file type>|<tool name>" . "$HOME/.hermes/synced-skills" -g '*.md' -g '*.py' -g '*.sh'
    ```
-2. Read `/home/ryushe/projects/general-skills/SCRIPT_INDEX.md`.
+2. Read `SCRIPT_INDEX.md` at the General Skills repository root when working from a source checkout; otherwise inspect the relevant installed skill's `scripts/README.md`.
 3. If the task is project-specific, inspect that repo's `scripts/`, `tools/`,
    `skills/*/scripts/`, and README files before creating a new helper.
 4. Decide whether the work needs a script, a one-off shell command, or a note.
@@ -42,11 +42,11 @@ pattern.
 
 Put scripts in the narrowest durable home:
 
-- General reusable helpers: `/home/ryushe/projects/general-skills/skills/script_manager/scripts/`
-- One skill's helper: `/home/ryushe/projects/general-skills/skills/<skill>/scripts/`
-- Bug bounty skill helper: `/home/ryushe/projects/bug_bounty_harness/skills/<skill>/scripts/`
-- Project-specific helper: `<repo>/scripts/` or `<repo>/tools/`
-- OpenClaw host/runtime helper: `/home/ryushe/.openclaw/workspace/scripts/`
+- General reusable helpers: the `script_manager/scripts/` directory in the General Skills source or active synced projection.
+- One skill's helper: that skill's `scripts/` directory.
+- Bug bounty skill helper: the selected BBH checkout's `skills/<skill>/scripts/` directory, addressed through its lane-safe launcher.
+- Project-specific helper: `<repo>/scripts/` or `<repo>/tools/`.
+- Host/runtime helper: the runtime's configured local scripts directory; do not assume an OpenClaw workspace.
 
 If unsure, start project-local. Promote to a general or skill-local home only
 after the interface is stable and clearly reusable.
@@ -72,7 +72,7 @@ delimiter and extension shape are stable.
 ## Record Contract
 
 Every promoted script needs a record in the nearest `scripts/README.md` or in
-`/home/ryushe/projects/general-skills/SCRIPT_INDEX.md`.
+`SCRIPT_INDEX.md`.
 
 Minimum fields:
 

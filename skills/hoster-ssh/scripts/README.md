@@ -13,7 +13,7 @@
 - **Example:**
   ```bash
   python3 hoster_user_unit.py --unit=hoster-demo-20260724T000000Z -- \
-    /bin/bash -lc 'cd /home/ryushe/projects/example && exec ./run.sh'
+    /bin/bash -lc 'cd <remote-project-dir> && exec ./run.sh'
   ```
 - **Verification:**
   ```bash

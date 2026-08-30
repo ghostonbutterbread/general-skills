@@ -17,16 +17,17 @@ findings.
 1. Search FAQ before solving.
 2. Prefer exact error strings, tool names, endpoint names, and flow names.
 3. Check both scopes:
-   - central: `/home/ryushe/notes/appsec/faq/`
-   - active program: `~/Shared/{family}/{program}/{lane}/notes/faq/`
+   - central: General Skills config `faq.central` (default: `~/notes/appsec/faq/`;
+     override with `FAQ_CENTRAL` or `--central`)
+   - active program: the resolved Shared family/program/lane FAQ root.
 4. If an entry links a script, command, skill, or playbook, reuse it first.
 5. If no entry exists, solve once and write the smallest reusable FAQ note.
 
 ## Helper
 
 ```bash
-python3 /home/ryushe/projects/general-skills/skills/faq/scripts/faq_search.py \
-  "chromium off flow auth" \
+FAQ_SEARCH="$HOME/.hermes/synced-skills/faq/scripts/faq_search.py"
+python3 "$FAQ_SEARCH" "chromium off flow auth" \
   --family web_bounty \
   --program canva \
   --lane web

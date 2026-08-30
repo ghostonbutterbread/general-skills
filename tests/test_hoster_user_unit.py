@@ -3,8 +3,11 @@ from __future__ import annotations
 import base64
 import importlib.util
 import json
+import os
+import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -20,6 +23,17 @@ def load_module():
 
 
 class HosterUserUnitTests(unittest.TestCase):
+    def test_identity_config_is_generated_with_a_portable_home_relative_default(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            config = Path(temporary) / "general-skills.toml"
+            with patch.dict(os.environ, {"GENERAL_SKILLS_CONFIG": str(config)}, clear=False):
+                module = load_module()
+                identity_file = module.configured_identity_file()
+
+            self.assertEqual(identity_file, Path.home() / ".ssh" / "hoster")
+            self.assertTrue(config.is_file())
+            self.assertIn('identity_file = "~/.ssh/hoster"', config.read_text())
+
     def test_build_run_invocation_uses_a_bounded_user_systemd_service_and_preserves_command_argv(self):
         module = load_module()
 
