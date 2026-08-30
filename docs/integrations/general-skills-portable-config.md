@@ -4,6 +4,7 @@
 - **Owner branch:** `fix/general-skills-portable-config`
 - **Base:** `origin/beta` at `c4bfecf8cc0db7040589d66fdda94cacf8d186db`
 - **Target:** `beta`
+- **Implementation checkpoint:** `a9b2f17` (`fix: make general skills host-portable`)
 
 ## Intent
 
