@@ -17,7 +17,7 @@ findings.
 1. Search FAQ before solving.
 2. Prefer exact error strings, tool names, endpoint names, and flow names.
 3. Check both scopes:
-   - central: General Skills config `faq.central` (default: `~/notes/appsec/faq/`;
+   - central: General Skills config `faq.faq_directory` (default: `~/notes/appsec/faq/`;
      override with `FAQ_CENTRAL` or `--central`)
    - active program: the resolved Shared family/program/lane FAQ root.
 4. If an entry links a script, command, skill, or playbook, reuse it first.

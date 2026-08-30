@@ -23,7 +23,7 @@ def configured_central() -> Path:
     spec.loader.exec_module(module)
     return module.configured_path(
         "faq",
-        "central",
+        "faq_directory",
         environment="FAQ_CENTRAL",
         default="~/notes/appsec/faq",
     )

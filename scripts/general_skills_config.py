@@ -20,7 +20,7 @@ identity_file = "~/.ssh/hoster"
 
 [faq]
 # Override with FAQ_CENTRAL or --central.
-central = "~/notes/appsec/faq"
+faq_directory = "~/notes/appsec/faq"
 """
 
 

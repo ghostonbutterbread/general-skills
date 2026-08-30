@@ -24,7 +24,7 @@ Do not merge these buckets. The separation is what keeps retrieval clean.
      setup, endpoint behavior, target scripts, and target-only workarounds.
 
 2. Central AppSec FAQ:
-   - General Skills config `faq.central` (default: `~/notes/appsec/faq/`).
+   - General Skills config `faq.faq_directory` (default: `~/notes/appsec/faq/`).
    - Override it with `FAQ_CENTRAL` or the helper's `--central` option.
 
 3. Project-local docs:
@@ -116,9 +116,9 @@ Use tags that match future search language:
 
 Markdown is the source of truth. Generated indexes may summarize it under:
 
-- `<faq.central parent>/indexes/faq-by-tag.md`
-- `<faq.central parent>/indexes/faq-by-tool.md`
-- `<faq.central parent>/indexes/faq-by-script.md`
+- `<faq.faq_directory parent>/indexes/faq-by-tag.md`
+- `<faq.faq_directory parent>/indexes/faq-by-tool.md`
+- `<faq.faq_directory parent>/indexes/faq-by-script.md`
 - active program `notes/index.md`
 
 Generated indexes are disposable. FAQ notes are canonical.

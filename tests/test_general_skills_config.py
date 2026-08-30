@@ -30,7 +30,7 @@ class GeneralSkillsConfigTests(unittest.TestCase):
                 contents = path.read_text()
 
             self.assertIn('identity_file = "~/.ssh/hoster"', contents)
-            self.assertIn('central = "~/notes/appsec/faq"', contents)
+            self.assertIn('faq_directory = "~/notes/appsec/faq"', contents)
             self.assertNotIn("/home/ryushe", contents)
 
     def test_environment_override_wins_over_the_generated_config(self):
