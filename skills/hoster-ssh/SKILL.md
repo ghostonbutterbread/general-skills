@@ -21,14 +21,14 @@ lifecycle. Use normal one-shot SSH only for bounded inspection and dispatch.
 
 - Host: `hoster` (`10.0.0.10`)
 - User: `ryushe`
-- Key: `/home/ryushe/.ssh/hoster`
+- Key: General Skills config `hoster.identity_file` (default: `~/.ssh/hoster`). Override it persistently in the generated config, for one run with `HOSTER_SSH_KEY`, or explicitly with `--identity-file`.
 - Required Hoster prerequisite: `loginctl show-user ryushe -p Linger` reports
   `Linger=yes`.
 
 Bounded inspection:
 
 ```bash
-ssh -i /home/ryushe/.ssh/hoster \
+ssh -i "${HOSTER_SSH_KEY:-$HOME/.ssh/hoster}" \
   -o BatchMode=yes -o ConnectTimeout=10 -o ControlMaster=no -T \
   ryushe@hoster 'hostname; uptime'
 ```
@@ -58,14 +58,16 @@ ssh -i /home/ryushe/.ssh/hoster \
 The canonical helper is colocated with this skill:
 
 ```bash
-HELPER=/home/ryushe/.openclaw/workspace/skills/hoster-ssh/scripts/hoster_user_unit.py
-# In Hermes-only environments use ~/.hermes/synced-skills/hoster-ssh/scripts/hoster_user_unit.py.
+HELPER="$HOME/.hermes/synced-skills/hoster-ssh/scripts/hoster_user_unit.py"
+# The helper generates $XDG_CONFIG_HOME/general-skills/config.toml (or
+# ~/.config/general-skills/config.toml) on first use. Edit [hoster]
+# identity_file there for a persistent override; HOSTER_SSH_KEY wins per run.
 
 run_id="$(date -u +%Y%m%dT%H%M%SZ)"
 python3 "$HELPER" \
   --unit="hoster-agent-$run_id" \
   --memory-high=2G --memory-max=3G --cpu-weight=100 \
-  -- /bin/bash -lc 'cd /home/ryushe/projects/bug_bounty_harness-stable && exec <agent-command>'
+  -- /bin/bash -lc 'cd <remote-project-dir> && exec <agent-command>'
 ```
 
 The helper uses one-shot SSH and runs this shape remotely:
@@ -114,7 +116,7 @@ Snapshots write `~/.local/state/hoster-workspace/latest.json` and a dated copy. 
 Use the same user-systemd environment for all remote lifecycle operations:
 
 ```bash
-ssh -i /home/ryushe/.ssh/hoster -o BatchMode=yes -o ConnectTimeout=10 -o ControlMaster=no -T \
+ssh -i "${HOSTER_SSH_KEY:-$HOME/.ssh/hoster}" -o BatchMode=yes -o ConnectTimeout=10 -o ControlMaster=no -T \
   ryushe@hoster '
     export XDG_RUNTIME_DIR="/run/user/$(id -u)"
     export DBUS_SESSION_BUS_ADDRESS="unix:path=$XDG_RUNTIME_DIR/bus"
@@ -133,7 +135,7 @@ tmux attach -t hoster-claude-<run-id>
 Stop only the task-owned unit:
 
 ```bash
-ssh -i /home/ryushe/.ssh/hoster -o BatchMode=yes -o ConnectTimeout=10 -o ControlMaster=no -T \
+ssh -i "${HOSTER_SSH_KEY:-$HOME/.ssh/hoster}" -o BatchMode=yes -o ConnectTimeout=10 -o ControlMaster=no -T \
   ryushe@hoster '
     export XDG_RUNTIME_DIR="/run/user/$(id -u)"
     export DBUS_SESSION_BUS_ADDRESS="unix:path=$XDG_RUNTIME_DIR/bus"

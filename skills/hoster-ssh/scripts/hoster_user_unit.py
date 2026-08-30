@@ -5,14 +5,32 @@ from __future__ import annotations
 
 import argparse
 import base64
+import importlib.util
 import json
 import re
 import shlex
 import subprocess
 import sys
+from pathlib import Path
 from typing import Sequence
 
 UNIT_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.@-]{0,127}$")
+CONFIG_HELPER = Path(__file__).resolve().parents[3] / "scripts" / "general_skills_config.py"
+
+
+def configured_identity_file() -> Path:
+    """Resolve the user-configurable Hoster SSH identity path."""
+    spec = importlib.util.spec_from_file_location("general_skills_config", CONFIG_HELPER)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f"General Skills config helper is unavailable: {CONFIG_HELPER}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module.configured_path(
+        "hoster",
+        "identity_file",
+        environment="HOSTER_SSH_KEY",
+        default="~/.ssh/hoster",
+    )
 
 REMOTE_RUNNER = r'''
 import base64
@@ -143,7 +161,11 @@ def run(args: argparse.Namespace) -> int:
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--host", default="ryushe@hoster", help="SSH destination (default: ryushe@hoster)")
-    parser.add_argument("--identity-file", default="/home/ryushe/.ssh/hoster", help="SSH private-key path")
+    parser.add_argument(
+        "--identity-file",
+        default=str(configured_identity_file()),
+        help="SSH private-key path (default: General Skills config or HOSTER_SSH_KEY)",
+    )
     parser.add_argument("--unit", required=True, help="Unique user-systemd service name")
     parser.add_argument("--memory-high", default="2G", help="systemd MemoryHigh value")
     parser.add_argument("--memory-max", default="3G", help="systemd MemoryMax value")

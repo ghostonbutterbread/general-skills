@@ -24,9 +24,8 @@ Do not merge these buckets. The separation is what keeps retrieval clean.
      setup, endpoint behavior, target scripts, and target-only workarounds.
 
 2. Central AppSec FAQ:
-   - `/home/ryushe/notes/appsec/faq/`
-   - Use for reusable browser, proxy, Caido, tooling, payload, workflow, and
-     agent-operation fixes.
+   - General Skills config `faq.faq_directory` (default: `~/notes/appsec/faq/`).
+   - Override it with `FAQ_CENTRAL` or the helper's `--central` option.
 
 3. Project-local docs:
    - The repo or project that owns the implementation behavior.
@@ -41,7 +40,8 @@ Do not merge these buckets. The separation is what keeps retrieval clean.
 Use exact terms first:
 
 ```bash
-python3 /home/ryushe/projects/general-skills/skills/faq/scripts/faq_search.py \
+FAQ_SEARCH="$HOME/.hermes/synced-skills/faq/scripts/faq_search.py"
+python3 "$FAQ_SEARCH" \
   "<tool error flow endpoint concept>" \
   --family web_bounty \
   --program <program> \
@@ -53,7 +53,7 @@ Use raw search when needed:
 ```bash
 rg -i "<error phrase|tool|flow|endpoint>" \
   ~/Shared/*/*/*/notes/faq \
-  /home/ryushe/notes/appsec/faq
+  "${FAQ_CENTRAL:-$HOME/notes/appsec/faq}"
 ```
 
 ## Note Shape
@@ -116,9 +116,9 @@ Use tags that match future search language:
 
 Markdown is the source of truth. Generated indexes may summarize it under:
 
-- `/home/ryushe/notes/appsec/indexes/faq-by-tag.md`
-- `/home/ryushe/notes/appsec/indexes/faq-by-tool.md`
-- `/home/ryushe/notes/appsec/indexes/faq-by-script.md`
+- `<faq.faq_directory parent>/indexes/faq-by-tag.md`
+- `<faq.faq_directory parent>/indexes/faq-by-tool.md`
+- `<faq.faq_directory parent>/indexes/faq-by-script.md`
 - active program `notes/index.md`
 
 Generated indexes are disposable. FAQ notes are canonical.
