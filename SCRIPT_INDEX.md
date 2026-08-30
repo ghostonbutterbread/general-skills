@@ -36,7 +36,16 @@ home and record format; detailed usage belongs next to the script itself.
 
 ## Known General Scripts
 
-No general `script_manager` helper scripts have been promoted yet.
+### `skills/hoster-tmux-child-reaper/scripts/tmux_spawn_reaper.py`
+- Purpose: report and narrowly reap completed, explicitly registered, **empty** agent-created `tmux-spawn-*.scope` child-pane residue on Hoster.
+- Inputs: Hoster user-systemd environment, a prior `--register-pane <pid>` ownership receipt, optional `--apply`.
+- Outputs: JSON inspection/apply receipt.
+- Safe to run on: Hoster, as an explicit agent-entry preflight.
+- Mutates: only `--apply`, and only ownership-proven, empty scopes.
+- Example: `python3 tmux_spawn_reaper.py`
+- Tests: `python3 -m unittest discover -s tests -p 'test_tmux_spawn_reaper.py' -v`
+- Owner: `hoster-tmux-child-reaper` skill.
+- Last verified: pending focused test and Hoster sync/deployment.
 
 When one is added, record:
 
