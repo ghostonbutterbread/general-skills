@@ -17,6 +17,7 @@ Reusable local OpenClaw/Codex skills that are not tied to one bug bounty harness
 - `daddy` - Relative model-up/down routing for CLI agents, with benchmark guardrails for cost and quality tradeoffs.
 - `account-manager` - Non-secret account inventory workflow for roles, mutability, lifecycle state, and Bitwarden item references.
 - `bitwarden` - Bitwarden CLI workflow for storing and referencing test-account credentials without exposing secrets.
+- `brainstorm` - Evidence-grounded creative divergence for any domain, with optional seed-assisted lens rotation and fresh-context critique.
 - `account-tui-colors` - Terminal color guidance for account-oriented workflows.
 - `gmail-otp` - Narrow Gmail OAuth inbox reader for user-initiated login/password-reset OTPs, with sending hard-allowlisted to `ryushe.dev@gmail.com`.
 - `security-reporting` - Evidence-bound, triager-facing security report and PoC workflow.
