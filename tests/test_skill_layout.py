@@ -10,6 +10,7 @@ EXPECTED_SKILLS = {
     "account-manager",
     "account-tui-colors",
     "bitwarden",
+    "brainstorm",
     "coordination",
     "daddy",
     "evidence-first-vulnerability-reporting",
