@@ -4,9 +4,9 @@ Reusable local OpenClaw/Codex skills that are not tied to one bug bounty harness
 
 ## Skills
 
+- `atme` - `/atme` invokes the @me briefing: a compact, grounded current-work summary.
 - `safe-fetch` - Default external web-content ingestion through quarantine and sanitization unless explicitly bypassed.
 - `faq` - Problem-oriented solved fixes, script lookup, and central/program FAQ routing before agents re-solve recurring issues.
-- `papercuts` - Concise, sanitized records of agent workflow friction that later maintenance passes can verify and eliminate.
 - `coordination` - Parent/child task splitting protocol for broad runs, focused subagents, and interactable child-run metadata.
 - `skill-seeds` - Lightweight shared proposal format for new or changed skills, with Ghost as the only promotion point.
 - `tmux` - Long-running session protocol for attachable recon, fuzzing, Arjun, scanner, and interactive CLI jobs; Hoster workloads defer to `hoster-ssh`.

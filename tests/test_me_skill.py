@@ -5,14 +5,15 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-SKILL = ROOT / "skills" / "me" / "SKILL.md"
+SKILL = ROOT / "skills" / "atme" / "SKILL.md"
 
 
 class MeSkillTests(unittest.TestCase):
     def test_atme_skill_is_a_compact_current_work_briefing(self) -> None:
         content = SKILL.read_text(encoding="utf-8")
 
-        self.assertIn("name: me", content)
+        self.assertIn("name: atme", content)
+        self.assertNotIn("name: me", content)
         self.assertIn("/atme", content)
         self.assertIn("@me", content)
         self.assertIn("current conversation", content)

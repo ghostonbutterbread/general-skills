@@ -1,11 +1,11 @@
 ---
-name: me
+name: atme
 description: Summarize the current work when asked to /atme or @me.
 ---
 
 # @me Briefing
 
-Use `@me` (or ask `/atme`) for a short summary of what the current conversation
+Use `/atme` for a short summary of what the current conversation
 has been working on. This is a general status briefing, not a task tracker,
 security ledger, or a substitute for reading project evidence.
 
