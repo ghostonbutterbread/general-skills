@@ -18,6 +18,7 @@ EXPECTED_SKILLS = {
     "gmail-otp",
     "hoster-ssh",
     "hoster-tmux-child-reaper",
+    "atme",
     "i-have-adhd",
     "nightly-learning",
     "papercuts",
