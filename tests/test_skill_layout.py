@@ -19,6 +19,7 @@ EXPECTED_SKILLS = {
     "hoster-ssh",
     "hoster-tmux-child-reaper",
     "i-have-adhd",
+    "me",
     "nightly-learning",
     "papercuts",
     "resilio-sync",
