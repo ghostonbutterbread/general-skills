@@ -20,5 +20,6 @@
 ## Review / next action
 
 Independent review is required before commit and beta integration. On approval,
-commit this branch; merge only after the BBH removal is ready, then use a focused
-sync dry run and runtime resolver check to verify `me` resolves to General Skills.
+commit this branch; merge after the BBH removal is ready, then use a focused
+sync dry run and runtime resolver check to verify `/atme` resolves to General
+Skills.
