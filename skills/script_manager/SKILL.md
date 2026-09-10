@@ -116,6 +116,10 @@ Minimum fields:
 - owner/scope
 - last verified date
 
+For heuristic or vocabulary-driven output, also record the coverage boundary;
+default it to `exhaustive: false` unless a closed input contract proves
+otherwise.
+
 Use `references/script-record-template.md` for the shape.
 
 ## Example: Chunk Renderer URLs
