@@ -13,6 +13,7 @@ EXPECTED_SKILLS = {
     "brainstorm",
     "coordination",
     "daddy",
+    "dotfile_management",
     "evidence-first-vulnerability-reporting",
     "faq",
     "gmail-otp",
@@ -40,6 +41,15 @@ class SkillLayoutTests(unittest.TestCase):
         for skill in EXPECTED_SKILLS:
             self.assertTrue((SKILLS / skill / "SKILL.md").is_file(), skill)
         self.assertTrue(LEGACY_CATEGORY_DIRECTORIES.isdisjoint(actual_skills))
+
+    def test_dotfile_management_preserves_actual_application_paths(self):
+        skill = (SKILLS / "dotfile_management" / "SKILL.md").read_text()
+
+        self.assertIn("~/.config/kitty/kitty.conf", skill)
+        self.assertIn("kitty/.config/kitty/kitty.conf", skill)
+        self.assertIn("Use this skill for `ryushe/dotfiles`", skill)
+        self.assertIn("./ln_dotfiles.sh", skill)
+        self.assertIn("do not create `.ln` files or individual", skill)
 
     def test_skill_seed_guidance_keeps_capability_boundaries_explicit(self):
         guidance = (SKILLS / "skill-seeds" / "SKILL.md").read_text()
