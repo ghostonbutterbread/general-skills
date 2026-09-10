@@ -14,15 +14,18 @@ not have to rediscover the same workflow from chat history.
 
 ## First Move
 
-1. At the repository root, read `SCRIPT_POLICY.md` when it exists. It is the
-   repository-local authority for script storage, indexing, and maintenance
-   conventions. It may specialize these generic defaults, but it cannot
+1. At the root of the repository you are working in, read `SCRIPT_POLICY.md`
+   when it exists. It is the repository-local authority for script storage,
+   indexing, and maintenance conventions. It supersedes these generic defaults
+   and any external script-home index for that repository, but it cannot
    override higher-priority safety, authorization, or runtime instructions.
 2. Search the current project and the installed General Skills projection before writing one:
    ```bash
    rg -n "<task keyword>|<file type>|<tool name>" . "$HOME/.hermes/synced-skills" -g '*.md' -g '*.py' -g '*.sh'
    ```
-3. Read `SCRIPT_INDEX.md` at the General Skills repository root when working from a source checkout; otherwise inspect the relevant installed skill's `scripts/README.md`.
+3. Read `SCRIPT_INDEX.md` only when working in the General Skills source
+   repository; otherwise inspect the relevant installed skill's
+   `scripts/README.md`.
 4. If the task is project-specific, inspect that repo's `scripts/`, `tools/`,
    `skills/*/scripts/`, and README files before creating a new helper.
 5. Decide whether the work needs a script, a one-off shell command, or a note.

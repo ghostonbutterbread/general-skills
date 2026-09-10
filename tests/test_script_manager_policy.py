@@ -3,12 +3,14 @@ from pathlib import Path
 
 
 SKILL = Path(__file__).resolve().parents[1] / "skills" / "script_manager" / "SKILL.md"
+INDEX = Path(__file__).resolve().parents[1] / "SCRIPT_INDEX.md"
 
 
 class ScriptManagerPolicyTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.text = " ".join(SKILL.read_text(encoding="utf-8").lower().split())
+        cls.index_text = " ".join(INDEX.read_text(encoding="utf-8").lower().split())
 
     def test_deterministic_scripts_have_bounded_authority(self) -> None:
         self.assertIn("deterministic mechanics, bounded authority", self.text)
@@ -26,10 +28,19 @@ class ScriptManagerPolicyTests(unittest.TestCase):
 
     def test_repository_policy_is_discovered_without_repo_specific_wording(self) -> None:
         self.assertIn("script_policy.md", self.text)
-        self.assertIn("repository root", self.text)
+        self.assertIn("root of the repository you are working in", self.text)
         self.assertIn("storage, indexing, and maintenance conventions", self.text)
+        self.assertIn("supersedes these generic defaults", self.text)
+        self.assertIn("cannot override higher-priority safety", self.text)
         self.assertNotIn("selected bbh checkout", self.text)
         self.assertNotIn("bug bounty skill helper", self.text)
+
+    def test_general_index_is_repository_neutral(self) -> None:
+        self.assertIn("general skills source index", self.index_text)
+        self.assertIn("script_policy.md", self.index_text)
+        self.assertNotIn("bug_bounty_harness", self.index_text)
+        self.assertNotIn("bounty_recon", self.index_text)
+        self.assertNotIn(".openclaw/workspace", self.index_text)
 
     def test_multiple_cohesive_scripts_are_allowed_without_duplication(self) -> None:
         self.assertIn("multiple cohesive scripts", self.text)

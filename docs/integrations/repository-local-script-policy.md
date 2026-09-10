@@ -11,9 +11,14 @@
   are allowed; matching existing owners are reused instead of duplicated.
 - **Evidence:** `tests/test_script_manager_policy.py` failed on the absent lookup,
   BBH-specific wording, and missing multiple-helper boundary before
-  implementation. It now passes (`4 passed`); the full repository suite passes
-  (`37 passed, 1 subtest passed`) and `git diff --check` passes.
+  implementation. It now passes (`5 passed`); the full repository suite passes
+  (`38 passed, 1 subtest passed`) and `git diff --check` passes.
 - **Activation:** Merge and push General Skills beta, update the selected Hoster
   checkout, and verify the active `script_manager` projection in a fresh agent.
-- **Next:** Obtain independent review, reconcile current `origin/beta`, then
-  merge and remove this dossier from beta.
+- **Review:** Initial independent review blocked on BBH/runtime-specific entries
+  in the General Skills index, ambiguous precedence, and an untested safety
+  boundary. The follow-up makes `SCRIPT_INDEX.md` General-Skills-only, gives the
+  working repository's policy explicit precedence over generic defaults, and
+  pins neutrality plus the higher-priority safety boundary in tests.
+- **Next:** Obtain focused re-review, reconcile current `origin/beta`, then merge
+  and remove this dossier from beta.
