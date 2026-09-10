@@ -9,7 +9,7 @@ Use this in the nearest `scripts/README.md` or central script index.
 - Scope: general | skill-local | project-local | target-local | host-local
 - Inputs:
 - Outputs:
-- Coverage boundary: exhaustive: false | closed-contract proof
+- Coverage (heuristic only): exhaustive: false | closed proof | n/a
 - Mutates: no | files only | network | external system
 - Safe default:
 - Example:

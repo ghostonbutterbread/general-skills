@@ -74,7 +74,7 @@ Keep entries short—usually one or two lines:
 2. **Summary:** what failed or created friction, in plain language.
 3. **Context:** a few words naming the task, tool, or surface—not a raw
    transcript.
-4. **Optional context:** pass a sanitized error fragment or workaround with
+4. **Optional evidence:** pass a sanitized error fragment or workaround with
    `--evidence`; use `--impact` only when the reason is not obvious.
 
 Never place credentials, cookies, tokens, authorization URLs, private target
