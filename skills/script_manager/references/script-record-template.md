@@ -9,6 +9,7 @@ Use this in the nearest `scripts/README.md` or central script index.
 - Scope: general | skill-local | project-local | target-local | host-local
 - Inputs:
 - Outputs:
+- Coverage (heuristic only): exhaustive: false | closed proof | n/a
 - Mutates: no | files only | network | external system
 - Safe default:
 - Example:
@@ -28,5 +29,8 @@ Use this in the nearest `scripts/README.md` or central script index.
   condition.
 - If the script consumes untrusted content, record whether it treats source text
   as data only.
+- If the script emits heuristic or vocabulary-driven output, record its coverage
+  boundary. Use `exhaustive: false` unless a closed input contract proves
+  otherwise.
 - If the script writes into a shared aggregate file, record whether it appends,
   rewrites, dedupes, or stages through a temporary file first.
