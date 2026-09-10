@@ -17,7 +17,8 @@ Do not let one agent try to do everything.
 The parent agent should:
 
 - define the objective and current critical path
-- split only independent or sidecar work into child packets
+- give children focused packets, including critical-path work when useful;
+  parent concurrency is beneficial, not required
 - keep sensitive context and broad history out of child prompts
 - track every spawned child by run ID, owner, objective, attach path, and result
 - merge results into the canonical spec, notes, todo, report, or finding
