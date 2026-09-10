@@ -38,6 +38,36 @@ Create or promote a script when at least one is true:
 Do not create a script for a tiny one-off command unless it captures a reusable
 pattern.
 
+## Deterministic Mechanics, Bounded Authority
+
+Prefer documented scripts for deterministic, repeatable mechanics such as
+enumeration, parsing, normalization, deduplication, joining, and artifact
+publication. Reuse an existing documented helper before creating another one.
+This preference transfers mechanical work to scripts; it does not transfer
+semantic or open-world judgment.
+
+Classify script output as:
+
+- **Observed facts:** mechanically derived values with evidence or provenance.
+- **Seed signals:** deterministic pattern matches for prioritization, explicitly
+  non-exhaustive.
+- **Unknowns:** unsupported, unfamiliar, ambiguous, computed, or unclassified
+  behavior that still requires agent interpretation.
+
+Heuristic or vocabulary-driven output must declare its coverage boundary. Use
+`exhaustive: false` unless exhaustiveness is genuinely proved by a closed input
+contract. If coverage metadata is absent, interpret it as `exhaustive: false`.
+Zero matches must never be promoted into “absent,” “safe,” “complete,” or “fully
+searched.” Agents remain responsible for semantic context, unfamiliar
+technologies, computed behavior, ambiguity, and unknowns.
+
+Do not silently teach a running script from one agent observation. Promote a
+confirmed miss only with preserved triggering evidence, a failing fixture or
+test, a generalized implementation, validation against false positives, and
+review. If the durable lesson belongs in another skill or repository, propose it
+through that repository's normal skill-seed or review workflow rather than
+creating a parallel helper.
+
 ## Storage Decision
 
 Put scripts in the narrowest durable home:
