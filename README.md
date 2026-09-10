@@ -24,6 +24,7 @@ Reusable local OpenClaw/Codex skills that are not tied to one bug bounty harness
 - `evidence-first-vulnerability-reporting` - Two-artifact evidence and submission report workflow.
 - `nightly-learning` - Report-only AppSec learning intake from a curated source registry, with safe-fetch provenance and manual promotion only.
 - `i-have-adhd` - ADHD-friendly output mode: lead with the next action, show state, suppress tangents, and cap lists at 15 items.
+- `dotfile_management` - GNU Stow dotfile migration using actual application configuration paths and `ln_dotfiles.sh`.
 
 All skills use the flat `skills/<skill>/SKILL.md` layout. This repository owns
 general shared skills; capability-specific skills belong in their dedicated
