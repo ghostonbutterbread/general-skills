@@ -1,63 +1,53 @@
-# Script Index
+# General Skills Script Index
 
-Canonical map for reusable scripts that agents should discover before writing a
-new one.
+This is the General Skills source index, not a cross-repository placement
+policy. When another repository has a root `SCRIPT_POLICY.md`, that repository's
+file owns its script storage, indexing, and maintenance conventions. Otherwise,
+use the shared `script_manager` fallback guidance.
 
-This index is intentionally lightweight. It points agents to the right script
-home and record format; detailed usage belongs next to the script itself.
+This index is intentionally lightweight. It catalogs General Skills script
+homes and records; detailed usage belongs next to each script.
 
-## Script Homes
+## General Skills Script Homes
 
-| Scope | Canonical Home | Use When |
+| Scope | Home | Use when |
 |---|---|---|
-| General reusable automation | `skills/script_manager/scripts/` | The script is useful across projects and does not belong to one domain skill. |
-| One skill's helper | `skills/<skill>/scripts/` | The script supports one skill, such as `faq`, `bitwarden`, or `tmux`. |
-| Project-local helper | `<repo>/scripts/` or `<repo>/tools/` | The script depends on that repo's code, schema, or test fixtures. |
-| Bug bounty lane helper | `~/projects/bug_bounty_harness/skills/<skill>/scripts/` | The script is reusable for one bounty lane or harness workflow. |
-| Shared bounty helper | `~/Shared/bounty_recon/_shared/scripts/` | The script is small, useful across bounty programs or machines, and should be cloud-backed for agents to discover. |
-| Operator/local workspace helper | `/home/ryushe/.openclaw/workspace/scripts/` | The script is tied to this OpenClaw workspace, host, or runtime. |
+| General reusable automation | `skills/script_manager/scripts/` | The helper works across projects and belongs to no narrower skill. |
+| One General Skills skill | `skills/<skill>/scripts/` | The helper supports one skill such as `faq`, `bitwarden`, or `tmux`. |
+| Another repository | Its root `SCRIPT_POLICY.md`, otherwise `<repo>/scripts/` or `<repo>/tools/` | The helper depends on that repository's code, schema, or fixtures. |
+| Host/runtime local | The runtime's configured local script directory | The helper is intentionally host-local and not canonical shared automation. |
 
 ## Registry Rules
 
 - Search this index and nearby `scripts/README.md` files before writing a new
-  script.
-- Promote repeated shell/regex/manual workflows into scripts once they are
-  likely to recur.
-- Put the script in the narrowest durable home that future agents will search.
+  General Skills helper.
+- Reuse or extend an existing helper when its responsibility matches.
+- Put the helper in the narrowest durable home future agents will search.
 - Add or update a script record in the nearest `scripts/README.md`.
-- For shared bounty helpers, keep only the script and small records in
-  `~/Shared`; put heavy inputs, fixtures, generated output, and corpora in
-  `/mnt/bounty` or scratch.
-- Keep scripts reusable by accepting files/stdin/flags instead of hard-coding
-  one target path.
-- Preserve raw input files; write derived outputs separately.
+- Keep scripts reusable by accepting files, stdin, or flags instead of
+  hardcoding one machine, target, or transient path.
+- Preserve raw inputs and write derived outputs separately.
 - Never store credentials, cookies, bearer tokens, API keys, private headers,
-  or raw sensitive files in script records, examples, or committed fixtures.
+  or sensitive source files in records, examples, or committed fixtures.
 
 ## Known General Scripts
 
 ### `skills/hoster-tmux-child-reaper/scripts/tmux_spawn_reaper.py`
-- Purpose: provide the bounded mechanical step for a short-lived Hoster-entry cleanup sidecar: report and narrowly reap completed, explicitly registered, **empty** `tmux-spawn-*.scope` residue while the main worker begins its task.
-- Inputs: Hoster user-systemd environment, prior launcher-owned `--register-pane <pid>` provenance when applicable, optional `--apply` after inspection.
-- Outputs: JSON inspection/apply receipt; the sidecar reduces it to `cleanup: success | needs-attention | failed` for its parent.
+
+- Purpose: provide the bounded mechanical step for a short-lived Hoster-entry
+  cleanup sidecar: report and narrowly reap completed, explicitly registered,
+  empty `tmux-spawn-*.scope` residue while the main worker begins its task.
+- Inputs: Hoster user-systemd environment, prior launcher-owned
+  `--register-pane <pid>` provenance when applicable, and optional `--apply`
+  after inspection.
+- Outputs: JSON inspection/apply receipt; the sidecar reduces it to
+  `cleanup: success | needs-attention | failed` for its parent.
 - Safe to run on: Hoster, only as an explicit Hoster-entry sidecar.
-- Mutates: only `--apply`, and only ownership-proven, empty scopes.
+- Mutates: only with `--apply`, and only ownership-proven empty scopes.
 - Example: `python3 tmux_spawn_reaper.py`
 - Tests: `python3 -m unittest discover -s tests -p 'test_tmux_spawn_reaper.py' -v`
 - Owner: `hoster-tmux-child-reaper` skill.
-- Last verified: General Skills beta `e7097ca`; focused tests and Hoster runtime projection.
+- Last verified: General Skills beta `e7097ca`; focused tests and Hoster runtime
+  projection.
 
-When one is added, record:
-
-```md
-### `<script-path>`
-- Purpose:
-- Inputs:
-- Outputs:
-- Safe to run on:
-- Mutates:
-- Example:
-- Tests:
-- Owner:
-- Last verified:
-```
+When adding a record, use `skills/script_manager/references/script-record-template.md`.
