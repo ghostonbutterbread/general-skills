@@ -20,5 +20,8 @@
   boundary. The follow-up makes `SCRIPT_INDEX.md` General-Skills-only, gives the
   working repository's policy explicit precedence over generic defaults, and
   pins neutrality plus the higher-priority safety boundary in tests.
-- **Next:** Obtain focused re-review, reconcile current `origin/beta`, then merge
-  and remove this dossier from beta.
+- **Decision:** Focused independent re-review returned `APPROVE`. Its only
+  wording note—an overly broad `SCRIPT_INDEX.md` record alternative—was tightened
+  before integration.
+- **Next:** Reconcile current `origin/beta`, merge, push, activate the Hoster beta
+  projection, and remove this dossier from the integration result.

@@ -112,8 +112,9 @@ delimiter and extension shape are stable.
 
 ## Record Contract
 
-Every promoted script needs a record in the nearest `scripts/README.md` or in
-`SCRIPT_INDEX.md`.
+Every promoted script needs a record in the nearest `scripts/README.md`. When
+maintaining the General Skills source repository itself, also update its
+`SCRIPT_INDEX.md` when that central catalog owns the entry.
 
 Minimum fields:
 
