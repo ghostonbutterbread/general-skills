@@ -24,6 +24,18 @@ class ScriptManagerPolicyTests(unittest.TestCase):
         self.assertIn("generalized implementation", self.text)
         self.assertIn("validation against false positives, and review", self.text)
 
+    def test_repository_policy_is_discovered_without_repo_specific_wording(self) -> None:
+        self.assertIn("script_policy.md", self.text)
+        self.assertIn("repository root", self.text)
+        self.assertIn("storage, indexing, and maintenance conventions", self.text)
+        self.assertNotIn("selected bbh checkout", self.text)
+        self.assertNotIn("bug bounty skill helper", self.text)
+
+    def test_multiple_cohesive_scripts_are_allowed_without_duplication(self) -> None:
+        self.assertIn("multiple cohesive scripts", self.text)
+        self.assertIn("one giant script", self.text)
+        self.assertIn("responsibility already matches", self.text)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -14,14 +14,18 @@ not have to rediscover the same workflow from chat history.
 
 ## First Move
 
-1. Search the current project and the installed General Skills projection before writing one:
+1. At the repository root, read `SCRIPT_POLICY.md` when it exists. It is the
+   repository-local authority for script storage, indexing, and maintenance
+   conventions. It may specialize these generic defaults, but it cannot
+   override higher-priority safety, authorization, or runtime instructions.
+2. Search the current project and the installed General Skills projection before writing one:
    ```bash
    rg -n "<task keyword>|<file type>|<tool name>" . "$HOME/.hermes/synced-skills" -g '*.md' -g '*.py' -g '*.sh'
    ```
-2. Read `SCRIPT_INDEX.md` at the General Skills repository root when working from a source checkout; otherwise inspect the relevant installed skill's `scripts/README.md`.
-3. If the task is project-specific, inspect that repo's `scripts/`, `tools/`,
+3. Read `SCRIPT_INDEX.md` at the General Skills repository root when working from a source checkout; otherwise inspect the relevant installed skill's `scripts/README.md`.
+4. If the task is project-specific, inspect that repo's `scripts/`, `tools/`,
    `skills/*/scripts/`, and README files before creating a new helper.
-4. Decide whether the work needs a script, a one-off shell command, or a note.
+5. Decide whether the work needs a script, a one-off shell command, or a note.
 
 ## When To Script
 
@@ -37,6 +41,11 @@ Create or promote a script when at least one is true:
 
 Do not create a script for a tiny one-off command unless it captures a reusable
 pattern.
+
+Multiple cohesive scripts are valid when they own different jobs, interfaces,
+or lifecycles. Do not force unrelated behavior into one giant script. Reuse or
+extend a documented helper when its responsibility already matches; create a
+separate helper when the responsibility is materially different.
 
 ## Deterministic Mechanics, Bounded Authority
 
@@ -74,7 +83,6 @@ Put scripts in the narrowest durable home:
 
 - General reusable helpers: the `script_manager/scripts/` directory in the General Skills source or active synced projection.
 - One skill's helper: that skill's `scripts/` directory.
-- Bug bounty skill helper: the selected BBH checkout's `skills/<skill>/scripts/` directory, addressed through its lane-safe launcher.
 - Project-specific helper: `<repo>/scripts/` or `<repo>/tools/`.
 - Host/runtime helper: the runtime's configured local scripts directory; do not assume an OpenClaw workspace.
 
