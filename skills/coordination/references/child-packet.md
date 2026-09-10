@@ -18,8 +18,13 @@ Only the relevant facts needed for this packet.
 ## Tools / Mode
 Native subagent, tmux CLI, OpenClaw session, browser, proxy, or read-only.
 
+## Required Policies / Guidance
+Accessible references or necessary text for the policies and repository guidance
+that apply to this packet. Load and follow them before acting; report missing
+required guidance to the parent. Do not assume inherited parent context.
+
 ## Safety / Secrets
-What sensitive material is excluded, and what policy applies.
+Scope, permissions, safety and verification constraints; excluded sensitive material.
 
 ## Stop Condition
 When to return instead of continuing.
