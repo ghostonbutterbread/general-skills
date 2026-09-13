@@ -1,5 +1,11 @@
 # General Skills Script Index
 
+> Historical catalog retained for reference. Its registry rules below are
+> superseded by [Script Manager](skills/script_manager/SKILL.md): load the
+> relevant skill and follow its script-reference pointer. This catalog does
+> not require discovery or maintenance updates; keep current entries in the
+> owning skill's index instead.
+
 This is the General Skills source index, not a cross-repository placement
 policy. When another repository has a root `SCRIPT_POLICY.md`, that repository's
 file owns its script storage, indexing, and maintenance conventions. Otherwise,

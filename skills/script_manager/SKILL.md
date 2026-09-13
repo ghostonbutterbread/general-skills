@@ -19,15 +19,17 @@ not have to rediscover the same workflow from chat history.
    indexing, and maintenance conventions. It supersedes these generic defaults
    and any external script-home index for that repository, but it cannot
    override higher-priority safety, authorization, or runtime instructions.
-2. Search the current project and the installed General Skills projection before writing one:
-   ```bash
-   rg -n "<task keyword>|<file type>|<tool name>" . "$HOME/.hermes/synced-skills" -g '*.md' -g '*.py' -g '*.sh'
-   ```
-3. Read `SCRIPT_INDEX.md` only when working in the General Skills source
-   repository; otherwise inspect the relevant installed skill's
-   `scripts/README.md`.
-4. If the task is project-specific, inspect that repo's `scripts/`, `tools/`,
-   `skills/*/scripts/`, and README files before creating a new helper.
+2. Load the relevant skill first. Follow its pointer to the skill-owned script
+   reference or index, then read that reference to locate and reuse or edit an
+   existing helper before creating one. For this skill's general helpers, read
+   [scripts/README.md](scripts/README.md).
+3. Follow the owning repository's existing layout: a skill-local testing or
+   scripts README, or an appropriate document under `docs/` or `references/`.
+   Do not automatically use the repository-root README or require a global
+   `SCRIPT_INDEX.md` catalog.
+4. If no pointer exists, inspect the relevant skill and project script homes
+   with a focused search; add a pointer to the existing reference when found.
+   Create a lean skill-owned index only when no suitable reference exists.
 5. Decide whether the work needs a script, a one-off shell command, or a note.
 
 ## When To Script
@@ -84,7 +86,7 @@ creating a parallel helper.
 
 Put scripts in the narrowest durable home:
 
-- General reusable helpers: the `script_manager/scripts/` directory in the General Skills source or active synced projection.
+- General reusable helpers: the `script_manager/scripts/` directory in the General Skills source repository.
 - One skill's helper: that skill's `scripts/` directory.
 - Project-specific helper: `<repo>/scripts/` or `<repo>/tools/`.
 - Host/runtime helper: the runtime's configured local scripts directory; do not assume an OpenClaw workspace.
@@ -112,27 +114,31 @@ delimiter and extension shape are stable.
 
 ## Record Contract
 
-Every promoted script needs a record in the nearest `scripts/README.md`. When
-maintaining the General Skills source repository itself, also update its
-`SCRIPT_INDEX.md` when that central catalog owns the entry.
+Keep each discovery entry minimal: script path plus purpose/when to use it.
+Keep detailed inputs, outputs, examples, mutation behavior, verification, and
+coverage boundaries in the script's help or associated usage documentation;
+link there when useful rather than duplicating them in the index.
 
-Minimum fields:
+New, renamed, or removed scripts must update the same skill-owned index and the
+skill's pointer as needed, so discovery stays accurate. This is a required
+maintenance contract, not a requirement to create or update a global catalog.
+Use [references/script-record-template.md](references/script-record-template.md)
+for the entry shape.
 
-- script path
-- purpose
-- inputs
-- outputs
-- whether it mutates files or systems
-- example command
-- verification command or smoke test
-- owner/scope
-- last verified date
+## Maintenance Boundary
 
-For heuristic or vocabulary-driven output, also record the coverage boundary;
-default it to `exhaustive: false` unless a closed input contract proves
-otherwise.
+Edit canonical repository sources, not installed or synced projections. Within
+an authorized scripts-only maintenance task, adding a pointer to the script map
+in the owning skill's main `SKILL.md` is permitted; no unrelated body edits are
+allowed. The agent may freely maintain associated script map/index entries in
+the repository's existing `docs/`, `references/`, or skill-local README layout.
+Creating a script MUST update that map in the same change. This metadata-only
+exception does not authorize other skill or policy changes or broaden repository
+access.
 
-Use `references/script-record-template.md` for the shape.
+Use `coding-policy`, `coding-agent-operations-policy`, and `branch-lifecycle`
+for the existing edit, test, review, and integration lifecycle; Script Manager
+adds no alternate release path.
 
 ## Example: Chunk Renderer URLs
 

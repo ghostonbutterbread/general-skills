@@ -33,6 +33,8 @@ repositories (for example, `coding-skills` and `job-search-skills`).
 `bounty-storage` and `huge-ingest` are canonically owned by BBH as of its paired
 adoption change; they are intentionally not general-skills entries.
 
-## Script Index
+## Script Discovery
 
-- `SCRIPT_INDEX.md` - Map of reusable script homes and registry expectations.
+Load the relevant skill and follow its script-reference pointer; see
+[Script Manager](skills/script_manager/SKILL.md). `SCRIPT_INDEX.md` is retained
+as a historical catalog, not a required discovery or maintenance step.

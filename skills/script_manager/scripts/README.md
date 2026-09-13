@@ -10,9 +10,16 @@ Before adding a script here, ask:
 - Would a narrower skill-local or project-local `scripts/` directory be easier
   to find?
 
-## Records
+## Script Index
 
-Add one record per script.
+Paths are relative to this directory. No helpers are implemented here yet.
+When one is added, record only its path and purpose/when to use it, following
+[the entry template](../references/script-record-template.md). Keep detailed
+usage in its help or associated documentation. Maintain this same index for
+new, renamed, or removed scripts; update the [skill pointer](../SKILL.md) if
+its location changes.
+
+## Unimplemented Idea (not an available script)
 
 ### Pending: chunk extractor helper
 
