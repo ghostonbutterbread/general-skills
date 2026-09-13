@@ -128,12 +128,13 @@ for the entry shape.
 ## Maintenance Boundary
 
 Edit canonical repository sources, not installed or synced projections. Within
-an authorized script-maintenance task, bounded discovery-metadata edits to the
-owning skill's pointer and script index are permitted alongside the script
-change. This does not authorize unrelated skill or policy changes or broaden
-repository access. Where the existing editing lane excludes skill edits, obtain
-that lane owner's authorization or hand off the metadata change; this guidance
-does not override its restriction.
+an authorized scripts-only maintenance task, adding a pointer to the script map
+in the owning skill's main `SKILL.md` is permitted; no unrelated body edits are
+allowed. The agent may freely maintain associated script map/index entries in
+the repository's existing `docs/`, `references/`, or skill-local README layout.
+Creating a script MUST update that map in the same change. This metadata-only
+exception does not authorize other skill or policy changes or broaden repository
+access.
 
 Use `coding-policy`, `coding-agent-operations-policy`, and `branch-lifecycle`
 for the existing edit, test, review, and integration lifecycle; Script Manager

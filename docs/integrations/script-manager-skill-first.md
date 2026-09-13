@@ -4,64 +4,51 @@
 - Owner/task: bugfix-profile delegated Script Manager documentation task.
 - Branch: `docs/script-manager-skill-first`
 - Worktree: `/home/ryushe/projects/.worktrees/general-skills-script-manager-skill-first`
-- Base: `cfa32cf2c55dde89c67cad098b38b4c57e169eb7` (fetched `beta` / `origin/beta`).
-- Intended target: `beta`, only after review; no push or stable promotion authorized.
-- Canonical owner: `skills/script_manager/SKILL.md` and its owned references.
+- Base: `cfa32cf2c55dde89c67cad098b38b4c57e169eb7` (`beta`).
+- Target: `beta` after parent review; no push, stable promotion, or runtime activation.
+- Original implementation: `6e4e99e12c75159c79507209788d7d77973b1526`.
+- Prior handoff checkpoint: `0d32cc762759ed6970298a271013d4a459618bc1`.
 
 ## Contract and scope
 
-User requested skill-first discovery: load the relevant skill, read its linked
-script index, reuse/edit helpers, and maintain minimal path + purpose entries.
-Respect existing testing/scripts README or docs/references layouts instead of
-assuming a root README. Update the same index and skill pointer when scripts
-change. Canonical-source and existing coding/branch lifecycle remain in force.
-Bounded discovery metadata is permitted within task authority, not as an
-override of a lane that excludes skill edits.
+Load the relevant skill, follow its script-map pointer, reuse/edit helpers, and
+maintain minimal path + purpose entries in the existing testing/scripts README
+or docs/references layout. The root README routes to Script Manager; the global
+catalog retains its historical entries with a supersession banner.
 
-Changed the owner, template, and local scripts README. Root README now routes to
-the owner; the global catalog has only a supersession banner, preserving all
-historical entries. No scripts, other repositories, profiles, or runtime
-projections were changed. No registry, migration, or automation was added.
+The user clarified the scripts-only exception: adding a script-map pointer in
+main `SKILL.md` is allowed, with no unrelated body edits. Associated map/index
+entries may be freely maintained in the existing layout. Creating a script MUST
+update that map. The owner and its existing test now reflect this, removing the
+previous lane-owner approval blocker for this metadata-only exception.
+
+No scripts, permissions machinery, or implementation-subagent requirement added.
+Normal branch/test/review/release guidance and the fresh release reviewer remain.
 
 ## Alignment and evidence
 
-Checked `policy-authoring` and its editor guide, `policy-repository-lifecycle`,
-`coding-policy`, `coding-agent-operations-policy`, `coding-spec-lifecycle-policy`,
-and `branch-lifecycle`. Lifecycle stays with those owners. The latter's
-restricted execution-host lane still excludes skills: explicitly retain its
-authorization/handoff boundary rather than silently overriding it here.
-Checked root README, retained catalog, owned template/README, and existing
-`test_script_manager_policy.py`; redirected stale catalog doctrine without
-removing history. Repository has no AGENTS.md, SCRIPT_POLICY.md, or dedicated
-lint command/config tracked at this base.
+Compared Script Manager, its owned template/README, historical catalog/root
+README, canonical coding-agent-operations-policy and proposal routing, BBH's
+SCRIPT_POLICY.md/AGENTS.md, policy-authoring, and installed branch-lifecycle.
+The parallel canonical documentation edits align the metadata-only exception.
+BBH AGENTS.md still needs its protected-file approval; the active branch-lifecycle
+copy needs a parent-owned skill update if no canonical source is found. Neither
+blocker is silently overridden or represented as released.
 
-Executed from this feature worktree with its source first on PYTHONPATH:
+Repository has no tracked AGENTS.md, SCRIPT_POLICY.md, or dedicated lint command.
+Executed from this feature worktree with `PYTHONPATH="$PWD"`:
 
-- `python3 -m unittest discover -s tests -p 'test_script_manager_policy.py' -v`:
-  11 tests, OK; includes actual local-reference resolution and negative tests
-  removing a pointer/reference in temporary copies.
-- `python3 -m unittest discover -s tests -q`: 35 tests, OK (final rerun).
-- YAML frontmatter parse: 22 skills OK.
-- `git diff --check`: passed; Python edit syntax lint: passed.
-- Dedicated repository lint unavailable; structural/documentation tests above
-  are the available checks, not a claimed run of ai-policies' separate linter.
-- Fetched origin again before handoff: base still matches origin/beta.
+- `python3 -m unittest discover -s tests -q`: 35 tests, OK.
+- Existing tests resolve owned references and reject missing pointers/references.
+- Updated boundary assertions cover pointer-addition only, no unrelated body
+  edits, freely maintained associated entries, mandatory creation map update,
+  and removal of the obsolete metadata authorization handoff.
+- `git diff --check`: passed.
 
-## Handoff and blockers
+## Handoff
 
-Kanban `hermes kanban --board general-skills list` exited 1:
-`delegate_task child contexts cannot mutate Kanban tasks or boards`.
-No card was created or modified; parent must list/create/claim and reconcile it.
-No child delegation tool is available and this task forbids delegating children;
-independent review and fresh-consumer smoke are deferred to the parent, before
-any beta integration. Do not treat editor self-checks as independent review.
-Review the skill + existing-layout rename/remove scenario and confirm discovery
-metadata does not override lane authority. Then follow the existing integration
-owner; remove this temporary dossier from the integration target on acceptance.
-
-Recovery checkpoint / implementation commit:
-`6e4e99e12c75159c79507209788d7d77973b1526` on
-`docs/script-manager-skill-first`. The branch tip includes a later dossier-only
-handoff commit recording this immutable checkpoint; verify that later range is
-handoff-only. Next action: parent independent review and Kanban reconciliation,
-then an explicit beta integration decision. No deployment or sync performed.
+Parent owns Kanban and independent review; no child delegation performed. Review
+the full branch range, then decide integration and remove this temporary dossier
+from the integration target on acceptance. No push, merge, sync, or deployment.
+The next commit after the prior checkpoint contains the clarified owner, test,
+and this dossier; verify that commit and any later handoff-only range separately.
