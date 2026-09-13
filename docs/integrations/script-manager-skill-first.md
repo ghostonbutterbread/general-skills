@@ -1,11 +1,14 @@
 # Script Manager skill-first discovery
 
-- Status: local implementation; awaiting parent independent review, not integrated.
+- Status: independently approved for beta integration; parent integration authorized.
+- Acceptance: reviewer verified candidate f821431, all six local links, both missing-link negative cases, and 35 passing isolated tests. Parent also ran 35 passing tests.
+- Release scope: integrate and publish beta; verify existing local runtime projections and fresh read-only discovery. No main promotion or Hoster deployment. Remove this temporary dossier during integration.
+- Deferred: older branch-lifecycle metadata-edit wording remains a separate alignment issue; this release does not authorize broader policy edits.
 - Owner/task: bugfix-profile delegated Script Manager documentation task.
 - Branch: `docs/script-manager-skill-first`
 - Worktree: `/home/ryushe/projects/.worktrees/general-skills-script-manager-skill-first`
 - Base: `cfa32cf2c55dde89c67cad098b38b4c57e169eb7` (`beta`).
-- Target: `beta` after parent review; no push, stable promotion, or runtime activation.
+- Target: `beta`; parent review complete and beta publication/local activation authorized. No stable promotion or Hoster deployment.
 - Original implementation: `6e4e99e12c75159c79507209788d7d77973b1526`.
 - Prior handoff checkpoint: `0d32cc762759ed6970298a271013d4a459618bc1`.
 
