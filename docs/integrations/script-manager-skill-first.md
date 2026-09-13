@@ -50,5 +50,7 @@ Executed from this feature worktree with `PYTHONPATH="$PWD"`:
 Parent owns Kanban and independent review; no child delegation performed. Review
 the full branch range, then decide integration and remove this temporary dossier
 from the integration target on acceptance. No push, merge, sync, or deployment.
-The next commit after the prior checkpoint contains the clarified owner, test,
-and this dossier; verify that commit and any later handoff-only range separately.
+Recovery implementation checkpoint: `209eaea6b1360e9bc90693e9258bcddf06154d1f`
+on `docs/script-manager-skill-first`. It contains the clarified owner, test, and
+dossier; the subsequent dossier-only commit records this immutable checkpoint.
+Verify that handoff-only range separately.
