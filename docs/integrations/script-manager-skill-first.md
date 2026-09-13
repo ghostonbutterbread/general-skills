@@ -59,5 +59,9 @@ Review the skill + existing-layout rename/remove scenario and confirm discovery
 metadata does not override lane authority. Then follow the existing integration
 owner; remove this temporary dossier from the integration target on acceptance.
 
-Recovery checkpoint: pending implementation commit; record the verified SHA in
-a subsequent dossier-only handoff commit. No deployment or sync performed.
+Recovery checkpoint / implementation commit:
+`6e4e99e12c75159c79507209788d7d77973b1526` on
+`docs/script-manager-skill-first`. The branch tip includes a later dossier-only
+handoff commit recording this immutable checkpoint; verify that later range is
+handoff-only. Next action: parent independent review and Kanban reconciliation,
+then an explicit beta integration decision. No deployment or sync performed.
