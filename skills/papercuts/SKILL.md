@@ -83,6 +83,19 @@ papercut. Replace sensitive values with a class such as `[redacted token]`.
 
 ## Review and Promotion
 
+### Prefer maintainable remedies
+
+For issues owned by a large third-party repository or dependency (including
+Hermes itself), prefer supported configuration, a normal upstream update, or an
+upstream issue/PR over local shims, monkey patches, or a private patch stack.
+Even a small source fix can create recurring update and merge work. A papercut
+maintenance request is not, by itself, a request to maintain a fork: explain
+that trade-off before proposing a local override, and get explicit agreement
+before deploying one. An isolated diagnostic/fix branch may be retained without
+changing the stock installation; distinguish local commits, publication, merge,
+and runtime activation in the handoff. This preference does not discourage
+normal fixes to scripts and repositories we own.
+
 During a deliberate maintenance pass:
 
 1. Run `papercut.py list` for the relevant record.
