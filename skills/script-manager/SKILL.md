@@ -1,5 +1,5 @@
 ---
-name: script_manager
+name: script-manager
 description: "Use when turning repeated agent work into reusable scripts, organizing script homes, creating script records, or checking whether a helper already exists before writing new automation."
 ---
 
@@ -86,7 +86,7 @@ creating a parallel helper.
 
 Put scripts in the narrowest durable home:
 
-- General reusable helpers: the `script_manager/scripts/` directory in the General Skills source repository.
+- General reusable helpers: the `script-manager/scripts/` directory in the General Skills source repository.
 - One skill's helper: that skill's `scripts/` directory.
 - Project-specific helper: `<repo>/scripts/` or `<repo>/tools/`.
 - Host/runtime helper: the runtime's configured local scripts directory; do not assume an OpenClaw workspace.

@@ -101,7 +101,7 @@ During a deliberate maintenance pass:
 3. Verify the proposed fix in its real context before marking it closed.
 4. Put the lasting knowledge in its canonical home:
    - solved operational workaround → `faq`;
-   - repeatable automation → `script_manager`;
+   - repeatable automation → `script-manager`;
    - reusable behavioral workflow → a reviewed skill or skill seed;
    - repository-specific correction → that repository’s docs/code.
 5. Close the source entry with the verified resolution and link/path to the

@@ -1,5 +1,5 @@
 ---
-name: dotfile_management
+name: dotfile-management
 description: Use when managing Ryushe's Stow-backed dotfiles.
 ---
 

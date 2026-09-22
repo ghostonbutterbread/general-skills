@@ -32,10 +32,10 @@ its location changes.
   `anew`.
 - Example:
   ```bash
-  python3 skills/script_manager/scripts/chunk_list.py extract urls.txt --output chunks.txt
-  python3 skills/script_manager/scripts/chunk_list.py diff chunks.txt known_chunks.txt --new-output new_chunks.txt
+  python3 skills/script-manager/scripts/chunk_list.py extract urls.txt --output chunks.txt
+  python3 skills/script-manager/scripts/chunk_list.py diff chunks.txt known_chunks.txt --new-output new_chunks.txt
   ```
 - Verification: fixture with repeated URLs, duplicated chunks, mixed extensions,
   and no-match lines.
-- Related skill: `script_manager`
+- Related skill: `script-manager`
 - Last verified: not implemented yet
