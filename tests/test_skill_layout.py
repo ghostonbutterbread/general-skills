@@ -13,7 +13,7 @@ EXPECTED_SKILLS = {
     "brainstorm",
     "coordination",
     "daddy",
-    "dotfile_management",
+    "dotfile-management",
     "evidence-first-vulnerability-reporting",
     "faq",
     "gmail-otp",
@@ -25,7 +25,7 @@ EXPECTED_SKILLS = {
     "papercuts",
     "resilio-sync",
     "safe-fetch",
-    "script_manager",
+    "script-manager",
     "security-reporting",
     "skill-seeds",
     "tmux",
@@ -43,7 +43,7 @@ class SkillLayoutTests(unittest.TestCase):
         self.assertTrue(LEGACY_CATEGORY_DIRECTORIES.isdisjoint(actual_skills))
 
     def test_dotfile_management_preserves_actual_application_paths(self):
-        skill = (SKILLS / "dotfile_management" / "SKILL.md").read_text()
+        skill = (SKILLS / "dotfile-management" / "SKILL.md").read_text()
 
         self.assertIn("~/.config/kitty/kitty.conf", skill)
         self.assertIn("kitty/.config/kitty/kitty.conf", skill)

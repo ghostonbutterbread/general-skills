@@ -19,7 +19,7 @@ def validate_owned_links(root: Path) -> None:
             assert (source.parent / target).is_file(), f"Missing reference: {target}"
 
 
-SKILL = Path(__file__).resolve().parents[1] / "skills" / "script_manager" / "SKILL.md"
+SKILL = Path(__file__).resolve().parents[1] / "skills" / "script-manager" / "SKILL.md"
 INDEX = Path(__file__).resolve().parents[1] / "SCRIPT_INDEX.md"
 
 
@@ -98,7 +98,7 @@ class ScriptManagerPolicyTests(unittest.TestCase):
 
     def test_missing_pointer_is_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp) / "script_manager"
+            root = Path(tmp) / "script-manager"
             shutil.copytree(SKILL.parent, root)
             source = root / "SKILL.md"
             text = " ".join(source.read_text().split())
@@ -110,7 +110,7 @@ class ScriptManagerPolicyTests(unittest.TestCase):
 
     def test_missing_reference_is_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp) / "script_manager"
+            root = Path(tmp) / "script-manager"
             shutil.copytree(SKILL.parent, root)
             (root / "references/script-record-template.md").unlink()
             with self.assertRaisesRegex(AssertionError, "Missing reference"):
