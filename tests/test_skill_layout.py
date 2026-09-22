@@ -17,6 +17,7 @@ EXPECTED_SKILLS = {
     "evidence-first-vulnerability-reporting",
     "faq",
     "gmail-otp",
+    "mail",
     "hoster-ssh",
     "hoster-tmux-child-reaper",
     "atme",

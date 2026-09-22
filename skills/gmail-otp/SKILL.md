@@ -12,6 +12,11 @@ metadata:
 
 # Gmail OTP Inbox
 
+For ordinary inbox reading/searching, load `mail`. It owns Gmail provider
+selection and secure connection handoff. This legacy wrapper is not an automatic
+fallback; use it only when Ryushe explicitly authorizes that access path for the
+flow. Its narrower identity and capability rules still apply.
+
 A narrow Gmail API wrapper for the mailbox authorized during setup. It has only
 `gmail.readonly` and `gmail.send` OAuth scopes. It never requests Gmail modify,
 draft/compose, contacts, Drive, or Calendar permissions.

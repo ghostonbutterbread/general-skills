@@ -19,7 +19,8 @@ Reusable local OpenClaw/Codex skills that are not tied to one bug bounty harness
 - `bitwarden` - Bitwarden CLI workflow for storing and referencing test-account credentials without exposing secrets.
 - `brainstorm` - Evidence-grounded creative divergence for any domain, with optional seed-assisted lens rotation and fresh-context critique.
 - `account-tui-colors` - Terminal color guidance for account-oriented workflows.
-- `gmail-otp` - Narrow Gmail OAuth inbox reader for user-initiated login/password-reset OTPs, with sending hard-allowlisted to `ryushe.dev@gmail.com`.
+- `mail` - Authorized ordinary inbox reading/searching through authenticated Gmail MCP, otherwise Composio CLI; secure setup handoff when disconnected.
+- `gmail-otp` - Separate narrow authentication-flow specialist, not the general inbox reader; provider selection belongs to `mail`.
 - `security-reporting` - Evidence-bound, triager-facing security report and PoC workflow.
 - `evidence-first-vulnerability-reporting` - Two-artifact evidence and submission report workflow.
 - `nightly-learning` - Report-only AppSec learning intake from a curated source registry, with safe-fetch provenance and manual promotion only.
