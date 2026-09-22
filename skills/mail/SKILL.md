@@ -10,6 +10,8 @@ Ordinary inbox access is not restricted to OTPs or security-test aliases.
 `gmail-otp` is a separate authentication-flow specialist, not the general inbox
 reader. For security-test identities and forwarded verification/reset messages,
 load `email-access-policy` for its additional ownership and privacy boundaries.
+OTP workflows can use the same MCP/Composio transport below; they do not require
+a second Google OAuth setup. Use the legacy `gmail-otp` wrapper only explicitly.
 
 ## Provider order
 

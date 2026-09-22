@@ -9,6 +9,7 @@ def check_mail(source):
     text = " ".join(source.split())
     assert "name: mail" in text
     assert "Ordinary inbox access is not restricted to OTPs" in text
+    assert "they do not require a second Google OAuth setup" in text
     assert text.index("1. Use the active, authenticated Gmail MCP") < text.index("2. Otherwise use **Composio CLI**")
     assert "curl -fsSL https://composio.dev/install | sh" in text
     assert "Never request passwords, tokens, OAuth codes, or callback URLs in chat" in text

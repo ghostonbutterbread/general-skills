@@ -56,6 +56,12 @@ without raw token or terminal access.
 
 ## Setup
 
+This is a separate Google OAuth wrapper, not the active Gmail MCP or Composio
+connection. OTP retrieval through `mail` can reuse either of those transports
+without this setup. Credentials in one Hermes profile do not establish this
+wrapper's authorization in another profile or on another host. Do not copy
+credential files between profiles/hosts to work around missing authorization.
+
 This needs a Google Cloud **Desktop OAuth client** and the Gmail API enabled.
 Do not use the broad `google-workspace` token for this skill.
 
@@ -80,8 +86,10 @@ $GMAIL_OTP auth-code 'http://localhost:8765/?code=...&state=...'
 $GMAIL_OTP status
 ```
 
-Credential state is under `~/.hermes/gmail-otp/` with mode `0700`; token/client
-files are written with mode `0600`.
+Credential state is under `$HERMES_HOME/gmail-otp/`, defaulting to
+`~/.hermes/gmail-otp/` when `HERMES_HOME` is unset, with directory mode `0700`.
+The wrapper's `client_secret.json` and `token.json` are written with mode `0600`.
+Resolve the invoking runtime's `HERMES_HOME`; do not assume the default profile.
 
 ## Commands
 
