@@ -16,7 +16,6 @@ EXPECTED_SKILLS = {
     "dotfile-management",
     "evidence-first-vulnerability-reporting",
     "faq",
-    "gmail-otp",
     "mail",
     "hoster-ssh",
     "hoster-tmux-child-reaper",
