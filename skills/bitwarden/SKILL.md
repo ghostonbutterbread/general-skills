@@ -1,13 +1,16 @@
 ---
 name: bitwarden
-description: "Unlock and use Bitwarden CLI for owned test-account credentials, login fallback, and secret references."
+description: "Use whenever an agent accesses Bitwarden: unlock, look up, create, update, delete, or use owned-account credentials and vault references."
 ---
 
 # Bitwarden
 
-Use when Ryushe explicitly requests Bitwarden, or when the selected owned
-account's `account-registry`/program auth policy chooses its opaque Bitwarden
-reference for a login or recovery step.
+Load this skill before any agent uses Bitwarden for an owned account: checking
+vault status, unlocking, looking up or using a credential or item reference,
+creating or updating an item, or deleting one. Do not wait for Ryushe to name
+the skill or for a login/recovery policy to select Bitwarden; those are examples,
+not the only triggers. If handing Bitwarden work to a child agent, tell it to
+load this skill before its first vault action.
 
 `account-registry` owns the login/recovery order: exact healthy browser,
 profile provisioning, Bitwarden/password plus approved mailbox/OTP when the
