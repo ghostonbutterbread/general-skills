@@ -7,6 +7,6 @@
 - Contract: agents load `bitwarden` before any owned-account vault operation, including status, lookup, mutation, or credential use; delegated agents receive the same trigger. Account-registry still owns login/recovery order.
 - Scope: `skills/bitwarden/SKILL.md`, focused regression in `tests/test_skill_layout.py`, and this temporary branch-local handoff.
 - Policy alignment: checked `account-registry` and `account-manager` routes; Bitwarden owns vault usage, not login/recovery order. No competing trigger found.
-- Evidence: repository unittest suite 40 passed and `git diff --check` passed. Independent review of `d7a145a` found that the old "only for its selected vault step" sentence contradicted the broad trigger; wording and regression were corrected, with rerun/re-review pending.
+- Evidence: repository unittest suite 40 passed and `git diff --check` passed. Initial independent review of `d7a145a` found that the old "only for its selected vault step" sentence contradicted the broad trigger; corrected in `890f9d8` with regression. Independent re-review approved the complete `origin/beta...890f9d8` diff after rerunning 40 tests and `git diff --check`; no remaining finding.
 - Activation: only after reviewed integration to the selected source lane, active projection verification, and fresh-session load. No stable promotion intended.
 - Next: validate, review, integrate, remove this dossier from beta, and verify live projection.
