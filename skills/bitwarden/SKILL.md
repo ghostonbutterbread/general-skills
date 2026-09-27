@@ -12,11 +12,12 @@ the skill or for a login/recovery policy to select Bitwarden; those are examples
 not the only triggers. If handing Bitwarden work to a child agent, tell it to
 load this skill before its first vault action.
 
-`account-registry` owns the login/recovery order: exact healthy browser,
-profile provisioning, Bitwarden/password plus approved mailbox/OTP when the
-policy declares it, browser verification, then private operator handoff only
+Within a login/recovery flow, `account-registry` owns the order: exact healthy
+browser, profile provisioning, Bitwarden/password plus approved mailbox/OTP when
+the policy declares it, browser verification, then private operator handoff only
 for a declared human-only blocker. Do not invent a proxy, email, OTP, or manual
-fallback order here; use this skill only for its selected vault step.
+fallback order here; use this skill for the vault step without changing that
+order. Other Bitwarden operations still require this skill.
 
 ## Required Rules
 
