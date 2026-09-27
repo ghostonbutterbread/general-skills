@@ -51,6 +51,16 @@ class SkillLayoutTests(unittest.TestCase):
         self.assertIn("./ln_dotfiles.sh", skill)
         self.assertIn("do not create `.ln` files or individual", skill)
 
+    def test_bitwarden_loads_before_any_vault_use_including_delegated_work(self):
+        skill = (SKILLS / "bitwarden" / "SKILL.md").read_text()
+        description = skill.split("---", 2)[1]
+        self.assertIn("Use whenever an agent accesses Bitwarden", description)
+        self.assertIn("Load this skill before any agent uses Bitwarden", skill)
+        self.assertIn("If handing Bitwarden work to a child agent", skill)
+        self.assertIn("Within a login/recovery flow, `account-registry` owns the order", skill)
+        self.assertIn("Other Bitwarden operations still require this skill.", skill)
+        self.assertNotIn("use this skill only for its selected vault step", skill)
+
     def test_skill_seed_guidance_keeps_capability_boundaries_explicit(self):
         guidance = (SKILLS / "skill-seeds" / "SKILL.md").read_text()
 
