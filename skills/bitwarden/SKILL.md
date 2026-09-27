@@ -1,23 +1,23 @@
 ---
 name: bitwarden
-description: "Use whenever an agent accesses Bitwarden: unlock, look up, create, update, delete, or use owned-account credentials and vault references."
+description: "Load before running the Bitwarden CLI (bw) or a bw-backed helper; explains safe preflight and unlocking for owned accounts."
 ---
 
 # Bitwarden
 
-Load this skill before any agent uses Bitwarden for an owned account: checking
-vault status, unlocking, looking up or using a credential or item reference,
-creating or updating an item, or deleting one. Do not wait for Ryushe to name
-the skill or for a login/recovery policy to select Bitwarden; those are examples,
-not the only triggers. If handing Bitwarden work to a child agent, tell it to
-load this skill before its first vault action.
+Load this skill **before the first Bitwarden CLI (`bw`) command**, including
+`bw --version` or `bw status`, or before running a helper that calls `bw`.
+Its preflight and unlock instructions are needed before an agent tries to use
+the CLI; do not wait until the vault is locked or a login fails. Give a child
+agent assigned CLI work the same instruction. Merely reading an opaque
+`bitwarden:<item>` reference does not itself require a CLI preflight.
 
 Within a login/recovery flow, `account-registry` owns the order: exact healthy
 browser, profile provisioning, Bitwarden/password plus approved mailbox/OTP when
 the policy declares it, browser verification, then private operator handoff only
 for a declared human-only blocker. Do not invent a proxy, email, OTP, or manual
-fallback order here; use this skill for the vault step without changing that
-order. Other Bitwarden operations still require this skill.
+fallback order here; follow the selected vault step without changing that
+order. The CLI load rule above applies in and outside login/recovery flows.
 
 ## Required Rules
 
