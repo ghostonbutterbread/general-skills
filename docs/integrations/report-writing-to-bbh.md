@@ -51,3 +51,4 @@ Remove `security-reporting` and `evidence-first-vulnerability-reporting` source 
 ## Decision record
 
 - 2026-09-28 — BBH selected canonical report-writing owner; General Skills cleans up duplicate skills.
+- 2026-09-28 — Independent re-review confirmed receiver's Evidence Report structure and General Skills checkpoint. Accepted for beta integration after BBH receiver; profile-local duplicate cleanup remains activation gate.
