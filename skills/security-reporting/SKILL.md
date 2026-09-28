@@ -35,7 +35,7 @@ Use a separate judge pass against the Evidence Report, PoC, and program overlay 
 
 When the user identifies an existing report to revise, first identify the canonical submission artifact and edit that file **in place**. Do not create parallel `*_DRAFT`, `*_FRAMED`, or versioned report variants merely to preserve an earlier copy; the Evidence Report already preserves the detailed record. If a separate draft is genuinely requested, name it explicitly and state which file is canonical.
 
-When the user asks to compare report quality or framing against outside examples, research public online report guidance and publicly available high-quality reports first. Do not substitute the user’s private prior reports as the primary comparison source; use them only when requested or as explicitly labeled secondary context.
+When the user asks to compare report quality or framing against outside examples, research public online report guidance and publicly available high-quality reports first. Private prior reports may inform internal drafting only when requested; never cite, link, name, or refer the triager to another one of our reports in the submission. Make each report self-contained, with its own prerequisites, exploit request, observed response, and evidence. The paired internal Evidence Report is the source for validating claims, not a cross-report reference in the submission.
 
 ### Actor language
 
@@ -177,7 +177,7 @@ The judge must verify:
 - a compact Summary that states cause and outcome;
 - portable, direct-step reproduction with no local paths or secrets;
 - evidence support for every impact claim, prerequisite, and negative;
-- concise language without duplicate sections, research diary, or generic filler;
+- concise language without duplicate sections, research diary, generic filler, or references to another one of our reports;
 - remediation that addresses the root cause;
 - a one-run, portable PoC that proves the exact claim and exposes no secrets.
 
