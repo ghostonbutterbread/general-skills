@@ -14,7 +14,6 @@ EXPECTED_SKILLS = {
     "coordination",
     "daddy",
     "dotfile-management",
-    "evidence-first-vulnerability-reporting",
     "faq",
     "mail",
     "hoster-ssh",
@@ -26,7 +25,6 @@ EXPECTED_SKILLS = {
     "resilio-sync",
     "safe-fetch",
     "script-manager",
-    "security-reporting",
     "skill-seeds",
     "tmux",
 }

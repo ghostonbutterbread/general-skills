@@ -20,8 +20,6 @@ Reusable local OpenClaw/Codex skills that are not tied to one bug bounty harness
 - `brainstorm` - Evidence-grounded creative divergence for any domain, with optional seed-assisted lens rotation and fresh-context critique.
 - `account-tui-colors` - Terminal color guidance for account-oriented workflows.
 - `mail` - General authorized inbox reading/searching through Composio CLI, with on-demand setup guidance and secure connection handoff.
-- `security-reporting` - Evidence-bound, triager-facing security report and PoC workflow.
-- `evidence-first-vulnerability-reporting` - Two-artifact evidence and submission report workflow.
 - `nightly-learning` - Report-only AppSec learning intake from a curated source registry, with safe-fetch provenance and manual promotion only.
 - `i-have-adhd` - ADHD-friendly output mode: lead with the next action, show state, suppress tangents, and cap lists at 15 items.
 - `dotfile_management` - GNU Stow dotfile migration using actual application configuration paths and `ln_dotfiles.sh`.
@@ -30,8 +28,8 @@ All skills use the flat `skills/<skill>/SKILL.md` layout. This repository owns
 general shared skills; capability-specific skills belong in their dedicated
 repositories (for example, `coding-skills` and `job-search-skills`).
 
-`bounty-storage` and `huge-ingest` are canonically owned by BBH as of its paired
-adoption change; they are intentionally not general-skills entries.
+`bounty-storage`, `huge-ingest`, and BBH's canonical `security-reporting` are
+owned by BBH; report-writing guidance is no longer maintained in General Skills.
 
 ## Script Discovery
 
