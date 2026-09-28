@@ -7,8 +7,8 @@
 - **Intended integration target:** `beta`
 - **Last updated:** 2026-09-28
 - **Owning feature branch/ref:** `chore/move-reporting-skills-to-bbh`
-- **Latest immutable recovery checkpoint:** none yet
-- **Feature implementation commit(s):** none yet
+- **Latest immutable recovery checkpoint:** `db3fd07` (General Skills source cleanup)
+- **Feature implementation commit(s):** `db3fd07`
 - **Inspiration / canonical references:** BBH feature `feat/canonical-report-writing-skill`, base `74db077`.
 
 ## Intent
@@ -22,7 +22,7 @@ Remove `security-reporting` and `evidence-first-vulnerability-reporting` source 
 ## Evidence and review
 
 - Tests and commands: General Skills skill-layout tests (4) and `git diff --check` passed; cross-repository reference audit and independent review pending.
-- Independent review: pending.
+- Independent review: CHANGES on paired migration — BBH Evidence Report minimum structure restored on receiver; profile-local duplicate cleanup remains activation gate.
 - Replay/cohort/fixture evidence: none; source ownership change only.
 - Merge/ancestry evidence: pending.
 
@@ -37,10 +37,10 @@ Remove `security-reporting` and `evidence-first-vulnerability-reporting` source 
 ## Interruption / resume handoff
 
 - **Owning feature branch/ref:** `chore/move-reporting-skills-to-bbh`
-- **Latest immutable recovery checkpoint:** none yet
-- **Feature implementation commit(s):** none yet
-- **Exact resume point:** complete review, commit, then integrate after BBH.
-- **Working-tree state at handoff:** intentionally uncommitted until first checkpoint.
+- **Latest immutable recovery checkpoint:** `db3fd07` (General Skills source cleanup)
+- **Feature implementation commit(s):** `db3fd07`
+- **Exact resume point:** integrate after BBH receiver is verified; then reconcile runtime projections and local duplicates.
+- **Working-tree state at handoff:** clean after dossier follow-up; confirm at handoff.
 
 ## Decision gates
 
