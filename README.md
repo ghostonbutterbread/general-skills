@@ -18,6 +18,7 @@ Reusable local OpenClaw/Codex skills that are not tied to one bug bounty harness
 - `account-manager` - Non-secret account inventory workflow for roles, mutability, lifecycle state, and Bitwarden item references.
 - `bitwarden` - Bitwarden CLI workflow for storing and referencing test-account credentials without exposing secrets.
 - `brainstorm` - Evidence-grounded creative divergence for any domain, with optional seed-assisted lens rotation and fresh-context critique.
+- `vulnerability-patch-research` - Parallel known-CVE and independent release-diff research for an observed open-source component, with mechanism-level reconciliation and pre/post proof boundaries.
 - `account-tui-colors` - Terminal color guidance for account-oriented workflows.
 - `mail` - General authorized inbox reading/searching through Composio CLI, with on-demand setup guidance and secure connection handoff.
 - `security-reporting` - Evidence-bound, triager-facing security report and PoC workflow.

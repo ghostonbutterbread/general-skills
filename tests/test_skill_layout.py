@@ -29,6 +29,7 @@ EXPECTED_SKILLS = {
     "security-reporting",
     "skill-seeds",
     "tmux",
+    "vulnerability-patch-research",
 }
 LEGACY_CATEGORY_DIRECTORIES = {"accounts", "core", "learning", "operations"}
 
