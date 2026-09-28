@@ -65,9 +65,15 @@ Use this order unless the program’s form requires another structure:
 <one or two compact paragraphs: boundary break, cause, demonstrated result>
 
 ## How to reproduce
-1. ...
-2. ...
-3. ...
+**Prerequisites:** <roles, controlled accounts/resources, required state>
+
+**PoC:** `<command>` — <one or two sentences on what the run proves>
+- `<flag>`: <required input and where to get it>
+
+**Manual replay (when useful):**
+1. <brief setup action and relevant request>
+2. <malicious request with triager-supplied placeholders>
+3. <decisive observed response and independent verification>
 
 ## Impact
 <short company-focused framing>
@@ -106,16 +112,13 @@ Do not describe an owned-test environment or researcher setup in the Summary. St
 
 ## Reproduction: Portable, Direct Steps
 
-Write walkthroughs as neutral, imperative steps for the triager’s environment—not as a first-person research diary:
+Keep the report and executable PoC complementary: the report gives prerequisites, invocation, and the decisive wire evidence; the PoC walks the reviewer through provisioning controlled accounts/resources, the attack, verification, and cleanup when run. Do not retell the PoC's entire sequence in prose.
 
-- Use concise action labels: “Open the project,” “Save the controlled payload,” “Verify persistence,” and “Run the attached JavaScript PoC.”
-- State prerequisites once before the numbered steps: required role, controlled resource, browser origin, feature state, or dependency.
-- Use portable placeholders such as `<target-url>`, `<account>`, and `<resource-id>`; do not require researcher-local configuration.
-- Add a short note only where a step is not self-explanatory, and explain what that step proves rather than how it was discovered.
-- State expected secure behavior and actual behavior where their contrast clarifies the flaw.
-- Link or attach the standalone PoC; do not require a local path, private browser profile, or hidden proxy capture.
+Under **How to reproduce**, state the required roles, controlled accounts/resources, feature state, and any human-only setup first. For a nontrivial prerequisite the PoC cannot establish, give the brief actions needed to create/configure/activate it and find its identifier; never assume researcher-local state. Then give the attached PoC filename and invocation, describe each required flag/input in a short list, and summarize what the run does in one or two sentences. Do not duplicate the PoC's guided output, flag help, or narrated setup. If there are no flags, simply show the one-command run.
 
-Use first person only in a brief evidence-attribution sentence when it materially clarifies a measured result. Never begin every PoC step with “I,” and never use first-person narration in a console or terminal PoC. Each step must be executable without the triager inferring an omitted parameter or state transition.
+For request-based findings, provide a separate compact **Manual replay** within the same section; for purely UI/browser issues, include it when request-level reproduction clarifies the proof. Use neutral imperative steps in chronological order (for example, invite the controlled user to the organisation, accept the invitation, send the attack request, verify the changed state). Include the actual relevant HTTP requests—especially the malicious request—and the decisive observed response/body or resulting state next to them. Show enough method, path, headers, body, placeholders, and expected-versus-actual contrast to replay and understand the boundary break; omit incidental headers, secrets, unrelated response fields, and redundant narration. A status code alone is not proof of a claimed effect. Preserve full sanitized traces and variants in the Evidence Report rather than padding the submission.
+
+Use portable placeholders such as `<target-url>`, `<account>`, and `<resource-id>`; do not require researcher-local configuration, private browser profiles, or hidden proxy captures. Add a note only when the step or result would otherwise be ambiguous. Use first person only in a brief evidence-attribution sentence when materially needed; never turn the manual replay or terminal PoC into a research diary. Each path must be executable without the triager inferring an omitted parameter or state transition.
 
 ## Impact: Production Consequences
 
@@ -145,29 +148,18 @@ A report PoC is a review tool, not a research harness. It should prove the exact
 
 ### Choose the artifact
 
-- **Small browser-context proof:** prefer one self-contained JavaScript snippet that a triager pastes into DevTools while logged in. It must use no external dependencies or embedded session values, request only controlled identifiers, print clear baseline/action/verification evidence, and ask for explicit confirmation before a state-changing request. Pair it with only the prerequisites and concise numbered steps explaining what each phase proves.
+- **Small browser-context proof:** prefer one self-contained JavaScript snippet that a triager pastes into DevTools while logged in. It must use no external dependencies or embedded session values, request only controlled identifiers, and print clear action/verification evidence. Required reversible setup on owned resources need not prompt at every step; place a concrete confirmation immediately before a material or sensitive exploit action. Pair it with only the prerequisites and concise trigger steps.
 - **Browser proof needing visible setup, comparison, or cleanup:** use one self-contained HTML page with embedded JavaScript. Use this when origin, CORS, session behavior, cross-account state, a visible evidence panel, or restoration controls make a console snippet insufficient.
-- **Extensive, multi-step, or non-browser behavior:** use one self-contained Python 3 script with an interactive TUI by default. Support familiar aliases for repeatability, e.g. `-u`/`--url`, `-c`/`--cookie`, and `-i`/`--id`; do not require flags for ordinary first use. Include an explicit proxy toggle.
+- **Extensive, multi-step, or non-browser behavior:** use one self-contained script that guides the reviewer through necessary owned setup, the malicious action, decisive verification, and cleanup. Prefer a one-command interactive path; expose flags for useful optional inputs such as a proxy or verbose evidence, and make their meaning discoverable in `--help`.
 - **Password-protected hosted delivery:** a program-approved `curl -fsSL -u <download-user> <protected-poc-url> | python3` path is acceptable when paired with a direct-download option and SHA-256 for inspection of the exact pinned artifact.
 
 Choose the smallest artifact that makes the demonstrated boundary obvious. Every instruction, prompt, code line, and output panel must establish a prerequisite, control, action, verification, limitation, or cleanup; remove everything else.
 
-For terminal PoCs, use the established evidence-first visual contract: a clear finding banner, visible `WHAT THIS POC VALIDATES` and `WHAT THIS POC DOES NOT TEST` blocks, compact colored step panels, sanitized evidence, and a final verdict (`VULNERABLE`, `NOT REPRODUCED`, `BLOCKED`, or `INCONCLUSIVE`). Before live authorization exists, provide a non-running `--preview`/design-walkthrough mode that makes no network request, accepts no credentials, and exposes the exact wording and flow for approval.
+For terminal PoCs, keep the exploit request and observed response visually unmistakable, and end with an evidence-grounded verdict and cleanup status. The run itself should explain the actions as they occur; avoid introductory cards, repeated disclaimers, or narration that merely repeats the report. For a preview-only request, provide an inert non-networking preview rather than presenting hypothetical output as a live observation.
 
 ### Required PoC behavior
 
-At the first screen or document header, state:
-
-- what it validates;
-- prerequisites and controlled-resource/ownership assumptions;
-- required inputs;
-- expected secure and vulnerable results;
-- material negatives and intentionally untested actions;
-- default limits, stop conditions, secret handling, and cleanup.
-
-Its final output must provide a clear verdict (`VULNERABLE`, `NOT REPRODUCED`, `BLOCKED`, or `INCONCLUSIVE`) plus sanitized baseline/action/verification evidence. For state changes, use a controlled canary and verify it afterward where possible.
-
-Never embed secrets, print raw session material, depend on researcher-local paths, or conceal dependencies. Make writes deliberate and cleanup opt-in for controlled state only.
+The script should validate its prerequisites, label actors and actions, show decisive request/response evidence, independently verify the claimed effect, and report cleanup and material limits. Avoid embedded secrets, researcher-local paths, and concealed dependencies. The report carries the concise setup and invocation, not a second scripted walkthrough.
 
 ## Program Overlays
 
@@ -201,7 +193,7 @@ The judge must verify:
 
 - [ ] The report uses Summary → How to reproduce → Impact → Remediation, unless a program form differs.
 - [ ] Summary states the broken boundary, cause, and observed result in one or two compact paragraphs.
-- [ ] Reproduction is portable, direct-step, and requires no local researcher path or hidden setup.
+- [ ] Reproduction states prerequisites once, gives the PoC invocation and required flag meanings without restating the run, and exposes the malicious request and decisive response in a concise manual replay where useful.
 - [ ] Impact uses concise production-consequence bullets; conditions are included only when they materially qualify the claimed harm, while exhaustive negatives remain in the Evidence Report.
 - [ ] The PoC is one runnable artifact with guided inputs, a clear result, sanitized evidence, and controlled cleanup.
 - [ ] No secret, token, cookie, private body, or local-only evidence is included.
