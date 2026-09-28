@@ -6,8 +6,8 @@
 - **Base commit:** `ef526996809e75804015774490bc464c9cd7f8c0`
 - **Intended integration target:** `beta`
 - **Last updated:** 2026-09-28
-- **Latest immutable recovery checkpoint:** none yet
-- **Feature implementation commits:** none yet
+- **Latest immutable recovery checkpoint:** `50a0f7b02f6ee47e7213b9a6a3bd48a438116563`
+- **Feature implementation commits:** `50a0f7b02f6ee47e7213b9a6a3bd48a438116563`; current branch tip adds a later dossier-only receipt.
 - **Inspiration:** Ryu requested BBH, not General Skills, to own patch research in Discord message `1554183415291707483`.
 
 ## Intent and implemented contract
@@ -17,7 +17,7 @@ Remove the superseded General Skills source, its index row and tests only after 
 ## Evidence and review
 
 - Tests/commands: General Skills `python3 -m unittest discover -s tests -v` passed 40/40; `git diff --check` and `git diff --cached --check` passed; `git grep vulnerability-patch-research` found no remaining source references outside this dossier.
-- Independent review: pending; verify BBH replacement exists and retains the parallel research contract.
+- Independent review: PASS on this deletion and paired receiving BBH commit (`4ad2380494972ea0ebfbd95fd335eb611db0c9a8`) by a read-only Claude CLI reviewer supplied both full diffs; no blocker. Recheck stale source references at beta tip before merging.
 - Merge/ancestry: source branch from beta; verify before integration.
 
 ## Blockers and deferred work
@@ -31,10 +31,10 @@ Remove the superseded General Skills source, its index row and tests only after 
 ## Interruption / resume handoff
 
 - **Owning feature branch/ref:** `feat/move-patch-research-bbh`
-- **Latest immutable recovery checkpoint:** none yet
-- **Feature implementation commits:** none yet
-- **Exact resume point:** delete source skill/index/tests, test, commit, review, wait for receiving BBH publication, merge/push, sync.
-- **Working-tree state at handoff:** feature branch, expected task-owned edits.
+- **Latest immutable recovery checkpoint:** `50a0f7b02f6ee47e7213b9a6a3bd48a438116563`
+- **Feature implementation commits:** `50a0f7b02f6ee47e7213b9a6a3bd48a438116563`; current branch tip adds a later dossier-only receipt.
+- **Exact resume point:** wait for BBH beta publication, recheck references, merge deletion into clean current General beta (exclude this dossier), push/read back, then focused profile sync.
+- **Working-tree state at handoff:** clean feature branch after dossier-only receipt.
 
 ## Decision gates
 
@@ -45,3 +45,4 @@ Remove the superseded General Skills source, its index row and tests only after 
 ## Decision record
 
 - 2026-09-28 — created for General Skills source retirement.
+- 2026-09-28 — deletion tests passed; independent read-only review PASS, but integration remains blocked until receiving BBH beta is published.
