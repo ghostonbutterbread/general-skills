@@ -20,13 +20,13 @@ alias mappings, and any additional workflow restrictions; do not invent them.
   result page from complete results. Verification-message retrieval uses the
   same connection; no separate OTP credential setup is required.
 - For an expected message triggered by an action, start a five-minute delivery
-  window when the send is initiated. Search the narrowly scoped inbox during
-  that window; while the message is missing, check Spam explicitly at least
-  twice in separate checks, once early and again near the end. Use the
-  discovered provider tool's schema to include Spam; a default inbox search may
-  exclude it. If the message arrives, continue immediately. Do not call it
-  undelivered after a single empty search:
-  only report non-arrival after five minutes and a final inbox/Spam check.
+  window when the send is initiated. Wait about 10–15 seconds before the first
+  lookup, then poll the narrowly scoped inbox about every 20–30 seconds while
+  missing, up to the five-minute deadline. Check Spam explicitly at least twice
+  in separate checks, once early and again near the deadline. Use the discovered
+  provider tool's schema to include Spam; a default inbox search may exclude it.
+  If the message arrives, continue immediately. Only report non-arrival after
+  five minutes have elapsed and a final inbox/Spam check at or after the deadline.
   Distinguish non-arrival from an unavailable connection or failed query, and
   account for a shorter-lived code or an expiring initiating flow.
 - Reading/searching does not authorize sending, forwarding, deleting, marking
