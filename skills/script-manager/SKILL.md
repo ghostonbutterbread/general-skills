@@ -1,13 +1,14 @@
 ---
 name: script-manager
-description: "Use when turning repeated agent work into reusable scripts, organizing script homes, creating script records, or checking whether a helper already exists before writing new automation."
+description: "Use when running or interpreting scripts, or turning repeated work into reusable scripts. Keep deterministic output bounded and investigate what automation misses."
 ---
 
 # Script Manager
 
-Use this skill when an agent is doing repetitive, regex-heavy, file-processing,
+Use this skill when an agent runs or interprets a script, whether maintained,
+third-party, or task-local, and when repetitive, regex-heavy, file-processing,
 URL-processing, diffing, extraction, normalization, reporting, or command
-composition work that could become a reusable script.
+composition work could become reusable automation.
 
 The goal is simple: if agents solve a repeatable task once, future agents should
 not have to rediscover the same workflow from chat history.
@@ -74,6 +75,16 @@ contract. If coverage metadata is absent, interpret it as `exhaustive: false`.
 Zero matches must never be promoted into “absent,” “safe,” “complete,” or “fully
 searched.” Agents remain responsible for semantic context, unfamiliar
 technologies, computed behavior, ambiguity, and unknowns.
+
+Use the script for its bounded mechanical pass, not as the only line of inquiry.
+While a longer run is in progress, spend agent attention on independent,
+open-world questions it cannot resolve: unfamiliar structures, computed paths,
+technology-specific behavior, ambiguous matches, or a consumer absent from its
+input corpus. For a short run, make the same comparison when reviewing output;
+do not invent busywork merely to parallelize. Reconcile the script's input and
+recognition boundary with direct observations before claiming coverage or
+closing a lead. Record what was checked and what remains unknown rather than
+turning a successful run or zero-hit result into an exhaustive conclusion.
 
 Do not silently teach a running script from one agent observation. Promote a
 confirmed miss only with preserved triggering evidence, a failing fixture or
