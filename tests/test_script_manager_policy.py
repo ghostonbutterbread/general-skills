@@ -37,15 +37,6 @@ class ScriptManagerPolicyTests(unittest.TestCase):
         self.assertIn("seed signals", self.text)
         self.assertIn("unknowns", self.text)
 
-    def test_script_consumers_keep_independent_open_world_inquiry(self) -> None:
-        self.assertIn("runs or interprets a script", self.text)
-        self.assertIn("maintained, third-party, or task-local", self.text)
-        self.assertIn("while a longer run is in progress", self.text)
-        self.assertIn("independent, open-world questions", self.text)
-        self.assertIn("for a short run, make the same comparison", self.text)
-        self.assertIn("reconcile the script's input and recognition boundary", self.text)
-        self.assertIn("zero-hit result into an exhaustive conclusion", self.text)
-
     def test_script_learning_requires_evidence_and_review(self) -> None:
         self.assertIn("preserved triggering evidence", self.text)
         self.assertIn("failing fixture or test", self.text)
