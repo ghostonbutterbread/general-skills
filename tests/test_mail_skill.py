@@ -18,6 +18,9 @@ def check_mail(owner):
     assert "gmail-otp" not in hot
     assert "curl" not in hot
     assert "Never request passwords, tokens, OAuth codes, or callback URLs in chat" in hot
+    assert "five-minute delivery window" in hot
+    assert "while the message is missing, check Spam explicitly at least twice in separate checks" in hot
+    assert "only report non-arrival after five minutes and a final inbox/Spam check" in hot
     assert "curl -fsSL https://composio.dev/install | sh" in setup
     assert "composio execute GMAIL_FETCH_EMAILS --get-schema" in setup
     assert "https://docs.composio.dev/docs/cli" in setup
@@ -43,6 +46,18 @@ class MailContract(unittest.TestCase):
             text = path.read_text()
             self.assertEqual(text.count("references/setup.md"), 1)
             path.write_text(text.replace("references/setup.md", "elsewhere.md"))
+            with self.assertRaises(AssertionError):
+                check_mail(owner)
+
+    def test_missing_delivery_wait_fails(self):
+        with tempfile.TemporaryDirectory() as temp:
+            owner = Path(temp) / "mail"
+            shutil.copytree(MAIL, owner)
+            path = owner / "SKILL.md"
+            original = path.read_text()
+            changed = original.replace("five-minute delivery\n  window", "immediate check")
+            self.assertNotEqual(changed, original)
+            path.write_text(changed)
             with self.assertRaises(AssertionError):
                 check_mail(owner)
 
