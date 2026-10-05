@@ -19,8 +19,10 @@ def check_mail(owner):
     assert "curl" not in hot
     assert "Never request passwords, tokens, OAuth codes, or callback URLs in chat" in hot
     assert "five-minute delivery window" in hot
-    assert "while the message is missing, check Spam explicitly at least twice in separate checks" in hot
-    assert "only report non-arrival after five minutes and a final inbox/Spam check" in hot
+    assert "Wait about 10–15 seconds before the first lookup" in hot
+    assert "poll the narrowly scoped inbox about every 20–30 seconds while missing" in hot
+    assert "Check Spam explicitly at least twice in separate checks" in hot
+    assert "final inbox/Spam check at or after the deadline" in hot
     assert "curl -fsSL https://composio.dev/install | sh" in setup
     assert "composio execute GMAIL_FETCH_EMAILS --get-schema" in setup
     assert "https://docs.composio.dev/docs/cli" in setup
@@ -64,6 +66,18 @@ class MailContract(unittest.TestCase):
     def test_shared_catalog_uses_mail_not_legacy_wrapper(self):
         self.assertIn("`mail`", (ROOT / "README.md").read_text())
         self.assertFalse((ROOT / "skills/gmail-otp").exists())
+
+    def test_missing_polling_cadence_fails(self):
+        with tempfile.TemporaryDirectory() as temp:
+            owner = Path(temp) / "mail"
+            shutil.copytree(MAIL, owner)
+            path = owner / "SKILL.md"
+            original = path.read_text()
+            changed = original.replace("poll the narrowly scoped inbox about every 20–30 seconds", "check once")
+            self.assertNotEqual(changed, original)
+            path.write_text(changed)
+            with self.assertRaises(AssertionError):
+                check_mail(owner)
 
 
 if __name__ == "__main__":
