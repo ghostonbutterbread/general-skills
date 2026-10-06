@@ -1,0 +1,27 @@
+# Review and repair a papercut
+
+Use this during a deliberate maintenance pass, not as an interruption to the original task.
+
+## Verify before changing anything
+
+1. List the open entries in the relevant record and group any duplicates by the underlying cause. Pick the clearest entry as the evidence trail; close duplicates only with an accurate cross-reference and disposition.
+2. For each issue, inspect the **current** owning tool, documentation, version, environment, and affected workflow. Exercise the reported step or gather equivalent direct evidence to determine whether it **still affects us**. Do not assume an old report or a plausible fix proves the issue is present.
+3. If direct evidence shows it no longer affects us, **do not patch**. Close the entry with what was checked, where, and why it is resolved/no longer applicable (for example, an upstream change already landed). Do not claim that we made a fix.
+4. If the issue is still present, patch its owning surface rather than a convenient symptom; run the affected workflow to verify the fix and any relevant regression check. Then close with the verified resolution and canonical path or reference.
+5. If verification cannot be done because access, environment, or context is missing, leave it open and record the blocker/wake condition in the appropriate task handoff. Mere inability to reproduce is not proof that it is gone.
+
+```bash
+PAPERCUTS_TOOL="$HOME/.hermes/synced-skills/papercuts/scripts/papercut.py"
+python3 "$PAPERCUTS_TOOL" list
+python3 "$PAPERCUTS_TOOL" close \
+  --id <existing-entry-id> \
+  --resolution "Checked <current workflow/evidence>; no longer affected because <reason>; no patch made."
+```
+
+Use `--file` for an intentional alternate record on both commands. Closing retains the entry in the record's Closed section; never delete its history.
+
+## Ownership and durable outcomes
+
+For third-party repositories or dependencies we do not own (including Hermes itself), avoid routine local shims, monkey patches, or a private patch stack requiring upkeep. A papercut request does **not** authorize an upstream issue/PR, software update, or configuration change; those need their own task authorization. This does not prevent normal fixes to scripts and repositories we own.
+
+Place a lasting remedy in its canonical home when one is needed: a solved operational workaround in `faq`, repeatable automation in `script-manager`, reusable behavioral guidance in a reviewed skill or seed, or repository-specific correction in that repository's docs/code. Do not auto-promote papercuts to permanent memory. A resolved-without-patch entry needs an honest verification-based disposition, not an invented durable fix.

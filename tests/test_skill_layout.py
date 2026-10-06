@@ -49,6 +49,21 @@ class SkillLayoutTests(unittest.TestCase):
         self.assertIn("./ln_dotfiles.sh", skill)
         self.assertIn("do not create `.ln` files or individual", skill)
 
+    def test_papercut_router_loads_distinct_capture_and_repair_guidance(self):
+        root = SKILLS / "papercuts"
+        router = (root / "SKILL.md").read_text()
+        capture = (root / "references" / "capture.md").read_text()
+        repair = (root / "references" / "repair.md").read_text()
+        self.assertIn("references/capture.md", router)
+        self.assertIn("references/repair.md", router)
+        self.assertIn("before adding", router)
+        self.assertIn("without patching", router)
+        self.assertIn("do not add another", capture)
+        self.assertIn("The helper does not deduplicate automatically", capture)
+        self.assertIn("no longer affects us", repair)
+        self.assertIn("do not patch", repair)
+        self.assertIn("leave it open", repair)
+
     def test_bitwarden_skill_reminds_before_cli_use(self):
         skill = (SKILLS / "bitwarden" / "SKILL.md").read_text()
         description = skill.split("---", 2)[1]
