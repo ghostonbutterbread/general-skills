@@ -64,6 +64,8 @@ class SkillLayoutTests(unittest.TestCase):
         self.assertIn("do not patch", repair)
         self.assertIn("leave it open", repair)
         self.assertIn("fresh task branch and isolated worktree", repair)
+        self.assertIn("Do not patch directly on the shared integration or stable branch", repair)
+        self.assertIn("reuse another papercut's branch", repair)
         self.assertIn("An evidence-based closure with no patch does not need a code branch", repair)
         self.assertNotIn("--id <", repair)
         self.assertIn("leave the stock installation unchanged", repair)
