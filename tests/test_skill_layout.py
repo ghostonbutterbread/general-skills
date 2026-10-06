@@ -63,6 +63,8 @@ class SkillLayoutTests(unittest.TestCase):
         self.assertIn("no longer affects us", repair)
         self.assertIn("do not patch", repair)
         self.assertIn("leave it open", repair)
+        self.assertIn("fresh task branch and isolated worktree", repair)
+        self.assertIn("An evidence-based closure with no patch does not need a code branch", repair)
         self.assertNotIn("--id <", repair)
         self.assertIn("leave the stock installation unchanged", repair)
         self.assertIn("maintenance cost is explained", repair)
