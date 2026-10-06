@@ -13,8 +13,9 @@ Use this during a deliberate maintenance pass, not as an interruption to the ori
 ```bash
 PAPERCUTS_TOOL="$HOME/.hermes/synced-skills/papercuts/scripts/papercut.py"
 python3 "$PAPERCUTS_TOOL" list
+# Replace the example ID with the entry's actual ID from the list.
 python3 "$PAPERCUTS_TOOL" close \
-  --id <existing-entry-id> \
+  --id 'PC-20260804-123456-abcdef12' \
   --resolution "Checked <current workflow/evidence>; no longer affected because <reason>; no patch made."
 ```
 
@@ -22,6 +23,6 @@ Use `--file` for an intentional alternate record on both commands. Closing retai
 
 ## Ownership and durable outcomes
 
-For third-party repositories or dependencies we do not own (including Hermes itself), avoid routine local shims, monkey patches, or a private patch stack requiring upkeep. A papercut request does **not** authorize an upstream issue/PR, software update, or configuration change; those need their own task authorization. This does not prevent normal fixes to scripts and repositories we own.
+For large third-party repositories or dependencies we do not own (including Hermes itself), do not turn routine papercut cleanup into local shims, monkey patches, or a private patch stack requiring upkeep. Record the issue and leave the stock installation unchanged unless the user explicitly requests an exception after the maintenance cost is explained. A papercut request does **not** authorize an upstream issue/PR, software update, or configuration change; those need their own task authorization. This does not prevent normal fixes to scripts and repositories we own.
 
 Place a lasting remedy in its canonical home when one is needed: a solved operational workaround in `faq`, repeatable automation in `script-manager`, reusable behavioral guidance in a reviewed skill or seed, or repository-specific correction in that repository's docs/code. Do not auto-promote papercuts to permanent memory. A resolved-without-patch entry needs an honest verification-based disposition, not an invented durable fix.

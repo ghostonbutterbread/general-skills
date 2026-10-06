@@ -63,6 +63,9 @@ class SkillLayoutTests(unittest.TestCase):
         self.assertIn("no longer affects us", repair)
         self.assertIn("do not patch", repair)
         self.assertIn("leave it open", repair)
+        self.assertNotIn("--id <", repair)
+        self.assertIn("leave the stock installation unchanged", repair)
+        self.assertIn("maintenance cost is explained", repair)
 
     def test_bitwarden_skill_reminds_before_cli_use(self):
         skill = (SKILLS / "bitwarden" / "SKILL.md").read_text()
