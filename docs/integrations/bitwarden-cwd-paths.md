@@ -7,8 +7,8 @@
 - **Base commit:** `15a1fe2c6fbc3e2d4f6898ff62a25c25b55f3f94` (fetched `origin/beta`)
 - **Intended integration target:** `beta`
 - **Last updated:** 2026-10-15
-- **Latest immutable recovery checkpoint:** none yet (first implementation commit pending)
-- **Feature implementation commit(s):** none yet
+- **Latest immutable recovery checkpoint:** `99d05d3` (implementation + regression + initial dossier)
+- **Feature implementation commit(s):** `99d05d3`
 - **Inspiration / canonical reference:** papercut `PC-20261002-194658-6a522803`; `skills/bitwarden/SKILL.md`
 
 ## Intent and contract
@@ -29,10 +29,10 @@ The documented `skills/bitwarden/scripts/...` commands resolve against the calle
 ## Interruption / resume handoff
 
 - **Owning feature branch/ref:** `fix/bitwarden-cwd-paths`
-- **Latest immutable recovery checkpoint:** none yet (commit pending)
-- **Feature implementation commit(s):** none yet
-- **Exact resume point:** review diff and focused test, then integrate into `beta` only on parent authorization; retain dossier on feature branch and remove from integration target.
-- **Working-tree state at handoff:** to be committed.
+- **Latest immutable recovery checkpoint:** `99d05d3` (implementation + regression + initial dossier)
+- **Feature implementation commit(s):** `99d05d3`
+- **Exact resume point:** review both commits' diff and focused test, then integrate into `beta` only on parent authorization; retain dossier on feature branch and remove from integration target.
+- **Working-tree state at handoff:** clean after dossier handoff commit.
 
 ## Decision gates
 
