@@ -1,23 +1,38 @@
 # Capture a papercut
 
-Use this when concrete tool, browser/auth, documentation, or workflow friction blocks progress or causes a repeated workaround. Record it after a safe workaround—or before handing off a blocker—without interrupting the task to repair it. Do not record speculation, preferences, raw transcripts, or sensitive details.
+Record concrete, avoidable tool, documentation, environment, or workflow friction after a safe workaround—or before handing off a blocker. Keep it short and sanitized; do not turn capture into a repair investigation.
 
-## Check before adding
+## Match before writing
 
-1. Inspect the relevant shared record's open entries with `papercut.py list`. Also inspect its closed entries when a prior resolution may explain the same symptom. Compare the **underlying issue and affected workflow**, not just matching words. The helper does not deduplicate automatically.
-2. If an open entry already describes the same issue, **do not add another**. Use its ID for the handoff; if new evidence matters, include it in the task's existing notes or bring it to the reviewer rather than creating a second papercut. A closed issue that has genuinely recurred may warrant a new entry referencing the old ID, after confirming it is a new occurrence.
-3. If no entry covers this issue, add one short sanitized record. Keep enough context for later verification; do not diagnose deeply just to log it.
+Inspect the open record with `papercut.py list` and check closed history if a prior resolution may explain the symptom. Compare the **underlying issue and affected workflow**, not merely the wording. The helper cannot match semantically equivalent reports for you.
+
+- If an open entry describes the same issue, use `observe --id` to record a **distinct incident** rather than adding another entry. Repeated retries in one task/run count once. Re-running an observe with the same incident ID on that entry is a no-op. A closed issue that genuinely recurs can warrant a new entry referencing the old ID.
+- Otherwise use `add`, assigning severity **at capture**. Name the blocked workflow, observed time cost, and reason; do not guess historical frequency or time loss.
 
 ```bash
 PAPERCUTS_TOOL="$HOME/.hermes/synced-skills/papercuts/scripts/papercut.py"
 python3 "$PAPERCUTS_TOOL" list
-# Inspect the Closed section of ~/Shared/PAPERCUTS.md when relevant.
 python3 "$PAPERCUTS_TOOL" add \
-  --category tool \
-  --summary "Browser login kept failing" \
-  --context "OAuth flow in the test browser"
+  --category tool --summary "Browser login kept failing" \
+  --context "Owned test-browser login" --severity high --breaking yes \
+  --reason "Normal browser workflow blocked; manual handoff required" \
+  --minutes-lost 15 --incident "agent-a:run-42"
+# If the same issue happens in another run:
+python3 "$PAPERCUTS_TOOL" observe --id "PC-20261015-120000-example" \
+  --incident "agent-b:run-51" --minutes-lost 8
 ```
 
-The default record is `~/Shared/PAPERCUTS.md`. Use `--file` on **both** `list` and `add` for an intentional alternate record. The helper makes no network calls and serializes writes with an advisory lock. `PAPERCUTS_SOURCE` sets the writer identity; otherwise the hostname is recorded. When multiple agents share a host, set an explicit identity, for example `PAPERCUTS_SOURCE="hoster:recon-agent"`.
+`--incident` is a non-sensitive, stable agent/task/run ID (letters, digits, `.`, `_`, `:`, `-`), unique **per incident on that issue**; do not use an account name or target identifier. One run can report several different issues. `--minutes-lost` is the observed incremental agent time, rounded to whole minutes (0 is valid). `PAPERCUTS_SOURCE` supplies writer identity; otherwise the hostname is used. Use `--file` before the subcommand for **all** operations on an intentional alternate record. The default is `~/Shared/PAPERCUTS.md`. Writes serialize under an advisory lock.
 
-Categories are `tool`, `docs`, `workflow`, `environment`, `integration`, and `other`. Summarize the observable failure and name the task/tool/surface in `--context`. Use `--evidence` for a sanitized error fragment or workaround and `--impact` only when the reason to revisit is unclear. Redact secrets, authorization URLs, cookies, raw request/response data, private target or customer content, and personal data; replace them with a class such as `[redacted token]`.
+## Severity rubric
+
+- **Low:** Minor workaround, little time lost; normal task proceeds.
+- **Medium:** Repeated friction or meaningful time lost; normal task still proceeds.
+- **High:** Workflow blocked, degraded path required, or substantial repeated time lost.
+- **Critical:** Widespread essential-workflow hard stop or serious operational consequences; requires `--breaking yes` and a specific impact reason. Frequency alone never creates Critical.
+
+The agent assigns severity and a short reason when adding. On later evidence, `observe --severity ... --reason ...` can raise the agent rating (never silently lower it); `--breaking yes` records a newly recognized blocker. The helper automatically raises **Low to Medium at 3 distinct observed incidents**, and to **High at 5** if the workflow is blocked or at least **60 observed minutes** have been lost. Low-cost nonbreaking repetition remains at Medium; automatic escalation never produces Critical. Each entry retains its agent rating, effective severity, observed count, cumulative observed time, and escalation reason. `list` shows high priority first. Treat these as triage signals, not proof of a fix or a measured historical rate.
+
+Old entries remain unrated with unknown prior frequency/time. On their first new occurrence, provide `--severity`, `--breaking`, and `--reason` to `observe`; counting starts at that occurrence. Do not backfill imagined events.
+
+Categories: `tool`, `docs`, `workflow`, `environment`, `integration`, `other`. Use `--evidence` for a sanitized error fragment or workaround and `--impact` only if further context is useful. Never record credentials, cookies, authorization URLs, raw requests/responses, private target/customer content, or personal data.
