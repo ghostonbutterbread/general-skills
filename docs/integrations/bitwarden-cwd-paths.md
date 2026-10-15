@@ -1,6 +1,6 @@
 # Bitwarden CWD-independent helper paths — integration dossier
 
-- **Status:** feature (pending independent review)
+- **Status:** reviewed, pending beta integration
 - **Owner:** Hermes bugfix subagent
 - **Branch / owning ref:** `fix/bitwarden-cwd-paths`
 - **Worktree:** `/home/ryushe/projects/.worktrees/general-skills-bitwarden-cwd-paths`
@@ -20,7 +20,7 @@ The documented `skills/bitwarden/scripts/...` commands resolve against the calle
 - From `/home/ryushe/projects/bug_bounty_harness`, `test -f` found both relative helper paths absent and both `$HOME/.hermes/synced-skills/bitwarden/scripts/...` files present. No helper or CLI executed.
 - `python3 -m unittest discover -s tests -p 'test_bitwarden_skill_paths.py' -v`: 2 passed. The tests verify the documented path expressions, default and absolute override from unrelated CWD, using path checks only.
 - `git diff --check`: passed. Bounded old-reference search leaves only negative assertions in the new regression test; no live relative-path guidance remains in the owning skill.
-- Independent review: pending parent. No merge or push performed.
+- Independent read-only review: approved the installed-skill path resolution without blocking findings; reran 2/2 path-only tests from an unrelated CWD and `git diff --check`. No CLI, helper, or vault data used. No merge or push performed yet.
 
 ## Blockers and deferred work
 
@@ -31,15 +31,16 @@ The documented `skills/bitwarden/scripts/...` commands resolve against the calle
 - **Owning feature branch/ref:** `fix/bitwarden-cwd-paths`
 - **Latest immutable recovery checkpoint:** `99d05d3` (implementation + regression + initial dossier)
 - **Feature implementation commit(s):** `99d05d3`
-- **Exact resume point:** review both commits' diff and focused test, then integrate into `beta` only on parent authorization; retain dossier on feature branch and remove from integration target.
+- **Exact resume point:** fetch/reconcile the advanced `origin/beta`, merge reviewed branch into clean beta, remove this dossier from integration target, rerun focused tests, then publish/read back beta; retain this dossier in feature history.
 - **Working-tree state at handoff:** clean after dossier handoff commit.
 
 ## Decision gates
 
-- **Integration gate:** parent independent review and fetched-beta comparison, followed by focused check in target; no subagent integration.
+- **Integration gate:** independent review passed; fetched-beta comparison and focused check in target still required.
 - **Activation gate:** no runtime sync performed; selected beta runtime must be verified by parent.
 - **Promotion gate:** stable promotion not requested.
 
 ## Decision record
 
 - 2026-10-15 — reproduced CWD defect, patched canonical guidance and account-storage reference, added path-only regression; awaiting independent review.
+- 2026-10-15 — independent path-only review accepted the change; no vault operation or runtime sync claimed.
