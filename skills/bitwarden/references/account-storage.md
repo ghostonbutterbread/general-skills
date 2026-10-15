@@ -40,9 +40,10 @@ Agents must not infer destructibility or deletion permission from a Bitwarden it
 ## Safe Bitwarden Usage
 
 - Prefer `BW_SESSION` from the current shell environment.
-- If Bitwarden is locked, use the approved local password file through the helper:
+- If Bitwarden is locked, use the approved local password file through the helper. Set `BITWARDEN_SKILL_DIR` to the absolute directory containing the loaded `SKILL.md` if it is not installed at the Hermes default; source in the shell that will use `BW_SESSION`:
   ```bash
-  source skills/bitwarden/scripts/bw-session.sh
+  BITWARDEN_SKILL_DIR="${BITWARDEN_SKILL_DIR:-$HOME/.hermes/synced-skills/bitwarden}"
+  source "$BITWARDEN_SKILL_DIR/scripts/bw-session.sh"
   ```
 - The approved default path is `~/.config/.bw.txt`.
 - The password file must be owned by the current user and mode `600` or `400`.
