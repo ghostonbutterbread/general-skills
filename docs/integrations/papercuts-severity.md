@@ -1,14 +1,14 @@
 # Papercut severity and recurrence integration dossier
 
-- **Status:** feature (review correction pending re-review)
+- **Status:** review-ready (approved for local beta integration)
 - **Owner:** Hermes bugfix
 - **Branch:** `feat/papercuts-severity`
 - **Base commit:** `15a1fe2c6fbc3e2d4f6898ff62a25c25b55f3f94` (`origin/beta` fetched)
 - **Intended integration target:** `beta`
 - **Last updated:** 2026-10-15
 - **Owning feature branch/ref:** `feat/papercuts-severity`
-- **Latest immutable recovery checkpoint:** none yet
-- **Feature implementation commit(s):** none yet
+- **Latest immutable recovery checkpoint:** `d1b08bbfbea0ae9ddc23963537c84c53cf587c4a`
+- **Feature implementation commit(s):** `3727caa4c933d259450586c515e5d2857bed864f`, `d1b08bbfbea0ae9ddc23963537c84c53cf587c4a`
 - **Inspiration / canonical references:** user severity rubric; `skills/papercuts/{SKILL.md,references/capture.md,scripts/papercut.py}`
 
 ## Intent
@@ -22,9 +22,9 @@ Record agent-assigned severity at capture and count distinct subsequent incident
 ## Evidence and review
 
 - Tests: `python3 -m unittest discover -s skills/papercuts/tests -v` — 6 passed after review fix; `python3 -m unittest discover -s tests -q` — 43 passed; `git diff --check` clean.
-- Independent review: first pass failed on stale escalation reason after agent-assigned severity surpassed the automatic floor; added removal and Low→Medium→agent High→Critical regression. Re-review pending.
+- Independent review: first pass failed on stale escalation reason after agent-assigned severity surpassed the automatic floor; added removal and Low→Medium→agent High→Critical regression. Fresh re-review at `d1b08bb` passed, reran 6 focused and 43 repository tests, and found no other material defects.
 - Replay/cohort/fixture evidence: CLI subprocess E2E on a temporary copy of the actual shared record: preserved 815 pre-existing open entries, added one rated entry, observed four distinct subsequent incidents, escalated Low to High at 65 observed minutes, closed it, and verified live record unchanged. Additional concurrency and legacy-record fixtures in focused suite.
-- Merge/ancestry evidence: pending.
+- Merge/ancestry evidence: fetched `origin/beta` remained `15a1fe2`; feature has exactly two commits ahead with no target-side divergence, beta checkout clean. Post-merge evidence pending.
 
 ## Blockers and deferred work
 
@@ -33,10 +33,10 @@ None known. Activation requires beta integration and runtime skill projection ve
 ## Interruption / resume handoff
 
 - **Owning feature branch/ref:** `feat/papercuts-severity`
-- **Latest immutable recovery checkpoint:** none yet
-- **Feature implementation commit(s):** none yet
-- **Exact resume point:** independent review, beta integration and runtime activation check.
-- **Working-tree state at handoff:** intentionally uncommitted while implementation is in progress.
+- **Latest immutable recovery checkpoint:** `d1b08bbfbea0ae9ddc23963537c84c53cf587c4a`
+- **Feature implementation commit(s):** `3727caa4c933d259450586c515e5d2857bed864f`, `d1b08bbfbea0ae9ddc23963537c84c53cf587c4a`
+- **Exact resume point:** beta integration, post-merge tests, runtime activation check.
+- **Working-tree state at handoff:** final decision metadata to commit before merge.
 
 ## Decision gates
 
@@ -47,3 +47,4 @@ None known. Activation requires beta integration and runtime skill projection ve
 ## Decision record
 
 - 2026-10-15 — created feature branch; focused, repository and copied-live-record E2E checks passed. Independent review identified stale escalation reason; fixed and reran 6 focused + 43 repository tests. Re-review pending.
+- 2026-10-15 — re-review passed at `d1b08bb`; selected `beta` remains clean at fetched `15a1fe2`. Accept for local beta merge; remove this temporary dossier from integration target. No stable promotion or remote push implied.
