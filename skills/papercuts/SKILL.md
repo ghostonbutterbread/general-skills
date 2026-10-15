@@ -9,7 +9,7 @@ A papercut is concrete, avoidable friction in a tool, instruction, or workflow. 
 
 ## Route by intent
 
-- **Encountered friction while doing another task?** Load [Capture a papercut](references/capture.md). Check for an existing entry of the same underlying issue before adding one; record briefly and return to the task.
+- **Encountered friction while doing another task?** Load [Capture a papercut](references/capture.md). Check for an existing entry of the same underlying issue before adding one; record a distinct recurrence on its ID when present, with severity assigned on first capture, then return to the task.
 - **Reviewing or patching an existing entry?** Load [Review and repair a papercut](references/repair.md). First check whether the issue still affects us in the current workflow. If it no longer does, close it with the verification evidence **without patching**. If it does, patch the owning surface, verify the fix, then close it.
 
 Keep records sanitized: no credentials, cookies, tokens, private target data, raw traffic, personal data, or customer content.
