@@ -78,6 +78,24 @@ class PapercutCliTests(unittest.TestCase):
             self.assertIn("Occurrences: 1", record.read_text())
             self.assertIn("Time lost: 5 min (observed)", record.read_text())
 
+    def test_agent_raise_supersedes_stale_automatic_escalation(self):
+        with tempfile.TemporaryDirectory() as directory:
+            record = Path(directory) / "PAPERCUTS.md"
+            identifier = self.add(record).stdout.split()[1]
+            for n in (2, 3):
+                self.assertEqual(self.observe(record, identifier, f"run-{n}").returncode, 0)
+            self.assertIn("Escalation: 3 distinct incidents", record.read_text())
+            raised = self.observe(record, identifier, "run-4", 2, "--severity", "high",
+                                  "--breaking", "yes", "--reason", "Workflow now blocked")
+            self.assertEqual(raised.returncode, 0, raised.stderr)
+            self.assertIn("Severity: high (agent: high)", record.read_text())
+            self.assertNotIn("Escalation:", record.read_text())
+            critical = self.observe(record, identifier, "run-5", 2, "--severity", "critical",
+                                    "--reason", "Essential workflow now blocked broadly")
+            self.assertEqual(critical.returncode, 0, critical.stderr)
+            self.assertIn("Severity: critical (agent: critical)", record.read_text())
+            self.assertNotIn("Escalation:", record.read_text())
+
     def test_duplicate_and_bad_input_do_not_mutate_record(self):
         with tempfile.TemporaryDirectory() as directory:
             record = Path(directory) / "PAPERCUTS.md"

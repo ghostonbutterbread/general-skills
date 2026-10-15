@@ -1,6 +1,6 @@
 # Papercut severity and recurrence integration dossier
 
-- **Status:** feature
+- **Status:** feature (review correction pending re-review)
 - **Owner:** Hermes bugfix
 - **Branch:** `feat/papercuts-severity`
 - **Base commit:** `15a1fe2c6fbc3e2d4f6898ff62a25c25b55f3f94` (`origin/beta` fetched)
@@ -21,8 +21,8 @@ Record agent-assigned severity at capture and count distinct subsequent incident
 
 ## Evidence and review
 
-- Tests: `python3 -m unittest discover -s skills/papercuts/tests -v` — 5 passed; `python3 -m unittest discover -s tests -v` — 43 passed; `git diff --check` clean.
-- Independent review: pending.
+- Tests: `python3 -m unittest discover -s skills/papercuts/tests -v` — 6 passed after review fix; `python3 -m unittest discover -s tests -q` — 43 passed; `git diff --check` clean.
+- Independent review: first pass failed on stale escalation reason after agent-assigned severity surpassed the automatic floor; added removal and Low→Medium→agent High→Critical regression. Re-review pending.
 - Replay/cohort/fixture evidence: CLI subprocess E2E on a temporary copy of the actual shared record: preserved 815 pre-existing open entries, added one rated entry, observed four distinct subsequent incidents, escalated Low to High at 65 observed minutes, closed it, and verified live record unchanged. Additional concurrency and legacy-record fixtures in focused suite.
 - Merge/ancestry evidence: pending.
 
@@ -46,4 +46,4 @@ None known. Activation requires beta integration and runtime skill projection ve
 
 ## Decision record
 
-- 2026-10-15 — created feature branch; focused, repository and copied-live-record E2E checks passed. Pending independent review.
+- 2026-10-15 — created feature branch; focused, repository and copied-live-record E2E checks passed. Independent review identified stale escalation reason; fixed and reran 6 focused + 43 repository tests. Re-review pending.

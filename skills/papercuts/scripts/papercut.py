@@ -219,6 +219,8 @@ def command_observe(args: argparse.Namespace) -> None:
         entry = replace_field(entry, "Time lost", f"{minutes} min (observed)")
         if escalation:
             entry = replace_field(entry, "Escalation", escalation)
+        else:
+            entry = re.sub(r"(?m)^  - Escalation: .*\n", "", entry)
         entry = entry.rstrip() + "\n" + occurrence_line(key, args.minutes_lost) + "\n\n"
         content = content[:match.start()] + entry + content[match.end():]
         path.write_text(content, encoding="utf-8")
