@@ -30,16 +30,18 @@ fallback order here; use this skill for its selected vault step.
    bw --version
    bw status
    ```
-3. If locked, source the helper. It defaults to the approved local password file `~/.config/.bw.txt` and refuses unsafe ownership or permissions:
+3. If locked, source the helper. It defaults to the approved local password file `~/.config/.bw.txt` and refuses unsafe ownership or permissions. These script paths are relative to the **skill directory**, not the shell's working directory. The default below is the Hermes-installed skill; if this skill was loaded from a different installation, set `BITWARDEN_SKILL_DIR` to the absolute directory containing its `SKILL.md` instead. Check that both scripts exist there before use; stop rather than falling back to a same-named path in the current checkout. Source in the shell that will use `BW_SESSION`:
    ```bash
-   source skills/bitwarden/scripts/bw-session.sh
+   BITWARDEN_SKILL_DIR="${BITWARDEN_SKILL_DIR:-$HOME/.hermes/synced-skills/bitwarden}"
+   source "$BITWARDEN_SKILL_DIR/scripts/bw-session.sh"
    ```
 4. For login to an existing target account, search by program, domain, account
    alias, or known Bitwarden reference. Use only the minimum fields needed for
    the login step, and keep raw secrets out of model-visible output.
 5. Create or update a target-account item without printing generated secrets:
    ```bash
-   skills/bitwarden/scripts/bw-create-login.sh \
+   BITWARDEN_SKILL_DIR="${BITWARDEN_SKILL_DIR:-$HOME/.hermes/synced-skills/bitwarden}"
+   "$BITWARDEN_SKILL_DIR/scripts/bw-create-login.sh" \
      "Canva.cn ryushe+ai" \
      "ryushe+ai@bugcrowdninja.com" \
      "https://www.canva.cn/"
