@@ -57,6 +57,13 @@ class AccountManagerRoutingTests(unittest.TestCase):
         self.assertIn("legacy account/resource table", legacy)
         self.assertIn("For BBH, use `account-management`", legacy)
 
+    def test_legacy_template_does_not_advertise_bbh_table(self):
+        text = (SKILL / "assets/accounts-template.md").read_text()
+        self.assertIn("For non-BBH programs only", text)
+        self.assertIn("do not create this Markdown table", text)
+        self.assertIn("load `account-management`", text)
+        self.assertIn(REGISTRY, text)
+
 
 if __name__ == "__main__":
     unittest.main()
