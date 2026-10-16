@@ -15,7 +15,7 @@ Reusable local OpenClaw/Codex skills that are not tied to one bug bounty harness
 - `script_manager` - Reusable script promotion, storage, indexing, and handoff rules so repeated agent workflows become durable helpers.
 - `resilio-sync` - Resilio Sync handoff rules for `/srv/resilio` and large local file-set sharing.
 - `daddy` - Relative model-up/down routing for CLI agents, with benchmark guardrails for cost and quality tradeoffs.
-- `account-manager` - Non-secret account inventory workflow for roles, mutability, lifecycle state, and Bitwarden item references.
+- `account-manager` - Routes BBH account context to its canonical `account-management` registry; retains the legacy non-web table workflow outside BBH.
 - `bitwarden` - Bitwarden CLI workflow for storing and referencing test-account credentials without exposing secrets.
 - `brainstorm` - Evidence-grounded creative divergence for any domain, with optional seed-assisted lens rotation and fresh-context critique.
 - `account-tui-colors` - Terminal color guidance for account-oriented workflows.

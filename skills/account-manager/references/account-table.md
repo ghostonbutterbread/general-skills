@@ -1,22 +1,18 @@
 # Account Table
 
-Use this file to keep non-secret account and Bitwarden-reference context visible to agents.
+## BBH registry (not this table)
 
-Version 1 intentionally tracks only account-level state. Do not try to model every team, role, resource, design, invoice, or permission here yet.
+For BBH-managed programs, load `account-management`. Its canonical registry is `$HARNESS_SHARED_BASE/{normalized-program}/credentials/account_inventory.json` (`HARNESS_SHARED_BASE` defaults to `~/Shared/web_bounty`). Follow that skill's normalization and `account_inventory.py` workflow. A `shared/accounts.md` file under `web_bounty` is legacy history, not an authority or fallback; do not write a parallel table. BBH lifecycle and destructibility semantics belong to `account-management`, not the legacy fields below.
 
-## Canonical Paths
+## Legacy non-web path
 
-Prefer:
-
-```text
-~/Shared/web_bounty/{program}/shared/accounts.md
-```
-
-Fallback for legacy or non-web lanes:
+Only for non-BBH programs that actually use the non-web lane:
 
 ```text
 ~/Shared/bounty_recon/{program}/shared/accounts.md
 ```
+
+A missing BBH registry must be initialized via `account-management`, not replaced by this table. The remaining guidance on this page applies only to the legacy non-web table.
 
 ## Row Fields
 
