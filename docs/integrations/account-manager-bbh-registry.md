@@ -7,8 +7,8 @@
 - **Base commit:** `fb0aa2841d1b9d290a2ea36867b7898d692fef3a` (fetched `origin/beta`, 2026-10-15)
 - **Intended integration target:** General Skills `beta`
 - **Last updated:** 2026-10-15
-- **Latest immutable recovery checkpoint:** none yet; implementation commit pending
-- **Feature implementation commit(s):** pending
+- **Latest immutable recovery checkpoint:** `5f9a999cc6a668376671d8bbf195ee6a3fc92030`
+- **Feature implementation commit(s):** `5f9a999cc6a668376671d8bbf195ee6a3fc92030`
 - **Inspiration / canonical references:** General Skills `skills/account-manager`; BBH beta `skills/account-management/SKILL.md`, `scripts/inventory_paths.py` and `account_inventory.py` (read code/guidance only, no account rows)
 
 ## Intent and implemented contract
@@ -33,7 +33,7 @@ The live General Skills beta guidance still named `~/Shared/web_bounty/{program}
 ## Interruption / resume handoff
 
 - **Owning feature branch/ref:** `fix/account-manager-bbh-registry`
-- **Latest immutable recovery checkpoint / implementation commit:** pending commit; use branch tip after commit.
+- **Latest immutable recovery checkpoint / implementation commit:** `5f9a999cc6a668376671d8bbf195ee6a3fc92030`; this dossier-only handoff commit follows it.
 - **Exact resume point:** review committed diff, decide beta integration and activation separately.
 - **Working-tree state at handoff:** to be clean after commit.
 
