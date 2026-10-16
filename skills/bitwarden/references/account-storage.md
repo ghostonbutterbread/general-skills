@@ -1,6 +1,28 @@
 # Account Storage
 
-## Account Note Format
+## BBH-managed programs
+
+For BBH account lookups, credential-reference updates, resource cleanup, and
+account deletion, load `account-management` and follow its canonical
+`$HARNESS_SHARED_BASE/{normalized-program}/credentials/account_inventory.json`
+workflow (`HARNESS_SHARED_BASE` defaults to `~/Shared/web_bounty`). Follow that
+skill's normalization, initialization, lifecycle, and `account_inventory.py`
+commands. Do not create or update a parallel account/resource table or use the
+legacy note lifecycle below as an authority for BBH. A missing registry must be
+initialized through `account-management`, not replaced by notes. Keep Bitwarden
+items as secret-store references; a shared-resource removal is not permanent
+account deletion and does not by itself justify deleting a login item. Confirm
+permanent account deletion and record the non-secret lifecycle/credential-reference
+change in the canonical inventory before deleting the corresponding Bitwarden
+item. Never infer destructibility or deletion approval from a Bitwarden item.
+
+## Legacy account notes outside BBH
+
+The account-note format and lifecycle rules below apply only to non-BBH
+programs using legacy account/resource notes. They do not override
+`account-management` for BBH.
+
+### Account Note Format
 
 Use this shape in target notes after credentials are stored:
 
@@ -16,9 +38,9 @@ Credential store item:
 Cleanup notes:
 ```
 
-## Account Lifecycle Rules
+### Legacy Account Lifecycle Rules
 
-Separate resource cleanup from account deletion:
+For non-BBH programs only, separate resource cleanup from account deletion:
 
 - Removing an account from a shared item, team, design, folder, invoice permission set, or other test resource does not mean the target account was deleted.
 - For shared-resource removal, keep the Bitwarden login item active. Update the target account/resource table with the resource relationship and cleanup note.
@@ -35,7 +57,7 @@ Deletion confirmed by: <agent/operator>
 Cleanup notes: <short non-secret note>
 ```
 
-Agents must not infer destructibility or deletion permission from a Bitwarden item name. The account/resource table is the authority for what can be mutated or deleted.
+Agents must not infer destructibility or deletion permission from a Bitwarden item name. For these non-BBH notes only, the legacy account/resource table is the authority for account deletion decisions; resource-level mutation still requires task-specific approval. For BBH, use `account-management` and its canonical inventory instead.
 
 ## Safe Bitwarden Usage
 
