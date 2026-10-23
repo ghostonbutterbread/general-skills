@@ -1,14 +1,14 @@
 # Coverage-first script manager integration dossier
 
-- **Status:** feature
+- **Status:** review-ready
 - **Owner:** Hermes
 - **Branch:** `feat/script-coverage-resumability`
 - **Base commit:** `432b9949d90529cf6b0c6311cd5e4a9218207c98`
 - **Intended integration target:** `beta`
 - **Last updated:** 2026-10-23
 - **Owning feature branch/ref:** `feat/script-coverage-resumability`
-- **Latest immutable recovery checkpoint:** none yet
-- **Feature implementation commit(s):** none yet
+- **Latest immutable recovery checkpoint:** `6b056ac`
+- **Feature implementation commit(s):** `faf9d55`, `6b056ac`
 - **Inspiration / canonical references:** Ryu's coverage-first script request; AI Policies resource safety.
 
 ## Intent
@@ -22,24 +22,24 @@ The script-manager skill names the coverage-first contract: durable pending/fail
 ## Evidence and review
 
 - Tests and commands: `git diff --check` passed after reviewer corrections.
-- Independent review: fresh reviewer identified failed-item completion ambiguity, open-ended crawl boundary, and duplicated ownership; all three resolved in the policy changes.
-- Merge/ancestry evidence: branch from fetched `origin/beta` at `432b994`.
+- Independent review: first review's three findings were corrected; independent re-review accepted all three policy changes with no concrete conflicts.
+- Merge/ancestry evidence: branch from fetched `origin/beta` at `432b994`; target still at that revision.
 
 ## Blockers and deferred work
 
-- **Missing test or evidence:** independent policy review and beta-consumer verification.
-- **Command / fixture / environment needed:** compare shared safety and BBH local policy; inspect diff.
-- **Trigger to run it:** before integration.
-- **Why it blocks integration, activation, or promotion:** conflicting rules can mislead script authors.
-- **Next completion step / successor reference:** review, commit, integrate; separately release BBH implementations.
+- **Missing test or evidence:** fresh consumer activation is not established by this local change.
+- **Command / fixture / environment needed:** managed runtime read-back after separately approved activation.
+- **Trigger to run it:** when activating the selected General Skills beta lane.
+- **Why it blocks integration, activation, or promotion:** does not block beta integration; blocks an activation claim.
+- **Next completion step / successor reference:** merge reviewed policy, verify integrated beta; separately release BBH implementations.
 
 ## Interruption / resume handoff
 
 - **Owning feature branch/ref:** `feat/script-coverage-resumability`
-- **Latest immutable recovery checkpoint:** none yet
-- **Feature implementation commit(s):** none yet
-- **Exact resume point:** wait for reviewer; resolve findings.
-- **Working-tree state at handoff:** intentionally uncommitted pending review.
+- **Latest immutable recovery checkpoint:** `6b056ac`
+- **Feature implementation commit(s):** `faf9d55`, `6b056ac`
+- **Exact resume point:** commit this accepted-review handoff, integrate into beta, remove dossier there.
+- **Working-tree state at handoff:** clean after this dossier commit.
 
 ## Decision gates
 
