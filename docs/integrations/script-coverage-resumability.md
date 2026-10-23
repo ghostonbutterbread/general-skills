@@ -21,8 +21,8 @@ The script-manager skill names the coverage-first contract: durable pending/fail
 
 ## Evidence and review
 
-- Tests and commands: `git diff --check` pending.
-- Independent review: pending.
+- Tests and commands: `git diff --check` passed after reviewer corrections.
+- Independent review: fresh reviewer identified failed-item completion ambiguity, open-ended crawl boundary, and duplicated ownership; all three resolved in the policy changes.
 - Merge/ancestry evidence: branch from fetched `origin/beta` at `432b994`.
 
 ## Blockers and deferred work
