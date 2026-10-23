@@ -108,6 +108,20 @@ Reusable scripts should:
 - avoid secrets in args, logs, examples, fixtures, and manifests
 - include a small smoke test, fixture, or documented manual verification
 
+**Coverage-first resource contract for corpus scripts:** A memory, CPU,
+concurrency, output, or batch limit bounds work *at once*, not the total
+enumerated input. Preserve stable item identities and raw evidence, process in
+bounded units, checkpoint completed and pending/failed items durably, and resume
+without silently skipping any. Report discovered, processed, failed, and pending
+counts plus stop reasons; never label an unfinished run complete. An explicit
+sample/limit may produce a partial result only when named as such. Distinguish
+complete traversal of inputs from heuristic detection: `exhaustive: false` still
+applies to seed patterns even when every input was visited. Prefer progress over
+speed, but pause with recoverable state before exhausting disk, RAM, or CPU.
+Finite per-attempt network timeouts and retries protect against hung requests;
+do not introduce a whole-job deadline merely for speed. If an external deadline
+exists, checkpoint and report remaining work instead of dropping it.
+
 Prefer structured parsing over brittle regex when the input has a real parser.
 Regex is fine for simple universal patterns like bracketed chunk names when the
 delimiter and extension shape are stable.
