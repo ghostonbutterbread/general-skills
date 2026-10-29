@@ -7,8 +7,8 @@
 - **Base commit:** `fab8e65096da3636cdcb296e0a58954c2641be7c` (`origin/beta` fetched 2026-10-29)
 - **Intended integration target:** `beta`
 - **Last updated:** 2026-10-29
-- **Latest immutable recovery checkpoint:** none yet; will record after implementation commit
-- **Feature implementation commit(s):** none yet
+- **Latest immutable recovery checkpoint:** `23fe37b16f53993fe7559f5f95ec8c9ce08a3ca2`
+- **Feature implementation commit(s):** `23fe37b16f53993fe7559f5f95ec8c9ce08a3ca2`
 - **Canonical owner / inspiration:** `skills/hoster-ssh/SKILL.md`, Workspace Attach and Recovery; parent-provided installed-wrapper failure report.
 
 ## Intent and implemented contract
@@ -32,8 +32,8 @@ Replace advice to run `--repair-empty` after a purported empty-session check wit
 ## Interruption / resume handoff
 
 - **Owning feature branch/ref:** `docs/hoster-workspace-recovery-safety`
-- **Latest immutable recovery checkpoint:** none yet; will record after implementation commit.
-- **Feature implementation commit(s):** none yet.
+- **Latest immutable recovery checkpoint:** `23fe37b16f53993fe7559f5f95ec8c9ce08a3ca2` (implementation; review the subsequent dossier-only commit and current branch tip as well).
+- **Feature implementation commit(s):** `23fe37b16f53993fe7559f5f95ec8c9ce08a3ca2`.
 - **Exact resume point:** review the committed tip, perform the independent review above, then hand the result to the parent. Do not integrate, push, activate, sync skills, change Hoster, or close task records under this authorization.
 - **Working-tree state at handoff:** intended clean after the dossier checkpoint commit.
 
