@@ -123,7 +123,21 @@ python3 "$STATE" --record --label research-1 --agent claude --resume-id <session
 python3 "$STATE" --snapshot
 ```
 
-Snapshots write `~/.local/state/hoster-workspace/latest.json` and a dated copy. If a socket/session is absent while the service is active, normal attach fails closed. Inspect first; run `hoster-workspace --repair-empty` only after proving no workspace session exists. Never make this repair automatic: restarting the service kills all workspace panes.
+Snapshots write `~/.local/state/hoster-workspace/latest.json` and a dated copy.
+If the socket or named session is absent while the service is active, normal
+attach fails closed. **Do not run `hoster-workspace --repair-empty`**: the
+installed wrapper can restart an active service when its session probe fails or
+errors, or when other sessions exist, killing live workspace panes. A failed
+probe or missing named session is not proof that the server has no live work.
+Never make recovery or service restarts automatic.
+
+Preserve the service and coordinate recovery with the workspace owner. Inspect
+non-secret service and tmux topology read-only, including other sessions and
+probe errors; identify affected workload owners and capture available non-secret
+resume metadata. If state or ownership is ambiguous, stop and escalate rather
+than guessing. Agree on a recovery and resume plan with the owner before any
+disruptive action; do not stop, restart, or kill the service or its panes without
+explicit informed owner approval.
 
 ## Inspect, Attach, and Stop
 
