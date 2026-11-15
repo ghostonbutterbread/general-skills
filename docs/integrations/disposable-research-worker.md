@@ -7,8 +7,8 @@
 - **Base commit:** `20189521b6aab6997ebde5a353542af2e63848de` (fetched `origin/beta`)
 - **Intended integration target:** `beta` (no integration authorized)
 - **Last updated:** 2026-11-15
-- **Latest immutable recovery checkpoint:** see follow-up dossier-only commit
-- **Feature implementation commit(s):** see follow-up dossier-only commit
+- **Latest immutable recovery checkpoint:** `81ea4a33fb4f29e255917c75e5d4eaa918a845de` (implementation commit; branch tip also contains a later dossier-only handoff)
+- **Feature implementation commit(s):** `81ea4a33fb4f29e255917c75e5d4eaa918a845de`
 - **Inspiration / canonical references:** `safe-fetch`, `sandbox-run`, Hermes provider and Docker documentation; General Skills owns the generic safe-fetch skill. BBH's target stores and live runtime were not modified.
 
 ## Intent and implemented contract
@@ -37,7 +37,7 @@ This branch implements only `skills/safe-fetch/scripts/research_worker_preflight
 
 ## Interruption / resume handoff
 
-See follow-up dossier-only commit for the immutable implementation checkpoint. Resume from this worktree, rerun the exact preflight and full tests, then implement/verify the genuinely isolated agent path only after resolving the endpoint/credential boundary. Do not alter an active hunter. The branch remains unmerged and unpushed.
+The immutable implementation checkpoint is `81ea4a33fb4f29e255917c75e5d4eaa918a845de`; the later branch tip contains this dossier-only handoff. Resume from this worktree, rerun the exact preflight and full tests, then implement/verify the genuinely isolated agent path only after resolving the endpoint/credential boundary. Do not alter an active hunter. The branch remains unmerged and unpushed.
 
 ## Decision gates
 
