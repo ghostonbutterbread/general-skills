@@ -19,7 +19,16 @@
   automatically installed or activated. Host-owned code creates a
   `ResearchContainer()`, calls `start()`, registers `register_tool(ctx,
   resolve_authorized_task)`, and always calls `close()` in `finally`, retaining
-  its receipt. Reuse that instance only for the same child/task. `close()` also
+  its receipt. **Currently unusable for a reusable researcher:** every launched
+  command, including one that succeeded or exited 1/7, has unverified completion.
+  The transport reports `exit_code: null` when the client returns, exposes the
+  CLI status separately as `docker_client_exit_code`, marks the task uncertain,
+  and requires cleanup; it
+  refuses a second command. Output remains untrusted and is not status evidence.
+  This fail-closed restriction must remain until a trusted status channel outside
+  the command's control is implemented and independently reviewed. A sentinel in
+  command output is forgeable, even if it looks like a completion record.
+  `close()` also
   serves as cancellation and does not wait for an in-flight exec. Task-local host
   timers request exact-name removal at 900 seconds after start and at one second
   after an in-flight command's deadline. A completed command's detached children

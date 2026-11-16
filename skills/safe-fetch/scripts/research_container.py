@@ -206,24 +206,21 @@ class ResearchContainer:
                 if self.state != "running":
                     self.delayed_possible = True
                     return {"ok": False, "error": "task_cancelled", "cleanup_required": True}
-                if rc is None or rc in (124, 125, 137):
-                    self.state = "uncertain"
-                    self.delayed_possible = True
+                # The CLI status is not an authenticated exec-completion receipt:
+                # even 1 can mean an unreachable daemon, not a command exit. A
+                # marker in the command's own output is forgeable by that command.
+                # Until a separate trusted status channel exists, never reuse.
+                self.state = "uncertain"
+                self.delayed_possible = True
                 if rc is None:
                     return {"ok": False, "error": "docker_exec_timeout_or_unavailable", "cleanup_required": True}
-                if rc == 125:
-                    return {"ok": False, "exit_code": rc, "timed_out": None,
-                            "error": "docker_or_command_exit_ambiguous",
-                            "output": output, "truncated": truncated,
-                            "trust": "untrusted_container_output", "cleanup_required": True}
-                if rc in (124, 137):
-                    return {"ok": False, "exit_code": rc, "timed_out": None,
-                            "error": "timeout_or_command_exit_ambiguous",
-                            "output": output, "truncated": truncated,
-                            "trust": "untrusted_container_output", "cleanup_required": True}
-                return {"ok": rc == 0, "exit_code": rc, "timed_out": False,
+                error = ("docker_or_command_exit_ambiguous" if rc == 125 else
+                         "timeout_or_command_exit_ambiguous" if rc in (124, 137) else
+                         "docker_exec_completion_unverified")
+                return {"ok": False, "exit_code": None, "docker_client_exit_code": rc,
+                        "timed_out": None, "error": error,
                         "output": output, "truncated": truncated,
-                        "trust": "untrusted_container_output"}
+                        "trust": "untrusted_container_output", "cleanup_required": True}
         finally:
             self.exec_lock.release()
 

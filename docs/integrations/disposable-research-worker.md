@@ -1,6 +1,6 @@
 # Disposable research worker — integration dossier
 
-- **Status:** transport review fixes implemented; independent re-review, descendant-lifetime approval, and restricted-child integration remain blocked
+- **Status:** fail-closed transport checkpoint; **not usable for reusable research**; cleanup approval, secure completion, independent review, descendant-lifetime approval, and restricted-child integration remain blocked
 - **Owner:** delegated Hermes worker
 - **Branch / owning ref:** `feat/disposable-research-worker`
 - **Worktree:** `/home/ryushe/worktrees/general-research-worker-20261115`
@@ -11,7 +11,67 @@
 - **Feature implementation commit(s):** `81ea4a33fb4f29e255917c75e5d4eaa918a845de` (preflight); `3cf82e6a87613201f3bd439ba35e166d469bd11c` (transport); `ff325e79dd60520fb97875eb6eb29e105bf6abce` (transport review corrections); `198466b27a2076ee1fdd1967f7bf7157c223d144` (transport re-review corrections)
 - **Inspiration / canonical references:** `safe-fetch`, `sandbox-run`, Hermes provider and Docker documentation; General Skills owns the generic safe-fetch skill. BBH's target stores and live runtime were not modified.
 
-## Independent transport review corrections and remaining gates
+## Current completion-status blocker and exact receipt
+
+Docker CLI rc 1 is genuinely ambiguous: the real CLI against a nonexistent Unix
+socket returned 1, as did a real in-container `exit 1`. A random or formatted
+marker on the command's own output is not an authenticated receipt: that same
+untrusted command can print or imitate control data, and a same-UID wrapper is
+not a separate security boundary. Rather than introduce a false proof, this
+checkpoint intentionally **fails closed for every completed exec**, including
+success and ordinary `exit 1` / `exit 7`: `exit_code` is null, the CLI rc is
+labeled `docker_client_exit_code`, output is left as bounded untrusted data,
+cleanup is required, and no second command is accepted. A client timeout has
+no exit field. There is no completion-marker protocol and no claim of restored
+ordinary failure/reuse behavior. This is a severe usability regression explicitly
+chosen over unsafe reuse; the transport is not integration-ready.
+
+Regression-first: against `70c11ad`, the daemon-rc-1 regression errored due to
+missing `cleanup_required`; success/1/7/marker-like output cases and the
+beyond-cap case also errored due to missing unverified status. The current full
+suite command `PYTHONPATH="$PWD" python3 -W error::ResourceWarning -m unittest
+discover -s tests -v` ran 85 tests: 83 passed, two opt-in Docker tests skipped.
+The real unreachable-daemon CLI test passed within that suite. Timeout, race,
+invalid-byte, response-bound and marker-like cases are mocked unless noted.
+
+Opt-in command `RESEARCH_DOCKER_TEST=1 PYTHONPATH="$PWD" python3 -W
+error::ResourceWarning -m unittest discover -s tests -p 'test_research_container.py'
+-v` ran 29 tests: 28 passed and one failed (exit-7 fixture cleanup). The success
+fixture showed `first`, CLI rc 0, unverified completion, and no reuse; exit-1
+and exit-7 fixtures showed `command-output` with CLI rc 1 and 7 respectively,
+both still unverified and non-reusable. Their names and cleanup receipts were:
+`research-task-c52552a3630c4d1bae18ee7dfeb1ae54` absent at check with delayed
+operation possible; `research-task-c70cdd8d36fc48128407aeb194663f11` same;
+`research-task-6e66469dcca3431391590da088509230` **unverified**, causing the
+failure. An earlier single-fixture opt-in run passed 28 tests and its container
+`research-task-d75f38127efa4267a2599fb41db73935` was later checked absent by
+exact-name listing (point-in-time only).
+
+**Approval blocker:** a subsequent exact-name `rm -f` retry for the exit-7
+fixture plus exact-name readback of the last three containers was blocked because
+approval timed out with no user response; the command did not run. Do not retry
+that command or the same cleanup outcome by another method unless the user
+responds and explicitly authorizes it. The exit-7 container may still exist;
+no general prune is allowed. After approval, reconcile only that exact name and
+record fresh exact-name inspection; delayed daemon effects remain possible.
+The other two latest fixtures were absent only at their initial checks.
+
+**Next:** obtain approval for that cleanup, then implement and review a trusted
+host/daemon-controlled completion-status path that cannot be forged by command
+output, preserves the bounded output stream, actual exit codes and reuse, and
+fails closed on daemon/missing/partial/late evidence. For example, assess Docker
+Engine exec create/start/inspect with authenticated host-side daemon access;
+this is a design direction, not an implemented or verified solution. It must
+preserve or explicitly reject supported daemon/TLS configurations. Re-run the
+opt-in ordinary fixtures (including real 0/1/7, cap, timeout and races), full
+suite, and independent full-diff review. Existing denied descendant-lifetime and
+model-probe restrictions below remain in force; do not use those probes as a
+substitute. No merge, push, or activation authorized.
+
+## Historical transport review corrections and remaining gates
+
+The following section records earlier checkpoints; its reusable-success and
+exit-code claims are superseded by the current fail-closed status above.
 
 Re-review corrections: every transport Docker CLI invocation gets a private,
 empty temporary config; proxy/auth settings from the host config are not copied.
