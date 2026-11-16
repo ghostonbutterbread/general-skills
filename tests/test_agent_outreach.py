@@ -26,7 +26,7 @@ class OutreachTests(unittest.TestCase):
                 status = 200
                 def __enter__(self): return self
                 def __exit__(self, *args): pass
-                def read(self): return b'{}'
+                def read(self): return b'{"id":"123456789"}'
             captured = []
             def open_request(request, timeout):
                 captured.append(request)
@@ -112,6 +112,7 @@ class OutreachTests(unittest.TestCase):
         sender = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(sender)
         class InterruptedResponse:
+            status = 200
             def __enter__(self): return self
             def __exit__(self, *args): pass
             def read(self): raise http.client.IncompleteRead(b'')
@@ -139,6 +140,57 @@ class OutreachTests(unittest.TestCase):
                 result = sender.main(['--destination', 'https://discord.com/api/webhooks/123/fake-token', '--kind', 'notice', '--agent', 'A', '--run', '42', '--summary', 'Hi', '--action', 'Review', '--status', 'Paused'])
             self.assertEqual(result, 1)
             self.assertNotIn('fake-token', error.getvalue())
+
+    def test_post_response_requires_a_confirmed_message(self):
+        import contextlib
+        import io
+        spec = importlib.util.spec_from_file_location('outreach_confirmation', SCRIPT)
+        sender = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(sender)
+        class Response:
+            def __init__(self, status, body): self.status, self.body = status, body
+            def __enter__(self): return self
+            def __exit__(self, *args): pass
+            def read(self): return self.body
+        for response in (Response(204, b''), Response(200, b'not-json'), Response(200, b'{}')):
+            error = io.StringIO()
+            with patch.object(sender, 'webhook_for', return_value='https://discord.com/api/webhooks/123/fake-token'), patch.object(sender, 'open_webhook', return_value=response), contextlib.redirect_stderr(error):
+                result = sender.main(['--kind', 'notice', '--agent', 'A', '--run', '42', '--summary', 'Hi', '--action', 'Review', '--status', 'Paused'])
+            self.assertEqual(result, 1)
+            self.assertIn('uncertain', error.getvalue().lower())
+            self.assertIn('before retry', error.getvalue().lower())
+
+    def test_post_value_error_is_uncertain_and_redacted(self):
+        import contextlib
+        import io
+        spec = importlib.util.spec_from_file_location('outreach_post_value', SCRIPT)
+        sender = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(sender)
+        class Response:
+            status = 200
+            def __enter__(self): return self
+            def __exit__(self, *args): pass
+            def read(self): raise ValueError('fake-token')
+        error = io.StringIO()
+        with patch.object(sender, 'webhook_for', return_value='https://discord.com/api/webhooks/123/fake-token'), patch.object(sender, 'open_webhook', return_value=Response()), contextlib.redirect_stderr(error):
+            result = sender.main(['--kind', 'notice', '--agent', 'A', '--run', '42', '--summary', 'Hi', '--action', 'Review', '--status', 'Paused'])
+        self.assertEqual(result, 1)
+        self.assertIn('uncertain', error.getvalue().lower())
+        self.assertNotIn('fake-token', error.getvalue())
+
+    def test_non_posix_host_fails_cleanly(self):
+        spec = importlib.util.spec_from_file_location('outreach_posix', SCRIPT)
+        sender = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(sender)
+        with tempfile.TemporaryDirectory() as tmp:
+            config = Path(tmp) / 'config.toml'
+            config.write_text('[agent_outreach.destinations.default]\nwebhook_file = "unused"\n')
+            with patch.dict(os.environ, {'GENERAL_SKILLS_CONFIG': str(config)}), patch.object(sender.os, 'getuid', create=True) as getuid:
+                # Simulate a platform without getuid at the capability check.
+                with patch('builtins.hasattr', side_effect=lambda obj, name: False if obj is sender.os and name == 'getuid' else getattr(obj, name, None) is not None):
+                    with self.assertRaisesRegex(ValueError, 'POSIX host'):
+                        sender.webhook_for('default')
+                getuid.assert_not_called()
 
 if __name__ == '__main__':
     unittest.main()

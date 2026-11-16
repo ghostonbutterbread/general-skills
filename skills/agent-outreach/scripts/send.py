@@ -41,6 +41,8 @@ def webhook_for(destination: str) -> str:
         raise ValueError('webhook_file must be a nonempty path.')
     secret = Path(os.path.expandvars(secret_path)).expanduser()
     try:
+        if not hasattr(os, 'getuid'):
+            raise ValueError('This sender requires a POSIX host to verify secret-file ownership and permissions.')
         info = secret.stat()
         if info.st_uid != os.getuid() or info.st_mode & 0o077:
             raise ValueError('Webhook secret file must be owned by the current user and inaccessible to group and others (chmod 600).')
@@ -73,13 +75,17 @@ def main(argv: list[str] | None = None) -> int:
         return 1
     try:
         url = webhook_for(args.destination)
-        payload = json.dumps({'content': content, 'allowed_mentions': {'parse': []}}).encode('utf-8')
-        request = urllib.request.Request(url + '?wait=true', data=payload, headers={'Content-Type': 'application/json'}, method='POST')
-        with open_webhook(request, timeout=10) as response:
-            response.read()
     except ValueError as exc:
         print(f'Notification not sent: {exc}', file=sys.stderr)
         return 1
+    payload = json.dumps({'content': content, 'allowed_mentions': {'parse': []}}).encode('utf-8')
+    try:
+        request = urllib.request.Request(url + '?wait=true', data=payload, headers={'Content-Type': 'application/json'}, method='POST')
+        with open_webhook(request, timeout=10) as response:
+            status = response.status
+            confirmation = json.loads(response.read())
+        if status != 200 or not isinstance(confirmation, dict) or not isinstance(confirmation.get('id'), str) or not confirmation['id'].isdigit():
+            raise ValueError('Unconfirmed response')
     except urllib.error.HTTPError as exc:
         status = exc.code
         exc.close()
@@ -88,7 +94,7 @@ def main(argv: list[str] | None = None) -> int:
         else:
             print(f'Notification delivery failed: Discord returned HTTP {status}; check the destination or retry later. No automatic retry was made.', file=sys.stderr)
         return 1
-    except (OSError, urllib.error.URLError, http.client.HTTPException):
+    except (OSError, urllib.error.URLError, http.client.HTTPException, ValueError, UnicodeError):
         print('Notification delivery uncertain: network or response error. Check before retrying to avoid duplicates.', file=sys.stderr)
         return 1
     print('Notification accepted by Discord; this does not confirm a human saw or approved it.')

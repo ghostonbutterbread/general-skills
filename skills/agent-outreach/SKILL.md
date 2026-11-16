@@ -11,7 +11,7 @@ Send one concise Markdown message explaining what happened, who/what run is invo
 
 ## Send
 
-Invoke the helper relative to this skill directory as discovered in your harness; do not assume a particular source checkout or Hermes installation. Python 3.11+ is required.
+Invoke the helper relative to this skill directory as discovered in your harness; do not assume a particular source checkout or Hermes installation. Python 3.11+ on a POSIX host is required; Windows-native hosts are not yet supported because secret-file ownership checks are POSIX-specific.
 
 ```bash
 python3 <skill-directory>/scripts/send.py \
