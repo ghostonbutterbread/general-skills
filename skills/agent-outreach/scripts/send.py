@@ -80,7 +80,9 @@ def main(argv: list[str] | None = None) -> int:
         print(f'Notification not sent: {exc}', file=sys.stderr)
         return 1
     except urllib.error.HTTPError as exc:
-        print(f'Notification delivery failed: Discord returned HTTP {exc.code}; check the destination or retry later. No automatic retry was made.', file=sys.stderr)
+        status = exc.code
+        exc.close()
+        print(f'Notification delivery failed: Discord returned HTTP {status}; check the destination or retry later. No automatic retry was made.', file=sys.stderr)
         return 1
     except (OSError, urllib.error.URLError):
         print('Notification delivery failed: network error or timeout; delivery may be uncertain. Check before retrying to avoid duplicates.', file=sys.stderr)
