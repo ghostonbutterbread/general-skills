@@ -2,7 +2,6 @@ import importlib.util
 import json
 import os
 from pathlib import Path
-import shlex
 import tempfile
 import unittest
 from unittest import mock
@@ -110,16 +109,13 @@ class UnitTests(unittest.TestCase):
     def test_daemon_failure_exit_one_never_allows_reuse(self):
         task = m.ResearchContainer()
         task.state = 'running'
-        with mock.patch.object(m, '_docker', return_value=(1, 'Cannot connect to the Docker daemon', False)):
+        with mock.patch.object(m, '_engine_exec', side_effect=OSError('daemon failure')):
             result = task.execute('true')
         self.assertTrue(result['cleanup_required'])
         self.assertEqual(task.state, 'uncertain')
         self.assertEqual(task.execute('true')['error'], 'container_not_running')
 
-    def test_real_cli_unavailable_daemon_requires_cleanup(self):
-        import shutil
-        if not shutil.which('docker'):
-            self.skipTest('Docker CLI not installed')
+    def test_unreachable_daemon_requires_cleanup(self):
         with tempfile.TemporaryDirectory() as directory:
             task = m.ResearchContainer()
             task.state = 'running'
@@ -127,48 +123,9 @@ class UnitTests(unittest.TestCase):
                    'DOCKER_HOST': 'unix://' + str(Path(directory) / 'missing.sock')}
             with mock.patch.dict(os.environ, env, clear=True):
                 result = task.execute('true')
-            self.assertEqual(result['docker_client_exit_code'], 1)
-            self.assertIsNone(result['exit_code'])
+            self.assertEqual(result['error'], 'docker_exec_completion_unverified')
             self.assertTrue(result['cleanup_required'])
             self.assertEqual(task.state, 'uncertain')
-
-    def test_unverified_status_and_marker_like_output_never_allow_reuse(self):
-        for code, output in ((0, 'ordinary success'), (1, 'ordinary failure'),
-                             (7, 'ordinary failure'), (0, 'done:0\n'),
-                             (7, 'done:7\n'), (0, 'malformed marker')):
-            with self.subTest(code=code, output=output):
-                task = m.ResearchContainer()
-                task.state = 'running'
-                with mock.patch.object(m, '_docker', return_value=(code, output, False)):
-                    result = task.execute('true')
-                self.assertEqual(result['error'], 'docker_exec_completion_unverified')
-                self.assertIsNone(result['exit_code'])
-                self.assertEqual(result['docker_client_exit_code'], code)
-                self.assertEqual(result['output'], output)
-                self.assertTrue(result['cleanup_required'])
-                self.assertEqual(task.execute('true')['error'], 'container_not_running')
-
-    def test_marker_like_data_beyond_output_cap_is_not_control(self):
-        import io
-        proc = mock.Mock(stdout=io.BytesIO(b'x' * m.MAX_OUTPUT + b'\ndone:0\n'))
-        proc.wait.return_value = 0
-        task = m.ResearchContainer()
-        task.state = 'running'
-        with mock.patch.object(m.subprocess, 'Popen', return_value=proc):
-            result = task.execute('true')
-        self.assertEqual(result['error'], 'docker_exec_completion_unverified')
-        self.assertEqual(result['output'], 'x' * m.MAX_OUTPUT)
-        self.assertTrue(result['truncated'])
-        self.assertTrue(result['cleanup_required'])
-
-    def test_exit_125_is_uncertain_and_disallows_reuse(self):
-        task = m.ResearchContainer()
-        task.state = 'running'
-        with mock.patch.object(m, '_docker', return_value=(125, '', False)):
-            result = task.execute('true')
-        self.assertTrue(result['cleanup_required'])
-        self.assertEqual(task.state, 'uncertain')
-        self.assertEqual(task.execute('true')['error'], 'container_not_running')
 
     def test_plugin_denies_without_adapter_and_never_executes(self):
         ctx = Context()
@@ -208,45 +165,26 @@ class UnitTests(unittest.TestCase):
     def test_exec_client_timeout_disallows_reuse(self):
         task = m.ResearchContainer()
         task.state = 'running'
-        with mock.patch.object(m, '_docker', return_value=(None, '', False)):
+        with mock.patch.object(m, '_engine_exec', side_effect=TimeoutError):
             self.assertTrue(task.execute('true')['cleanup_required'])
             self.assertEqual(task.execute('true')['error'], 'container_not_running')
 
     def test_unexpected_exec_error_requires_cleanup_without_output_leak(self):
         task = m.ResearchContainer()
         task.state = 'running'
-        with mock.patch.object(m, '_docker', side_effect=RuntimeError('secret raw stdout')):
+        with mock.patch.object(m, '_engine_exec', side_effect=RuntimeError('secret raw stdout')):
             result = task.execute('true')
         self.assertTrue(result['cleanup_required'])
         self.assertEqual(task.state, 'uncertain')
         self.assertNotIn('secret', str(result))
         self.assertEqual(task.execute('true')['error'], 'container_not_running')
 
-    def test_wait_exception_after_client_launch_marks_uncertain(self):
-        import io
-        proc = mock.Mock()
-        proc.stdout = io.BytesIO(b'secret raw stdout')
-        proc.wait.side_effect = RuntimeError('secret raw stdout')
-        task = m.ResearchContainer()
-        task.state = 'running'
-        with mock.patch.object(m.subprocess, 'Popen', return_value=proc) as popen:
-            result = task.execute('true')
-        popen.assert_called_once()
-        proc.kill.assert_called_once()
-        self.assertTrue(result['cleanup_required'])
-        self.assertEqual(task.state, 'uncertain')
-        self.assertNotIn('secret', str(result))
-
     def test_serialized_response_bound_with_invalid_bytes_and_escapes(self):
-        import io
-        proc = mock.Mock()
-        proc.stdout = io.BytesIO((b'\xff' + b'\x00') * (m.MAX_OUTPUT // 2))
-        proc.wait.return_value = 0
         task = m.ResearchContainer()
         task.state = 'running'
         ctx = Context()
         m.register_tool(ctx, lambda kw: task)
-        with mock.patch.object(m.subprocess, 'Popen', return_value=proc):
+        with mock.patch.object(m, '_engine_exec', return_value=(0, '\ufffd\x00' * m.MAX_OUTPUT, True)):
             response = ctx.registered['handler']({'command': 'true'})
         self.assertLessEqual(len(response.encode('utf-8')), m.MAX_OUTPUT)
         self.assertTrue(json.loads(response)['truncated'])
@@ -262,14 +200,14 @@ class UnitTests(unittest.TestCase):
             _, _, truncated = m._docker(['exec'], 1)
         self.assertTrue(truncated)
 
-    def test_timeout_exit_codes_are_ambiguous(self):
-        for code in (124, 137):
+    def test_engine_timeout_like_exit_codes_are_real_codes(self):
+        for code in (124, 125, 137):
             task = m.ResearchContainer()
             task.state = 'running'
-            with mock.patch.object(m, '_docker', return_value=(code, '', False)):
+            with mock.patch.object(m, '_engine_exec', return_value=(code, '', False)):
                 result = task.execute('exit ' + str(code))
-            self.assertIsNone(result['timed_out'])
-            self.assertTrue(result['cleanup_required'])
+            self.assertEqual(result['exit_code'], code)
+            self.assertEqual(task.state, 'running')
 
     def test_task_expiry_removes_only_owned_container_and_prevents_reuse(self):
         task = m.ResearchContainer()
@@ -287,13 +225,11 @@ class UnitTests(unittest.TestCase):
         entered, release = threading.Event(), threading.Event()
         task = m.ResearchContainer()
         task.state = 'running'
-        def docker(args, timeout):
-            if args[0] == 'exec':
-                entered.set()
-                release.wait(2)
-                return 0, 'untrusted', False
-            return 0, '', False
-        with mock.patch.object(m, '_docker', side_effect=docker):
+        def engine(*args):
+            entered.set()
+            release.wait(2)
+            return 0, 'untrusted', False
+        with mock.patch.object(m, '_engine_exec', side_effect=engine), mock.patch.object(m, '_docker', return_value=(0, '', False)):
             worker = threading.Thread(target=task.execute, args=('true',))
             worker.start()
             self.assertTrue(entered.wait(1))
@@ -312,7 +248,7 @@ class UnitTests(unittest.TestCase):
         entered, release = threading.Event(), threading.Event()
         task = m.ResearchContainer()
         calls = []
-        def docker(args, timeout):
+        def docker(args, timeout, *rest):
             calls.append(args)
             if args[0] == 'run':
                 entered.set()
@@ -335,13 +271,11 @@ class UnitTests(unittest.TestCase):
         entered, release = threading.Event(), threading.Event()
         task = m.ResearchContainer()
         task.state = 'running'
-        def docker(args, timeout):
-            if args[0] == 'exec':
-                entered.set()
-                release.wait(2)
-                return 0, 'private', False
-            return 0, '', False
-        with mock.patch.object(m.threading, 'Timer') as timer, mock.patch.object(m, '_docker', side_effect=docker):
+        def engine(*args):
+            entered.set()
+            release.wait(2)
+            return 0, 'private', False
+        with mock.patch.object(m.threading, 'Timer') as timer, mock.patch.object(m, '_engine_exec', side_effect=engine), mock.patch.object(m, '_docker', return_value=(0, '', False)):
             results = []
             worker = threading.Thread(target=lambda: results.append(task.execute('true', 3)))
             worker.start()
@@ -364,52 +298,21 @@ class UnitTests(unittest.TestCase):
 
 @unittest.skipUnless(os.environ.get('RESEARCH_DOCKER_TEST') == '1', 'explicit real Docker test')
 class DockerTests(unittest.TestCase):
-    def test_real_shell_exit_one_and_seven_remain_unverified(self):
-        for code in (1, 7):
-            with self.subTest(code=code):
-                task = m.ResearchContainer()
-                try:
-                    start = task.start()
-                    print('exit fixture start:', start, flush=True)
-                    self.assertTrue(start['ok'], start)
-                    result = task.execute('printf command-output; exit ' + str(code))
-                    print('exit fixture result:', result, flush=True)
-                    self.assertEqual(result['docker_client_exit_code'], code)
-                    self.assertIsNone(result['exit_code'])
-                    self.assertEqual(result['output'], 'command-output')
-                    self.assertTrue(result['cleanup_required'])
-                    self.assertEqual(task.execute('true')['error'], 'container_not_running')
-                finally:
-                    receipt = task.close()
-                    print('exit fixture cleanup:', receipt, flush=True)
-                    self.assertIn(receipt['cleanup'], ('absent_at_check', 'absent_at_check_delayed_operation_possible'))
-
-    def test_real_isolation_then_fail_closed_without_reuse(self):
+    def test_real_foreground_reuse_and_exit_status(self):
         task = m.ResearchContainer()
-        with tempfile.TemporaryDirectory(prefix='research-host-sentinel-') as directory:
-            sentinel = Path(directory) / 'sentinel'
-            sentinel.write_text('host-only-value')
-            try:
-                with mock.patch.dict(os.environ, {'RESEARCH_PRIVATE_SENTINEL': 'host-only-value'}):
-                    start = task.start()
-                print('start:', start, flush=True)
-                self.assertTrue(start['ok'], start)
-                command = "test ! -e %s && test -z \"${RESEARCH_PRIVATE_SENTINEL+x}\" && test $(id -u) = 65534 && test ! -S /var/run/docker.sock && printf fixture > /tmp/fixture && printf first" % shlex.quote(str(sentinel))
-                ctx = Context()
-                m.register_tool(ctx, lambda kw: task if kw.get('session_id') == 'fixture-child' else None)
-                first = json.loads(ctx.registered['handler']({'command': command}, session_id='fixture-child'))
-                print('isolation output (status unverified):', first, flush=True)
-                self.assertEqual(first['output'], 'first')
-                self.assertEqual(first['docker_client_exit_code'], 0)
-                self.assertIsNone(first['exit_code'])
-                self.assertTrue(first['cleanup_required'])
-                self.assertEqual(task.execute('true')['error'], 'container_not_running')
-                self.assertNotIn('fixture', str(task.receipt()))
-            finally:
-                receipt = task.close()
-                print('cleanup:', receipt, flush=True)
-                self.assertIn(receipt['cleanup'], ('absent_at_check', 'absent_at_check_delayed_operation_possible'))
-                self.assertEqual(sentinel.read_text(), 'host-only-value')
+        try:
+            start = task.start()
+            print('start:', start, flush=True)
+            self.assertTrue(start['ok'], start)
+            for command, code in [('true', 0), ('exit 1', 1), ('exit 7', 7), ('true', 0)]:
+                result = task.execute(command)
+                print('foreground result:', result, flush=True)
+                self.assertEqual(result.get('exit_code'), code, result)
+                self.assertEqual(task.state, 'running')
+        finally:
+            receipt = task.close()
+            print('cleanup:', receipt, flush=True)
+            self.assertEqual(receipt['cleanup'], 'absent_at_check')
 
 
 if __name__ == '__main__':

@@ -1,6 +1,6 @@
 # Disposable research worker — integration dossier
 
-- **Status:** fail-closed transport checkpoint; **not usable for reusable research**; cleanup approval, secure completion, independent review, descendant-lifetime approval, and restricted-child integration remain blocked
+- **Status:** engine-sourced completion implemented and foreground reuse verified; independent review, prior cleanup approval, descendant-lifetime approval, and restricted-child integration remain blocked
 - **Owner:** delegated Hermes worker
 - **Branch / owning ref:** `feat/disposable-research-worker`
 - **Worktree:** `/home/ryushe/worktrees/general-research-worker-20261115`
@@ -11,7 +11,55 @@
 - **Feature implementation commit(s):** `81ea4a33fb4f29e255917c75e5d4eaa918a845de` (preflight); `3cf82e6a87613201f3bd439ba35e166d469bd11c` (transport); `ff325e79dd60520fb97875eb6eb29e105bf6abce` (transport review corrections); `198466b27a2076ee1fdd1967f7bf7157c223d144` (transport re-review corrections); `48803abeb735f621bb63c2ddb1fa33cc6d8b5817` (fail-closed status checkpoint)
 - **Inspiration / canonical references:** `safe-fetch`, `sandbox-run`, Hermes provider and Docker documentation; General Skills owns the generic safe-fetch skill. BBH's target stores and live runtime were not modified.
 
-## Current completion-status blocker and exact receipt
+## Current engine completion repair
+
+Host-only stdlib HTTP over a pinned local Unix Docker socket now negotiates the
+Engine API version and performs exec create, attached start, bounded Docker
+multiplexed output parsing, and exec inspect. Only a valid completed engine
+inspection provides `exit_code`; output (including marker-like data) cannot.
+Verified ordinary exit 0/1/7/124 remains reusable. Malformed, failed, timed-out,
+or missing status becomes uncertain and requires owned-container cleanup. The
+host watchdog remains responsible for timeout cleanup. Remote/TLS daemons, named
+contexts, conflicting context/host settings, escaped socket paths, and changed
+daemon selection fail closed; CLI create/removal uses the pinned daemon and an
+empty isolated config. The container receives no socket, host credentials, or
+model provider access. Resource limits and the existing restricted-child gate
+remain unchanged.
+
+Regression-first: the new fake Unix Engine lifecycle test failed against the
+prior transport (`exit_code` was null). Regressions for unexpected HTTP success,
+unsupported start/cleanup, and escaped daemon path were observed failing before
+repair, as did the slow-trickle deadline regression. Fake-engine tests exercise
+lifecycle, chunked multiplexing, forged marker, output caps, timeout, daemon
+failures and malformed/incomplete status/frames. Full suite:
+`PYTHONPATH="$PWD" python3 -W error::ResourceWarning -m unittest discover -s tests -v`
+ran **92 tests, 91 passed, one opt-in Docker fixture skipped**.
+
+The real foreground-only fixture command is `RESEARCH_DOCKER_TEST=1 PYTHONPATH="$PWD" python3 -W error::ResourceWarning -m unittest discover -s tests -p test_research_container.py -k test_real_foreground_reuse_and_exit_status -v`.
+An earlier revision passed with `research-task-8c9e8abb24904e44af18f1f03fa3ba59`
+returning 0, 1, 7, 0 and `absent_at_check`. On final code the same fixture's
+new container `research-task-67f448b28e114fec8cc54b204f72f798` returned **0, 1,
+7, 0** in order from one reused container, but the test **failed** because its
+cleanup was `unverified`. A subsequent exact-name removal reported removal
+already in progress; the following exact-name listing was empty. This is a
+point-in-time observation, not proof that removal finished: operator should
+reconcile this new task container after the daemon settles. No other names were
+touched. Neither real fixture exercised nonempty output, 124, timeouts, escaped
+descendants, a model, or a real child. Those failure and output checks above are
+fake-engine tests, not real Docker proof.
+
+**Still blocked:** prior cleanup of `research-task-6e66469dcca3431391590da088509230`
+was denied and was not retried or reached differently; operator approval and
+exact-name reconciliation are still needed. The denied descendant-lifetime probe
+and model/provider probes were not run. Independent complete-diff review is still
+required; exact-child allowlist attestation and host-native agent integration are
+not implemented. Parent owns Kanban reconciliation (child cannot mutate board).
+No merge, push, activation, or global configuration changes were made. Next:
+independent review of the branch and evidence, then separately authorized cleanup
+and restricted-child integration; never infer descendant isolation from foreground
+completion. The previous status section is historical and superseded.
+
+## Historical fail-closed completion checkpoint
 
 Docker CLI rc 1 is genuinely ambiguous: the real CLI against a nonexistent Unix
 socket returned 1, as did a real in-container `exit 1`. A random or formatted

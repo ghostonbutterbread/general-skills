@@ -19,15 +19,13 @@
   automatically installed or activated. Host-owned code creates a
   `ResearchContainer()`, calls `start()`, registers `register_tool(ctx,
   resolve_authorized_task)`, and always calls `close()` in `finally`, retaining
-  its receipt. **Currently unusable for a reusable researcher:** every launched
-  command, including one that succeeded or exited 1/7, has unverified completion.
-  The transport reports `exit_code: null` when the client returns, exposes the
-  CLI status separately as `docker_client_exit_code`, marks the task uncertain,
-  and requires cleanup; it
-  refuses a second command. Output remains untrusted and is not status evidence.
-  This fail-closed restriction must remain until a trusted status channel outside
-  the command's control is implemented and independently reviewed. A sentinel in
-  command output is forgeable, even if it looks like a completion record.
+  its receipt. Exec creation, attached output and completion inspection use the
+  host-only Docker Engine API on the selected local Unix socket. A completed
+  `Running: false` / integer `ExitCode` response supplies the command status;
+  ordinary nonzero exits (including 124/125/137) remain reusable. Output is never
+  interpreted as status. Missing, malformed, failed or timed-out engine evidence
+  marks the task uncertain and requires cleanup. This transport remains
+  experimental and requires independent review before integration.
   `close()` also
   serves as cancellation and does not wait for an in-flight exec. Task-local host
   timers request exact-name removal at 900 seconds after start and at one second
@@ -64,21 +62,19 @@
   bounded tmpfs, no capabilities, resource limits, no host mounts or Docker
   socket, and **network none**. Docker operations use a fresh private empty CLI
   config, preventing host-configured proxy/auth injection; host environment and
-  host credentials are not explicitly passed to the container. Host-side CLI
-  environment (including `DOCKER_HOST` and TLS settings) is still used to reach
-  Docker. Named Docker contexts, unreadable/malformed config, or an otherwise
-  unresolvable context fail closed rather than silently selecting another daemon;
-  configure a supported default context / `DOCKER_HOST` before use. Keep daemon
-  selection stable for the task lifetime, including cleanup. The local
-  `python:3.12-slim` tag is not digest-pinned;
+  host credentials are not explicitly passed to the container. Only default or
+  explicit local Unix-socket Docker endpoints are supported; remote/TLS endpoints,
+  named contexts, conflicting context/host overrides, and unreadable/malformed
+  config fail closed rather than silently selecting another daemon. The selected
+  socket is pinned for CLI lifecycle operations; changing selection while the task
+  is active prevents exec and cleanup until the original selection is restored.
+  The local `python:3.12-slim` tag is not digest-pinned;
   verify/trust the image and Docker host before use. Network is intentionally
   unavailable; public fetch and full-source transfer are not implemented.
   Containers share the host kernel and do not guarantee defense against kernel
-  or daemon vulnerabilities. Exit 124 or 137 may be a command's own exit and is
-  reported as ambiguous, not definitive timeout. Exit 125 may be either the
-  command's exit or a Docker CLI/transport failure. Such a result, a host watchdog
-  expiry, or an exec client error marks the task non-reusable and requires cleanup.
-  `absent_at_check` is point-in-time only, while the explicit
+  or daemon vulnerabilities. Timeout uses a host watchdog, not the shell's `timeout`
+  exit code; a watchdog expiry or unverified exec marks the task non-reusable and
+  requires cleanup. `absent_at_check` is point-in-time only, while the explicit
   `absent_at_check_delayed_operation_possible` leaves state uncertain and every
   subsequent `close()` retries exact-name removal and inspection. Run the opt-in real test with
   `RESEARCH_DOCKER_TEST=1 PYTHONPATH="$PWD" python3 -m unittest discover -s tests -p test_research_container.py -v`.
