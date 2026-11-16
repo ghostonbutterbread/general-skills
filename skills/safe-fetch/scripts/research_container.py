@@ -353,7 +353,7 @@ class ResearchContainer:
                 self.state = "uncertain"
                 return {"ok": False, "error": "task_timer_unavailable", "container": self.name}
         args = ["run", "-d", "--rm", "--init", "--pull=never", "--name", self.name,
-                "--network", "none", "--read-only", "--cap-drop", "ALL",
+                "--network", "bridge", "--read-only", "--cap-drop", "ALL",
                 "--security-opt", "no-new-privileges", "--pids-limit", "64",
                 "--memory", "256m", "--cpus", "1", "--user", "65534:65534",
                 "--tmpfs", "/tmp:rw,nosuid,nodev,noexec,size=32m,mode=1777",
@@ -375,7 +375,7 @@ class ResearchContainer:
             self.close()  # a create may have completed after cancellation
         if rc != 0 or cancelled:
             return {"ok": False, "error": "start_failed_or_timed_out", "container": self.name}
-        return {"ok": True, "container": self.name, "network": "none"}
+        return {"ok": True, "container": self.name, "network": "bridge"}
 
     def _expire_command(self, token):
         with self.lock:
@@ -498,7 +498,7 @@ class ResearchContainer:
 
     def receipt(self):
         """Parent handoff deliberately excludes command and raw container output."""
-        return {"container": self.name, "state": self.state, "network": "none"}
+        return {"container": self.name, "state": self.state, "network": "bridge"}
 
 
 def _model_response(result):

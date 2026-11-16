@@ -19,6 +19,17 @@ class Context:
 
 
 class UnitTests(unittest.TestCase):
+    def test_research_container_requests_internet_enabled_bridge(self):
+        task = m.ResearchContainer()
+        with mock.patch.object(m, '_selected_socket', return_value='/task.sock'), \
+             mock.patch.object(m, '_docker', return_value=(0, '', False)) as docker, \
+             mock.patch.object(m.threading, 'Timer'):
+            start = task.start()
+        args = docker.call_args.args[0]
+        self.assertEqual(args[args.index('--network') + 1], 'bridge')
+        self.assertEqual(start['network'], 'bridge')
+        self.assertEqual(task.receipt()['network'], 'bridge')
+
     def test_docker_uses_isolated_config_without_proxy_credentials(self):
         import io
         with tempfile.TemporaryDirectory() as home:
@@ -316,6 +327,10 @@ class DockerTests(unittest.TestCase):
                 print('foreground result:', result, flush=True)
                 self.assertEqual(result.get('exit_code'), code, result)
                 self.assertEqual(task.state, 'running')
+            result = task.execute("python -c \"import urllib.request; print(urllib.request.urlopen('https://example.com', timeout=10).status)\"", timeout=20)
+            print('public HTTPS result:', result, flush=True)
+            self.assertEqual(result.get('exit_code'), 0, result)
+            self.assertIn('200', result.get('output', ''))
         finally:
             receipt = task.close()
             print('cleanup:', receipt, flush=True)

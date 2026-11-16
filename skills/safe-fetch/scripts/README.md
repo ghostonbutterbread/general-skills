@@ -76,7 +76,9 @@
   The tool schema is `research_container(command: string, timeout: int=15)`;
   timeout range is 1–60 seconds. Commands run as UID 65534, read-only root,
   bounded tmpfs, no capabilities, resource limits, no host mounts or Docker
-  socket, and **network none**. Docker operations use a fresh private empty CLI
+  socket, and Docker **bridge networking** for internet access. The bridge can
+  also reach services exposed to it; it is not an internet-only firewall. Docker
+  operations use a fresh private empty CLI
   config, preventing host-configured proxy/auth injection; host environment and
   host credentials are not explicitly passed to the container. Only default or
   explicit local Unix-socket Docker endpoints are supported; remote/TLS endpoints,

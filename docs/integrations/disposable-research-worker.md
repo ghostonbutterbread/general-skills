@@ -12,6 +12,24 @@
 - **Inspiration / canonical references:** `safe-fetch`, `sandbox-run`, Hermes provider and Docker documentation; General Skills owns the generic safe-fetch skill. BBH's target stores and live runtime were not modified.
 - **Correction implementation:** `c66ab070656d91737ab5d9b95ae4ea9c1c09c379` on this feature branch; not propagated, merged, pushed, or activated.
 
+## Internet access correction
+
+At Ryushe's direction, the research container uses Docker's ordinary `bridge`
+network instead of `none`; its start and parent receipts report `bridge`. This
+permits internet access and can also reach services accessible from that bridge.
+It is not an internet-only firewall. No host mount, Docker socket, or explicit
+credentials were added. The separate older preflight intentionally still tests
+an offline container and is not a researcher.
+
+A real task-owned container returned HTTP 200 from `https://example.com`, ran
+foreground commands with exits 0, 1, 7 and 0, and reported `absent_at_check` on
+cleanup; an independent exact-name Docker inspect also returned no such
+container. These checks do not exercise a model-backed researcher, the
+unimplemented lifecycle adapter, or a descendant-lifetime probe. The focused
+container/Engine suite returned 44 passed and 1 opt-in test skipped; the real
+Docker test ran separately and passed. The previously blocked cleanup of a
+different container was not retried.
+
 ## Cancellation and early Engine timeout correction
 
 Independent review of `101b269` reproduced continued Engine exec phases after
