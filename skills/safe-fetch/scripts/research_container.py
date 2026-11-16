@@ -6,6 +6,7 @@ trusted lifecycle adapter and for residual container and timeout limitations.
 from __future__ import annotations
 
 import http.client
+from contextlib import contextmanager
 import json
 import os
 from pathlib import Path
@@ -136,37 +137,71 @@ def _selected_socket():
     return host[7:]
 
 
-class _UnixConnection(http.client.HTTPConnection):
-    def __init__(self, path, timeout):
-        super().__init__('localhost', timeout=timeout)
-        self.path = path
-
-    def connect(self):
-        self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        self.sock.settimeout(self.timeout)
-        self.sock.connect(self.path)
-
-
-def _engine_exec(path, container, command, timeout):
+def _engine_exec(path, container, command, timeout, deadline=None):
     """Create, attach and inspect through the host-only Docker Engine API."""
-    end = time.monotonic() + timeout + 1
+    end = deadline if deadline is not None else time.monotonic() + timeout + 1
 
+    @contextmanager
     def request(method, route, body=None):
         remaining = end - time.monotonic()
         if remaining <= 0:
             raise TimeoutError('engine deadline')
-        conn = _UnixConnection(path, remaining)
+        conn = http.client.HTTPConnection('localhost', timeout=remaining)
+        response = None
+        interrupter = None
+        timer = None
+        started = False
+        expired = threading.Event()
         try:
+            # HTTP parsers can remain inside one read while bytes trickle in;
+            # a socket timeout only limits the gap between individual reads.
+            conn.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            conn.sock.settimeout(remaining)
+            interrupter = conn.sock.dup()
+            def interrupt():
+                expired.set()
+                try:
+                    interrupter.shutdown(socket.SHUT_RDWR)
+                except OSError:
+                    pass  # connect itself is bounded by the socket timeout
+            timer = threading.Timer(max(0, end - time.monotonic()), interrupt)
+            timer.daemon = True
+            timer.start()
+            started = True
+            remaining = end - time.monotonic()
+            if expired.is_set() or remaining <= 0:
+                raise TimeoutError('engine deadline')
+            conn.sock.settimeout(remaining)
+            conn.sock.connect(path)
+            if expired.is_set() or time.monotonic() >= end:
+                raise TimeoutError('engine deadline')
             payload = None if body is None else json.dumps(body).encode()
             conn.request(method, route, body=payload, headers={'Content-Type': 'application/json'})
             response = conn.getresponse()
             expected = 201 if method == 'POST' and route.endswith('/exec') else 200
             if response.status != expected:
                 raise ValueError('engine request failed')
-            return conn, response
+            yield response
+            if expired.is_set() or time.monotonic() >= end:
+                raise TimeoutError('engine deadline')
         except Exception:
-            conn.close()
+            if expired.is_set() or time.monotonic() >= end:
+                raise TimeoutError('engine deadline') from None
             raise
+        finally:
+            if timer is not None:
+                timer.cancel()
+                if started:
+                    timer.join()
+            try:
+                if response is not None:
+                    response.close()
+            finally:
+                try:
+                    conn.close()
+                finally:
+                    if interrupter is not None:
+                        interrupter.close()
 
     def read_some(response, size):
         if time.monotonic() >= end:
@@ -177,8 +212,7 @@ def _engine_exec(path, container, command, timeout):
         return data
 
     def json_request(method, route, body=None):
-        conn, response = request(method, route, body)
-        try:
+        with request(method, route, body) as response:
             data = bytearray()
             while True:
                 chunk = read_some(response, min(8192, 65537 - len(data)))
@@ -193,8 +227,6 @@ def _engine_exec(path, container, command, timeout):
             if not isinstance(result, dict):
                 raise ValueError('invalid engine JSON')
             return result
-        finally:
-            conn.close()
 
     version = json_request('GET', '/version').get('ApiVersion')
     if not isinstance(version, str) or not re.fullmatch(r'1\.\d{1,3}', version):
@@ -207,10 +239,9 @@ def _engine_exec(path, container, command, timeout):
     if not isinstance(exec_id, str) or not re.fullmatch(r'[a-zA-Z0-9_-]{1,128}', exec_id):
         raise ValueError('invalid exec id')
     base = prefix + '/exec/' + exec_id
-    conn, response = request('POST', base + '/start', {'Detach': False, 'Tty': False})
     output = bytearray()
     truncated = False
-    try:
+    with request('POST', base + '/start', {'Detach': False, 'Tty': False}) as response:
         while True:
             header = bytearray()
             while len(header) < 8:
@@ -233,8 +264,7 @@ def _engine_exec(path, container, command, timeout):
                 available = max(0, MAX_OUTPUT - len(output))
                 output.extend(chunk[:available])
                 truncated |= len(chunk) > available
-    finally:
-        conn.close()
+
     status = json_request('GET', base + '/json')
     code = status.get('ExitCode')
     if status.get('Running') is not False or type(code) is not int or not 0 <= code <= 255:
@@ -254,6 +284,7 @@ class ResearchContainer:
         self.delayed_possible = False
         self.timer = None
         self.command_token = None
+        self.expired_token = None
         self.socket_path = None
 
     def start(self):
@@ -303,8 +334,10 @@ class ResearchContainer:
 
     def _expire_command(self, token):
         with self.lock:
-            if self.command_token is not token or self.state != "running":
+            if self.command_token is not token or self.state not in ("running", "uncertain"):
                 return
+            self.expired_token = token
+            self.command_token = None
             self.state = "uncertain"
             self.delayed_possible = True
         self.close()
@@ -322,9 +355,11 @@ class ResearchContainer:
             self.inflight = True
             token = object()
             self.command_token = token
+            self.expired_token = None
+            expires_at = time.monotonic() + timeout + 1
             deadline = None
             try:
-                deadline = threading.Timer(timeout + 1, lambda: self._expire_command(token))
+                deadline = threading.Timer(max(0, expires_at - time.monotonic()), lambda: self._expire_command(token))
                 deadline.daemon = True
                 deadline.start()
             except Exception:
@@ -335,17 +370,30 @@ class ResearchContainer:
                 self.exec_lock.release()
                 return {"ok": False, "error": "command_timer_unavailable"}
         try:
+            timed_out = False
             try:
                 path = _selected_socket()
                 if self.socket_path is not None and path != self.socket_path:
                     raise ValueError('daemon selection changed')
-                rc, output, truncated = _engine_exec(path, self.name, command, timeout)
+                rc, output, truncated = _engine_exec(path, self.name, command, timeout, expires_at)
+            except TimeoutError:
+                timed_out = True
+                rc, output, truncated = None, "", False
             except Exception:
                 rc, output, truncated = None, "", False
             with self.lock:
                 self.inflight = False
-                self.command_token = None
-                deadline.cancel()
+                timed_out |= self.expired_token is token
+                # If the socket deadline wins the race, keep the watchdog armed
+                # to request cleanup without blocking this call on Docker CLI.
+                cleanup_pending = timed_out and time.monotonic() >= expires_at and self.command_token is token
+                if not cleanup_pending:
+                    self.command_token = None
+                    deadline.cancel()
+                if timed_out:
+                    self.state = "uncertain"
+                    self.delayed_possible = True
+                    return {"ok": False, "error": "command_timed_out", "cleanup_required": True}
                 if self.state != "running":
                     self.delayed_possible = True
                     return {"ok": False, "error": "task_cancelled", "cleanup_required": True}

@@ -29,7 +29,16 @@
   `close()` also
   serves as cancellation and does not wait for an in-flight exec. Task-local host
   timers request exact-name removal at 900 seconds after start and at one second
-  after an in-flight command's deadline. A completed command's detached children
+  after an in-flight command's deadline. Engine connect, HTTP headers, bodies and
+  multiplex frames share the command's absolute host deadline (timeout plus the
+  existing one-second grace); socket shutdown interrupts slow-trickled responses.
+  `command_timed_out` is distinct from `docker_exec_completion_unverified`, and
+  both require cleanup; a real command exit 124 remains an ordinary exit. Cleanup
+  is requested asynchronously and may fail or outlast the returned timeout.
+  These are best-effort process/thread deadlines, not hard real-time guarantees:
+  OS scheduling, host filesystem/config access before Engine I/O, or a stuck host
+  process can delay return, and a daemon may finish an operation after cutoff.
+  A completed command's detached children
   can continue until task close/expiry; command timeout is NOT their lifetime
   bound. Never use this for work requiring per-command descendant isolation.
   Timers require a live host process and responsive daemon, and in-container

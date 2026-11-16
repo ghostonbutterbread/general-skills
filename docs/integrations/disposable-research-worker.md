@@ -1,6 +1,6 @@
 # Disposable research worker — integration dossier
 
-- **Status:** engine-sourced completion implemented and foreground reuse verified; independent review, prior cleanup approval, descendant-lifetime approval, and restricted-child integration remain blocked
+- **Status:** Engine trickle deadline repaired with offline regression evidence; fresh independent review, prior cleanup approval, descendant-lifetime approval, and restricted-child integration remain blocked
 - **Owner:** delegated Hermes worker
 - **Branch / owning ref:** `feat/disposable-research-worker`
 - **Worktree:** `/home/ryushe/worktrees/general-research-worker-20261115`
@@ -11,7 +11,50 @@
 - **Feature implementation commit(s):** `81ea4a33fb4f29e255917c75e5d4eaa918a845de` (preflight); `3cf82e6a87613201f3bd439ba35e166d469bd11c` (transport); `ff325e79dd60520fb97875eb6eb29e105bf6abce` (transport review corrections); `198466b27a2076ee1fdd1967f7bf7157c223d144` (transport re-review corrections); `48803abeb735f621bb63c2ddb1fa33cc6d8b5817` (fail-closed status checkpoint); `a499b1e618cb1002dc97d2f4b32c1c1fb8112b2e` (engine completion repair)
 - **Inspiration / canonical references:** `safe-fetch`, `sandbox-run`, Hermes provider and Docker documentation; General Skills owns the generic safe-fetch skill. BBH's target stores and live runtime were not modified.
 
-## Current engine completion repair
+## Engine absolute-deadline repair
+
+Independent review of `a499b1e` found that per-socket read timeouts restart on
+incoming bytes, so `getresponse()` or chunk parsing could remain blocked after
+the command watchdog had marked the task uncertain and requested cleanup. The
+new fake Unix Engine regression on that revision failed in all three cases:
+version headers, start headers and chunk metadata returned after **4.005 s,
+4.011 s and 4.006 s** respectively for `timeout=1`, exceeding the test's 3.2 s
+limit. The command was classified as cancelled, not timed out.
+
+One absolute monotonic deadline, including the existing one-second grace, now
+covers each Engine connection, request, headers, body and multiplex parser. A
+deadline timer shuts down a duplicate socket to interrupt blocking buffered HTTP
+reads even if `HTTPConnection` has detached the original. The timer and sockets
+are closed/joined on both success and failure. A timeout returns
+`command_timed_out`; transport/protocol failures remain
+`docker_exec_completion_unverified`. The timeout watchdog still requests
+asynchronous exact-name cleanup, including when the socket timer wins their race;
+state stays uncertain, no partial output is returned, and cleanup remains
+retryable. Normal Engine exit 0/1/7/124, reuse and output limits are unchanged.
+
+After repair the three original regressions pass within 3.2 seconds each, as do
+the pre-existing slow frame regression, delayed-connect-plus-header shared
+deadline, timer-start failure, watchdog-race/failed-cleanup/retry, normal status,
+malformed-frame, failure, reuse and cap cases. The regressions verify timeout
+classification, lock release, no surviving test-created timer threads, cleanup
+request, and refusal of reuse. They use a temporary Unix socket and mocked
+Docker CLI, not a Docker daemon. Full local suite:
+`PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="$PWD" python3 -W error::ResourceWarning -m unittest discover -s tests -v`
+ran **96 tests: 95 passed and one opt-in real-Docker test skipped**. The
+three-phase trickle test and watchdog-race retry test each passed two additional
+consecutive runs.
+
+Limits: this is not a hard real-time guarantee. Scheduling, host config/filesystem
+access and host-process failure can delay return; daemon work and cleanup can
+outlive the return, require retries, and cannot be proven absent by one listing.
+The changed transport has not been tested on a real Docker daemon and needs fresh
+independent review of the complete branch and this correction. When separately
+authorized, rerun the real foreground fixture in the next section; real timeout,
+output-cap and retry evidence remains deferred. No previously blocked container,
+descendant probe, provider or live target was inspected or exercised here. No
+merge, push or activation was performed. Parent owns Kanban reconciliation.
+
+## Historical engine completion repair
 
 Host-only stdlib HTTP over a pinned local Unix Docker socket now negotiates the
 Engine API version and performs exec create, attached start, bounded Docker
@@ -42,8 +85,8 @@ new container `research-task-67f448b28e114fec8cc54b204f72f798` returned **0, 1,
 7, 0** in order from one reused container, but the test **failed** because its
 cleanup was `unverified`. A subsequent exact-name removal reported removal
 already in progress; the following exact-name listing was empty. This is a
-point-in-time observation, not proof that removal finished: operator should
-reconcile this new task container after the daemon settles. No other names were
+point-in-time observation, not proof that removal finished; the parent later
+independently observed that exact container absent. No other names were
 touched. Neither real fixture exercised nonempty output, 124, timeouts, escaped
 descendants, a model, or a real child. Those failure and output checks above are
 fake-engine tests, not real Docker proof.

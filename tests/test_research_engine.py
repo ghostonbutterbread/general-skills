@@ -2,6 +2,7 @@ import importlib.util
 import json
 import os
 from pathlib import Path
+import socket
 import socketserver
 import struct
 import tempfile
@@ -29,11 +30,18 @@ class Engine(socketserver.ThreadingUnixStreamServer):
         self.override_status = None
         self.chunked = False
         self.trickle = False
+        self.slow_headers: str | None = None
+        self.slow_chunk_header = False
         super().__init__(path, Handler)
 
 
 class Handler(BaseHTTPRequestHandler):
     protocol_version = 'HTTP/1.1'
+    def handle(self):
+        try:
+            super().handle()
+        except (BrokenPipeError, ConnectionResetError):
+            pass  # expected when the client cuts off a response
     def log_message(self, *args):
         pass
     def respond(self, code, data, content_type='application/json'):
@@ -45,6 +53,18 @@ class Handler(BaseHTTPRequestHandler):
     def handle_request(self):
         data = self.rfile.read(int(self.headers.get('Content-Length', 0)))
         self.server.requests.append((self.command, self.path, data))
+        if self.server.slow_headers == self.path:
+            try:
+                self.wfile.write(b'HTTP/1.1 200 OK\r\nX-Slow: ')
+                self.wfile.flush()
+                for _ in range(40):
+                    self.wfile.write(b'x')
+                    self.wfile.flush()
+                    time.sleep(0.1)
+                self.wfile.write(b'\r\nContent-Length: 0\r\n\r\n')
+            except (BrokenPipeError, ConnectionResetError):
+                pass
+            return
         if self.server.failure == self.path:
             return self.respond(500, b'{"message":"private daemon error"}')
         if self.path == '/version':
@@ -53,6 +73,21 @@ class Handler(BaseHTTPRequestHandler):
             return self.respond(201, b'{"Id":"exec-id"}')
         if self.path.endswith('/start'):
             time.sleep(self.server.delay)
+            if self.server.slow_chunk_header:
+                self.send_response(200)
+                self.send_header('Transfer-Encoding', 'chunked')
+                self.end_headers()
+                try:
+                    self.wfile.write(b'1' + b';')
+                    self.wfile.flush()
+                    for _ in range(40):
+                        self.wfile.write(b'x')
+                        self.wfile.flush()
+                        time.sleep(0.1)
+                    self.wfile.write(b'\r\nx\r\n0\r\n\r\n')
+                except (BrokenPipeError, ConnectionResetError):
+                    pass
+                return
             if self.server.trickle:
                 self.send_response(200)
                 self.send_header('Content-Length', '28')
@@ -182,15 +217,129 @@ class EngineTests(unittest.TestCase):
     def test_trickling_frame_does_not_extend_command_deadline(self):
         self.engine.trickle = True
         started = time.monotonic()
-        with mock.patch.object(m, '_docker', return_value=(0, '', False)):
+        finished = threading.Event()
+        def docker(args, *rest):
+            if args[0] == 'ps':
+                finished.set()
+            return 0, '', False
+        with mock.patch.object(m, '_docker', side_effect=docker):
             result = self.task.execute('true', 1)
+            elapsed = time.monotonic() - started
+            self.assertTrue(finished.wait(1))
         self.assertTrue(result['cleanup_required'])
-        self.assertLess(time.monotonic() - started, 3.2)
+        self.assertEqual(result['error'], 'command_timed_out')
+        self.assertLess(elapsed, 3.2)
+
+    def test_engine_timer_start_failure_is_transport_failure_and_releases_lock(self):
+        timer_class = threading.Timer
+        timers = []
+        def timer_factory(*args, **kwargs):
+            if timers:
+                raise RuntimeError('timer unavailable')
+            timer = timer_class(*args, **kwargs)
+            timers.append(timer)
+            return timer
+        with mock.patch.object(m.threading, 'Timer', side_effect=timer_factory), mock.patch.object(m, '_docker') as docker:
+            result = self.task.execute('true', 1)
+            timers[0].join(1)
+            docker.assert_not_called()
+        self.assertFalse(timers[0].is_alive())
+        self.assertEqual(result['error'], 'docker_exec_completion_unverified')
+        self.assertTrue(result['cleanup_required'])
+        self.assertFalse(self.task.inflight)
+        self.assertTrue(self.task.exec_lock.acquire(blocking=False))
+        self.task.exec_lock.release()
+
+    def test_slow_connect_and_headers_share_one_deadline(self):
+        self.engine.slow_headers = '/version'
+        connect = socket.socket.connect
+        def delayed_connect(sock, address):
+            time.sleep(0.8)
+            return connect(sock, address)
+        started = time.monotonic()
+        with mock.patch.object(socket.socket, 'connect', delayed_connect):
+            with self.assertRaises(TimeoutError):
+                m._engine_exec(self.socket, self.task.name, 'true', 1)
+        elapsed = time.monotonic() - started
+        self.assertGreater(elapsed, 1.7)
+        self.assertLess(elapsed, 3.0)
+
+    def test_trickling_headers_and_chunk_metadata_are_interrupted(self):
+        for phase in ('version', 'start', 'chunk'):
+            with self.subTest(phase=phase):
+                self.task = m.ResearchContainer()
+                self.task.state = 'running'
+                self.engine.slow_headers = {'version': '/version',
+                    'start': '/v1.44/exec/exec-id/start'}.get(phase)
+                self.engine.slow_chunk_header = phase == 'chunk'
+                started = time.monotonic()
+                timers = []
+                timer_class = threading.Timer
+                def timer_factory(*args, **kwargs):
+                    timer = timer_class(*args, **kwargs)
+                    timers.append(timer)
+                    return timer
+                with mock.patch.object(m.threading, 'Timer', side_effect=timer_factory), mock.patch.object(m, '_docker', return_value=(0, '', False)) as docker:
+                    result = self.task.execute('true', 1)
+                    elapsed = time.monotonic() - started
+                    for timer in timers:
+                        timer.join(1)
+                    self.assertFalse(any(timer.is_alive() for timer in timers))
+                    self.assertEqual(docker.call_count, 2)
+                self.assertLess(elapsed, 3.2, (phase, elapsed, result))
+                self.assertEqual(result['error'], 'command_timed_out')
+                self.assertTrue(result['cleanup_required'])
+                self.assertEqual(self.task.state, 'uncertain')
+                self.assertFalse(self.task.inflight)
+                self.assertTrue(self.task.exec_lock.acquire(blocking=False))
+                self.task.exec_lock.release()
+                self.assertEqual(self.task.execute('true')['error'], 'container_not_running')
+
+    def test_socket_deadline_winning_watchdog_race_still_requests_cleanup(self):
+        self.engine.slow_headers = '/version'
+        gate = threading.Event()
+        entered = threading.Event()
+        timer_class = threading.Timer
+        timers = []
+        def timer_factory(interval, callback):
+            if not timers:
+                original = callback
+                def delayed_callback():
+                    entered.set()
+                    gate.wait(3)
+                    original()
+                callback = delayed_callback
+            timer = timer_class(interval, callback)
+            timers.append(timer)
+            return timer
+        try:
+            with mock.patch.object(m.threading, 'Timer', side_effect=timer_factory), mock.patch.object(m, '_docker', return_value=(None, '', False)) as docker:
+                result = self.task.execute('true', 1)
+                self.assertEqual(result['error'], 'command_timed_out')
+                self.assertTrue(entered.wait(1))
+                self.assertEqual(docker.call_count, 0)
+                gate.set()
+                for timer in timers:
+                    timer.join(1)
+                self.assertFalse(any(timer.is_alive() for timer in timers))
+                self.assertEqual(docker.call_count, 2)
+                self.assertEqual(self.task.state, 'uncertain')
+                docker.return_value = (0, '', False)
+                self.assertEqual(self.task.close()['cleanup'], 'absent_at_check_delayed_operation_possible')
+                self.assertEqual(docker.call_count, 4)
+        finally:
+            gate.set()
 
     def test_timeout_closes_task_and_rejects_reuse(self):
         self.engine.delay = 3
-        with mock.patch.object(m, '_docker', return_value=(0, '', False)):
+        finished = threading.Event()
+        def docker(args, *rest):
+            if args[0] == 'ps':
+                finished.set()
+            return 0, '', False
+        with mock.patch.object(m, '_docker', side_effect=docker):
             result = self.task.execute('true', 1)
+            self.assertTrue(finished.wait(1))
         self.assertTrue(result['cleanup_required'])
         self.assertNotEqual(self.task.state, 'running')
         self.assertEqual(self.task.execute('true')['error'], 'container_not_running')
