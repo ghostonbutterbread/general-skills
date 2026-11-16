@@ -1,6 +1,6 @@
 # Disposable research worker — integration dossier
 
-- **Status:** blocked on withdrawn approval for model-access probe; diagnostic slice only, not a research agent
+- **Status:** task container transport implemented; restricted-native-child integration and independent review blocked pending core lifecycle API
 - **Owner:** delegated Hermes worker
 - **Branch / owning ref:** `feat/disposable-research-worker`
 - **Worktree:** `/home/ryushe/worktrees/general-research-worker-20261115`
@@ -11,7 +11,18 @@
 - **Feature implementation commit(s):** `81ea4a33fb4f29e255917c75e5d4eaa918a845de`
 - **Inspiration / canonical references:** `safe-fetch`, `sandbox-run`, Hermes provider and Docker documentation; General Skills owns the generic safe-fetch skill. BBH's target stores and live runtime were not modified.
 
-## Intent and implemented contract
+## New direction: host-native researcher and containerized tools
+
+The later task explicitly replaces the broker sketch below: the native child keeps its existing host provider/model; no model, credential, login, or broker runs inside Docker. The previously denied xAI probe remains forbidden and was not retried. `skills/safe-fetch/scripts/research_container.py` supplies one reusable, networkless per-task container and `register_tool(ctx, resolve_authorized_task=None)`. Its schema and trusted integration contract are documented in `skills/safe-fetch/scripts/README.md`. The default registration denies all tool calls. A caller-supplied resolver is host-trusted and MUST verify exact effective child tools, leaf status, and bound runtime identity before returning the task instance. Current public `PluginContext.subagent_lifecycle` has no exact effective-tool attestation; no real adapter has been written or activated. Registration cannot remove host tools.
+
+The implementation retains no raw output in `receipt()`, and tags/caps returned tool output; parent must independently treat the child final answer as untrusted and bound it. Commands can pass short inline content, but public fetch, network policy, full-source ingestion, parent-side summary sanitization and a live agent workflow are not implemented. The local Docker image tag is mutable, not pinned. The kernel and daemon remain trusted. `--rm` plus a 900-second container lifetime are not a guarantee of cleanup after daemon failure; exact-name readback is point-in-time and timeouts can cause delayed daemon effects.
+
+Verification commands: `RESEARCH_DOCKER_TEST=1 PYTHONPATH="$PWD" python3 -W error::ResourceWarning -m unittest discover -s tests -p test_research_container.py -v`; `PYTHONPATH="$PWD" python3 -m unittest discover -s tests -v`. Real Docker exercised non-root, host-file and host-environment sentinel absence, no Docker socket, loopback-only network, task workspace reuse through the registered handler with a test-only resolver, nonzero exit, output cap, timeout, no reuse after timeout, and exact-name cleanup readback. A separate isolated-home scratch smoke invoked the real `PluginContext.register_tool`, real registry dispatch (denied without adapter), and registration disposal. The real-Docker resolver and context were test doubles, not a verified child lifecycle. This is not inference, prompt-injection, privacy certification, or end-to-end research evidence.
+
+Next: parent integrates with the separately developed public exact-child allowlist lifecycle only after checking its actual API and identity binding; test absent/extra host tools, cross-child isolation, cancel/failure cleanup, real host-native researcher under existing authorized model settings, and bounded untrusted parent handoff. No model/provider probe was performed here. Independent review is required before merge. Delegated child cannot mutate Kanban; parent must reconcile tracking. No merge, push, config, activation, or core edits authorized.
+
+## Historical diagnostic contract (superseded direction)
+
 
 A future reusable per-hunt worker must genuinely reason over full quarantined source, support related questions, and produce sourced candidate ideas only. Its output must remain untrusted; writing reviewed knowledge requires a separate explicit, scoped host handoff. The worker must not direct a privileged hunter. It must receive neither broad host mounts, Docker socket, live session credentials nor ambient tokens, and have no arbitrary direct write capability. No live targets.
 
