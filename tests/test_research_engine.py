@@ -32,6 +32,10 @@ class Engine(socketserver.ThreadingUnixStreamServer):
         self.trickle = False
         self.slow_headers: str | None = None
         self.slow_chunk_header = False
+        self.barrier_path: str | None = None
+        self.entered = threading.Event()
+        self.release = threading.Event()
+        self.barrier_finished = threading.Event()
         super().__init__(path, Handler)
 
 
@@ -53,6 +57,10 @@ class Handler(BaseHTTPRequestHandler):
     def handle_request(self):
         data = self.rfile.read(int(self.headers.get('Content-Length', 0)))
         self.server.requests.append((self.command, self.path, data))
+        if self.server.barrier_path == self.path:
+            self.server.entered.set()
+            self.server.release.wait(5)
+            self.server.barrier_finished.set()
         if self.server.slow_headers == self.path:
             try:
                 self.wfile.write(b'HTTP/1.1 200 OK\r\nX-Slow: ')
@@ -132,10 +140,16 @@ class EngineTests(unittest.TestCase):
         self.thread.start()
         self.env = mock.patch.dict(os.environ, {'DOCKER_HOST': 'unix://' + self.socket, 'DOCKER_CONFIG': self.directory.name}, clear=True)
         self.env.start()
+        self.docker = mock.patch.object(m, '_docker', return_value=(0, '', False))
+        self.docker.start()
         self.task = m.ResearchContainer()
         self.task.state = 'running'
 
     def tearDown(self):
+        if self.task.cleanup_thread is not None:
+            self.task.cleanup_thread.join(2)
+            self.assertFalse(self.task.cleanup_thread.is_alive())
+        self.docker.stop()
         self.env.stop()
         self.engine.shutdown()
         self.engine.server_close()
@@ -154,6 +168,114 @@ class EngineTests(unittest.TestCase):
         create = next(item for item in self.engine.requests if item[1].endswith('/exec'))
         self.assertEqual(json.loads(create[2])['Cmd'], ['sh', '-c', 'exit 0'])
         self.assertNotIn('hello', str(self.task.receipt()))
+
+    def test_close_interrupts_each_engine_phase_and_retries_cleanup(self):
+        for phase in ('version', 'create', 'start', 'inspect'):
+            with self.subTest(phase=phase):
+                self.task = m.ResearchContainer()
+                self.task.state = 'running'
+                self.engine.requests.clear()
+                self.engine.entered.clear()
+                self.engine.release.clear()
+                self.engine.barrier_finished.clear()
+                self.engine.barrier_path = {
+                    'version': '/version',
+                    'create': '/v1.44/containers/' + self.task.name + '/exec',
+                    'start': '/v1.44/exec/exec-id/start',
+                    'inspect': '/v1.44/exec/exec-id/json',
+                }[phase]
+                results = []
+                with mock.patch.object(m, '_docker', return_value=(0, '', False)) as docker:
+                    worker = threading.Thread(target=lambda: results.append(self.task.execute('true', 5)))
+                    try:
+                        worker.start()
+                        self.assertTrue(self.engine.entered.wait(2))
+                        self.task.close()
+                        worker.join(2)
+                        self.assertFalse(worker.is_alive(), 'close did not interrupt Engine I/O')
+                        self.assertEqual(results[0]['error'], 'task_cancelled')
+                        self.assertEqual(self.engine.requests[-1][1], self.engine.barrier_path)
+                        limit = time.monotonic() + 2
+                        while docker.call_count < 4 and time.monotonic() < limit:
+                            time.sleep(0.01)
+                        self.assertGreaterEqual(docker.call_count, 4)
+                        self.task.cleanup_thread.join(2)
+                        self.assertFalse(self.task.cleanup_thread.is_alive())
+                    finally:
+                        self.engine.release.set()
+                        worker.join(2)
+                        self.assertTrue(self.engine.barrier_finished.wait(2))
+                self.assertFalse(worker.is_alive())
+                self.assertEqual(self.engine.requests[-1][1], self.engine.barrier_path)
+
+    def test_cancel_before_connect_does_not_send_a_request(self):
+        entered, release = threading.Event(), threading.Event()
+        original = socket.socket.connect
+        def connect(sock, address):
+            entered.set()
+            release.wait(3)
+            return original(sock, address)
+        results = []
+        with mock.patch.object(socket.socket, 'connect', connect), mock.patch.object(m, '_docker', return_value=(0, '', False)):
+            worker = threading.Thread(target=lambda: results.append(self.task.execute('true', 5)))
+            try:
+                worker.start()
+                self.assertTrue(entered.wait(2))
+                self.task.close()
+            finally:
+                release.set()
+                worker.join(2)
+            self.assertFalse(worker.is_alive())
+            self.assertEqual(results[0]['error'], 'task_cancelled')
+            self.task.cleanup_thread.join(2)
+            self.assertEqual(self.engine.requests, [])
+
+    def test_cleanup_thread_start_failure_remains_retryable(self):
+        original = threading.Thread.start
+        def start(thread):
+            if not isinstance(thread, threading.Timer):
+                raise RuntimeError('cannot start cleanup thread')
+            return original(thread)
+        with mock.patch.object(m, '_engine_exec', side_effect=TimeoutError), mock.patch.object(threading.Thread, 'start', start):
+            result = self.task.execute('true', 5)
+        self.assertEqual(result['error'], 'command_timed_out')
+        self.assertTrue(result['cleanup_required'])
+        self.assertEqual(self.task.state, 'uncertain')
+        self.assertEqual(self.task.close()['cleanup'], 'absent_at_check_delayed_operation_possible')
+        self.task.cleanup_thread = None  # thread never started
+
+    def test_early_socket_timeout_requests_cleanup(self):
+        self.engine.barrier_path = '/v1.44/exec/exec-id/start'
+        original_request = m.http.client.HTTPConnection.request
+        original = m.http.client.HTTPConnection.getresponse
+        def record_route(conn, method, route, *args, **kwargs):
+            conn.test_route = route
+            return original_request(conn, method, route, *args, **kwargs)
+        def early_timeout(conn):
+            if conn.test_route.endswith('/start'):
+                self.assertTrue(self.engine.entered.wait(2))
+                raise socket.timeout('early transport timeout')
+            return original(conn)
+        done = threading.Event()
+        def docker(args, *rest):
+            if args[0] == 'ps':
+                done.set()
+            return 0, '', False
+        try:
+            with mock.patch.object(m.http.client.HTTPConnection, 'request', record_route), mock.patch.object(m.http.client.HTTPConnection, 'getresponse', early_timeout), mock.patch.object(m, '_docker', side_effect=docker):
+                result = self.task.execute('true', 5)
+                self.assertEqual(result['error'], 'command_timed_out')
+                self.assertTrue(done.wait(2), 'early timeout did not request cleanup')
+                self.task.cleanup_thread.join(2)
+                self.assertFalse(self.task.cleanup_thread.is_alive())
+                # A fake daemon can continue the already-accepted request after
+                # cleanup. Neither socket shutdown nor absence proves otherwise.
+                self.assertFalse(self.engine.barrier_finished.is_set())
+                self.engine.release.set()
+                self.assertTrue(self.engine.barrier_finished.wait(2))
+                self.assertEqual(self.task.close()['cleanup'], 'absent_at_check_delayed_operation_possible')
+        finally:
+            self.engine.release.set()
 
     def test_chunked_multiplex_frames(self):
         self.engine.chunked = True
@@ -193,6 +315,7 @@ class EngineTests(unittest.TestCase):
                 self.task.state = 'running'
                 self.engine.payload, self.engine.inspect = payload, status
                 result = self.task.execute('true')
+                self.task.cleanup_thread.join(2)
                 self.assertTrue(result['cleanup_required'])
                 self.assertEqual(self.task.state, 'uncertain')
                 self.assertNotIn('output', result)
@@ -204,6 +327,7 @@ class EngineTests(unittest.TestCase):
                 self.task.state = 'running'
                 self.engine.failure = route
                 result = self.task.execute('true')
+                self.task.cleanup_thread.join(2)
                 self.assertTrue(result['cleanup_required'])
                 self.assertNotIn('private', str(result))
                 self.assertEqual(self.task.state, 'uncertain')
@@ -226,6 +350,7 @@ class EngineTests(unittest.TestCase):
             result = self.task.execute('true', 1)
             elapsed = time.monotonic() - started
             self.assertTrue(finished.wait(1))
+            self.task.cleanup_thread.join(2)
         self.assertTrue(result['cleanup_required'])
         self.assertEqual(result['error'], 'command_timed_out')
         self.assertLess(elapsed, 3.2)
@@ -239,10 +364,16 @@ class EngineTests(unittest.TestCase):
             timer = timer_class(*args, **kwargs)
             timers.append(timer)
             return timer
-        with mock.patch.object(m.threading, 'Timer', side_effect=timer_factory), mock.patch.object(m, '_docker') as docker:
+        finished = threading.Event()
+        def docker_call(args, *rest):
+            if args[0] == 'ps':
+                finished.set()
+            return 0, '', False
+        with mock.patch.object(m.threading, 'Timer', side_effect=timer_factory), mock.patch.object(m, '_docker', side_effect=docker_call):
             result = self.task.execute('true', 1)
             timers[0].join(1)
-            docker.assert_not_called()
+            self.assertTrue(finished.wait(1))
+            self.task.cleanup_thread.join(2)
         self.assertFalse(timers[0].is_alive())
         self.assertEqual(result['error'], 'docker_exec_completion_unverified')
         self.assertTrue(result['cleanup_required'])
@@ -284,8 +415,9 @@ class EngineTests(unittest.TestCase):
                     elapsed = time.monotonic() - started
                     for timer in timers:
                         timer.join(1)
+                    self.task.cleanup_thread.join(2)
                     self.assertFalse(any(timer.is_alive() for timer in timers))
-                    self.assertEqual(docker.call_count, 2)
+                    self.assertGreaterEqual(docker.call_count, 2)
                 self.assertLess(elapsed, 3.2, (phase, elapsed, result))
                 self.assertEqual(result['error'], 'command_timed_out')
                 self.assertTrue(result['cleanup_required'])
@@ -309,7 +441,7 @@ class EngineTests(unittest.TestCase):
                     gate.wait(3)
                     original()
                 callback = delayed_callback
-            timer = timer_class(interval, callback)
+            timer = timer_class(max(0, interval - 0.2) if not timers else interval, callback)
             timers.append(timer)
             return timer
         try:
@@ -317,7 +449,11 @@ class EngineTests(unittest.TestCase):
                 result = self.task.execute('true', 1)
                 self.assertEqual(result['error'], 'command_timed_out')
                 self.assertTrue(entered.wait(1))
-                self.assertEqual(docker.call_count, 0)
+                limit = time.monotonic() + 1
+                while docker.call_count < 2 and time.monotonic() < limit:
+                    time.sleep(0.01)
+                self.task.cleanup_thread.join(2)
+                self.assertEqual(docker.call_count, 2)
                 gate.set()
                 for timer in timers:
                     timer.join(1)
@@ -340,6 +476,7 @@ class EngineTests(unittest.TestCase):
         with mock.patch.object(m, '_docker', side_effect=docker):
             result = self.task.execute('true', 1)
             self.assertTrue(finished.wait(1))
+            self.task.cleanup_thread.join(2)
         self.assertTrue(result['cleanup_required'])
         self.assertNotEqual(self.task.state, 'running')
         self.assertEqual(self.task.execute('true')['error'], 'container_not_running')

@@ -1,17 +1,53 @@
 # Disposable research worker — integration dossier
 
-- **Status:** Engine trickle deadline repaired with offline regression evidence; fresh independent review, prior cleanup approval, descendant-lifetime approval, and restricted-child integration remain blocked
+- **Status:** Engine cancellation and early timeout repairs have offline evidence; fresh independent review, prior cleanup approval, descendant-lifetime approval, and restricted-child integration remain blocked
 - **Owner:** delegated Hermes worker
 - **Branch / owning ref:** `feat/disposable-research-worker`
 - **Worktree:** `/home/ryushe/worktrees/general-research-worker-20261115`
 - **Base commit:** `20189521b6aab6997ebde5a353542af2e63848de` (fetched `origin/beta`)
 - **Intended integration target:** `beta` (no integration authorized)
 - **Last updated:** 2026-11-15
-- **Latest immutable recovery checkpoint:** `268a525cca7e87ba61dffea3d45761cc861afb5b` (absolute Engine deadline repair, tests, and evidence; a later dossier-only handoff commit records this checkpoint)
+- **Latest immutable recovery checkpoint before this correction:** `268a525cca7e87ba61dffea3d45761cc861afb5b` (absolute Engine deadline repair); this correction will be recorded in the next dossier-only handoff commit.
 - **Feature implementation commit(s):** `81ea4a33fb4f29e255917c75e5d4eaa918a845de` (preflight); `3cf82e6a87613201f3bd439ba35e166d469bd11c` (transport); `ff325e79dd60520fb97875eb6eb29e105bf6abce` (transport review corrections); `198466b27a2076ee1fdd1967f7bf7157c223d144` (transport re-review corrections); `48803abeb735f621bb63c2ddb1fa33cc6d8b5817` (fail-closed status checkpoint); `a499b1e618cb1002dc97d2f4b32c1c1fb8112b2e` (engine completion repair); `268a525cca7e87ba61dffea3d45761cc861afb5b` (absolute deadline repair)
 - **Inspiration / canonical references:** `safe-fetch`, `sandbox-run`, Hermes provider and Docker documentation; General Skills owns the generic safe-fetch skill. BBH's target stores and live runtime were not modified.
 
-## Engine absolute-deadline repair
+## Cancellation and early Engine timeout correction
+
+Independent review of `101b269` reproduced continued Engine exec phases after
+`close()` and missing cleanup after an early socket timeout. The former occurred
+because `close()` did not signal the active transport; the latter because the
+caller cancelled the command watchdog when a timeout happened before the absolute
+deadline. Added fake Unix Engine barrier tests were red at version, create,
+start, and inspect (worker still blocked after close), and early timeout failed
+to request cleanup.
+
+The task now registers the active Engine socket with a cancellation object;
+`close()` signals it and shuts down that socket, and each later phase checks the
+signal. Any uncertain exec, including an early timeout, requests asynchronous
+exact-name removal; a cancelled in-flight exec requests another attempt after
+transport termination. A cleanup-thread start failure leaves the explicit
+`cleanup_required` result and retryable uncertain state. No cancellation flag
+can retract bytes already submitted to the daemon, including a send racing with
+the flag. An accepted daemon request may finish after both cleanup attempts; the
+fake Engine demonstrates this. Repeated exact-name `close()` and independent
+reconciliation remain necessary; do not claim a proven container lifetime.
+
+The isolated suite used `/usr/bin/python3`, a disposable HOME/XDG environment,
+an empty PATH except a bash symlink (no Docker executable), repository-first
+`PYTHONPATH`, and `-W error::ResourceWarning`: **100 tests, 99 passed, one
+opt-in real-Docker test skipped**. The four barrier cases and early accepted-start
+timeout each passed three additional runs. Tests include cancellation before
+connect, cleanup thread start failure, bounded output and deadline, normal exit
+0/1/7/124 and reuse; Engine and cleanup are fake/mocked. Prior test runs exposed
+cross-test cleanup threads overlapping mocks; fixtures now join those threads.
+There is no real-Docker end-to-end evidence for this correction. The named
+previously blocked container was not inspected or retried; withdrawn descendant
+and provider/model probes were not run. Fresh independent complete-branch review
+is required, including the cancellation/send boundary, concurrent cleanup order,
+and retained daemon uncertainty. The parent must arrange it; no nested reviewer
+is available in this worker. No merge, push, or activation is authorized.
+
+## Engine absolute-deadline repair (historical)
 
 Independent review of `a499b1e` found that per-socket read timeouts restart on
 incoming bytes, so `getresponse()` or chunk parsing could remain blocked after

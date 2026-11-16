@@ -26,15 +26,21 @@
   interpreted as status. Missing, malformed, failed or timed-out engine evidence
   marks the task uncertain and requires cleanup. This transport remains
   experimental and requires independent review before integration.
-  `close()` also
-  serves as cancellation and does not wait for an in-flight exec. Task-local host
+  `close()` also serves as cancellation: it shuts down active Engine socket I/O
+  and bars subsequent phases once cancellation is observed, without waiting for
+  the in-flight exec. A send racing with cancellation may already have reached
+  the daemon; socket shutdown cannot retract a submitted or accepted operation.
+  Task-local host
   timers request exact-name removal at 900 seconds after start and at one second
   after an in-flight command's deadline. Engine connect, HTTP headers, bodies and
   multiplex frames share the command's absolute host deadline (timeout plus the
   existing one-second grace); socket shutdown interrupts slow-trickled responses.
   `command_timed_out` is distinct from `docker_exec_completion_unverified`, and
-  both require cleanup; a real command exit 124 remains an ordinary exit. Cleanup
-  is requested asynchronously and may fail or outlast the returned timeout.
+  both require cleanup; a real command exit 124 remains an ordinary exit. Every
+  uncertain exec requests asynchronous exact-name cleanup, including early socket
+  timeouts. After an externally cancelled in-flight transport ends, it requests
+  another attempt. Cleanup may fail, outlast the return, or fail to start if a
+  host thread cannot be created; `cleanup_required` still requires caller action.
   These are best-effort process/thread deadlines, not hard real-time guarantees:
   OS scheduling, host filesystem/config access before Engine I/O, or a stuck host
   process can delay return, and a daemon may finish an operation after cutoff.
@@ -45,8 +51,9 @@
   sleep/`--rm` are not a trusted substitute after host death. Failed/timed-out
   Docker operations, cancellation, or an incomplete listing leave state uncertain;
   repeatedly call `close()` on the exact task instance/name and independently
-  reconcile delayed daemon operations. Absence at a single check cannot establish
-  that a timed-out create will not appear later. Never prune other containers.
+  reconcile delayed daemon operations. An already-submitted operation can finish
+  after both automatic attempts; neither attempt nor a single absence check proves
+  that delayed daemon effects are impossible. Never prune other containers.
   The entire model-visible serialized JSON response is capped at 32768 UTF-8
   bytes with truncation flagged; output is explicitly untrusted and `receipt()`
   omits command and output. Parent

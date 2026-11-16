@@ -137,12 +137,47 @@ def _selected_socket():
     return host[7:]
 
 
-def _engine_exec(path, container, command, timeout, deadline=None):
+class _EngineCancellation:
+    """Cancel current I/O and refuse subsequent Engine phases."""
+    def __init__(self):
+        self.lock = threading.Lock()
+        self.cancelled = False
+        self.interrupter = None
+
+    def register(self, sock):
+        with self.lock:
+            if self.cancelled:
+                raise OSError('engine cancelled')
+            self.interrupter = sock
+
+    def unregister(self, sock):
+        with self.lock:
+            if self.interrupter is sock:
+                self.interrupter = None
+
+    def check(self):
+        with self.lock:
+            if self.cancelled:
+                raise OSError('engine cancelled')
+
+    def cancel(self):
+        with self.lock:
+            self.cancelled = True
+            if self.interrupter is not None:
+                try:
+                    self.interrupter.shutdown(socket.SHUT_RDWR)
+                except OSError:
+                    pass  # not connected yet; the post-connect check catches it
+
+
+def _engine_exec(path, container, command, timeout, deadline=None, cancellation=None):
     """Create, attach and inspect through the host-only Docker Engine API."""
     end = deadline if deadline is not None else time.monotonic() + timeout + 1
 
     @contextmanager
     def request(method, route, body=None):
+        if cancellation is not None:
+            cancellation.check()
         remaining = end - time.monotonic()
         if remaining <= 0:
             raise TimeoutError('engine deadline')
@@ -158,6 +193,8 @@ def _engine_exec(path, container, command, timeout, deadline=None):
             conn.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
             conn.sock.settimeout(remaining)
             interrupter = conn.sock.dup()
+            if cancellation is not None:
+                cancellation.register(interrupter)
             def interrupt():
                 expired.set()
                 try:
@@ -173,9 +210,13 @@ def _engine_exec(path, container, command, timeout, deadline=None):
                 raise TimeoutError('engine deadline')
             conn.sock.settimeout(remaining)
             conn.sock.connect(path)
+            if cancellation is not None:
+                cancellation.check()
             if expired.is_set() or time.monotonic() >= end:
                 raise TimeoutError('engine deadline')
             payload = None if body is None else json.dumps(body).encode()
+            if cancellation is not None:
+                cancellation.check()
             conn.request(method, route, body=payload, headers={'Content-Type': 'application/json'})
             response = conn.getresponse()
             expected = 201 if method == 'POST' and route.endswith('/exec') else 200
@@ -201,6 +242,8 @@ def _engine_exec(path, container, command, timeout, deadline=None):
                     conn.close()
                 finally:
                     if interrupter is not None:
+                        if cancellation is not None:
+                            cancellation.unregister(interrupter)
                         interrupter.close()
 
     def read_some(response, size):
@@ -286,6 +329,8 @@ class ResearchContainer:
         self.command_token = None
         self.expired_token = None
         self.socket_path = None
+        self.engine_cancellation = None
+        self.cleanup_thread = None
 
     def start(self):
         with self.lock:
@@ -355,6 +400,8 @@ class ResearchContainer:
             self.inflight = True
             token = object()
             self.command_token = token
+            cancellation = _EngineCancellation()
+            self.engine_cancellation = cancellation
             self.expired_token = None
             expires_at = time.monotonic() + timeout + 1
             deadline = None
@@ -367,6 +414,7 @@ class ResearchContainer:
                     deadline.cancel()
                 self.inflight = False
                 self.command_token = None
+                self.engine_cancellation = None
                 self.exec_lock.release()
                 return {"ok": False, "error": "command_timer_unavailable"}
         try:
@@ -375,7 +423,7 @@ class ResearchContainer:
                 path = _selected_socket()
                 if self.socket_path is not None and path != self.socket_path:
                     raise ValueError('daemon selection changed')
-                rc, output, truncated = _engine_exec(path, self.name, command, timeout, expires_at)
+                rc, output, truncated = _engine_exec(path, self.name, command, timeout, expires_at, cancellation)
             except TimeoutError:
                 timed_out = True
                 rc, output, truncated = None, "", False
@@ -384,26 +432,33 @@ class ResearchContainer:
             with self.lock:
                 self.inflight = False
                 timed_out |= self.expired_token is token
-                # If the socket deadline wins the race, keep the watchdog armed
-                # to request cleanup without blocking this call on Docker CLI.
-                cleanup_pending = timed_out and time.monotonic() >= expires_at and self.command_token is token
-                if not cleanup_pending:
-                    self.command_token = None
-                    deadline.cancel()
+                cancelled = self.state != 'running'
+                self.command_token = None
+                self.engine_cancellation = None
+                deadline.cancel()
                 if timed_out:
                     self.state = "uncertain"
                     self.delayed_possible = True
-                    return {"ok": False, "error": "command_timed_out", "cleanup_required": True}
-                if self.state != "running":
+                    result = {"ok": False, "error": "command_timed_out", "cleanup_required": True}
+                elif cancelled:
                     self.delayed_possible = True
-                    return {"ok": False, "error": "task_cancelled", "cleanup_required": True}
-                if rc is None:
+                    result = {"ok": False, "error": "task_cancelled", "cleanup_required": True}
+                elif rc is None:
                     self.state = "uncertain"
                     self.delayed_possible = True
-                    return {"ok": False, "error": "docker_exec_completion_unverified", "cleanup_required": True}
-                return {"ok": rc == 0, "exit_code": rc, "timed_out": False,
-                        "output": output, "truncated": truncated,
-                        "trust": "untrusted_container_output"}
+                    result = {"ok": False, "error": "docker_exec_completion_unverified", "cleanup_required": True}
+                else:
+                    return {"ok": rc == 0, "exit_code": rc, "timed_out": False,
+                            "output": output, "truncated": truncated,
+                            "trust": "untrusted_container_output"}
+            # Retry after interrupted transport without blocking the caller.
+            # Daemon work may still complete after both cleanup attempts.
+            try:
+                self.cleanup_thread = threading.Thread(target=self.close, daemon=True)
+                self.cleanup_thread.start()
+            except RuntimeError:
+                pass  # cleanup_required remains explicit and close() retryable
+            return result
         finally:
             self.exec_lock.release()
 
@@ -418,6 +473,8 @@ class ResearchContainer:
             if self.state in ("uncertain", "starting") or self.inflight:
                 self.delayed_possible = True
             self.state = "uncertain"
+            if self.engine_cancellation is not None:
+                self.engine_cancellation.cancel()
         try:
             if self.socket_path is not None and _selected_socket() != self.socket_path:
                 raise ValueError('daemon selection changed')

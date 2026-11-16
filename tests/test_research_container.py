@@ -109,8 +109,9 @@ class UnitTests(unittest.TestCase):
     def test_daemon_failure_exit_one_never_allows_reuse(self):
         task = m.ResearchContainer()
         task.state = 'running'
-        with mock.patch.object(m, '_engine_exec', side_effect=OSError('daemon failure')):
+        with mock.patch.object(m, '_engine_exec', side_effect=OSError('daemon failure')), mock.patch.object(m, '_docker', return_value=(0, '', False)):
             result = task.execute('true')
+            task.cleanup_thread.join(2)
         self.assertTrue(result['cleanup_required'])
         self.assertEqual(task.state, 'uncertain')
         self.assertEqual(task.execute('true')['error'], 'container_not_running')
@@ -121,8 +122,9 @@ class UnitTests(unittest.TestCase):
             task.state = 'running'
             env = {'PATH': os.environ.get('PATH', ''), 'DOCKER_CONFIG': directory,
                    'DOCKER_HOST': 'unix://' + str(Path(directory) / 'missing.sock')}
-            with mock.patch.dict(os.environ, env, clear=True):
+            with mock.patch.dict(os.environ, env, clear=True), mock.patch.object(m, '_docker', return_value=(0, '', False)):
                 result = task.execute('true')
+                task.cleanup_thread.join(2)
             self.assertEqual(result['error'], 'docker_exec_completion_unverified')
             self.assertTrue(result['cleanup_required'])
             self.assertEqual(task.state, 'uncertain')
@@ -165,15 +167,17 @@ class UnitTests(unittest.TestCase):
     def test_exec_client_timeout_disallows_reuse(self):
         task = m.ResearchContainer()
         task.state = 'running'
-        with mock.patch.object(m, '_engine_exec', side_effect=TimeoutError):
+        with mock.patch.object(m, '_engine_exec', side_effect=TimeoutError), mock.patch.object(m, '_docker', return_value=(0, '', False)):
             self.assertTrue(task.execute('true')['cleanup_required'])
             self.assertEqual(task.execute('true')['error'], 'container_not_running')
+            task.cleanup_thread.join(2)
 
     def test_unexpected_exec_error_requires_cleanup_without_output_leak(self):
         task = m.ResearchContainer()
         task.state = 'running'
-        with mock.patch.object(m, '_engine_exec', side_effect=RuntimeError('secret raw stdout')):
+        with mock.patch.object(m, '_engine_exec', side_effect=RuntimeError('secret raw stdout')), mock.patch.object(m, '_docker', return_value=(0, '', False)):
             result = task.execute('true')
+            task.cleanup_thread.join(2)
         self.assertTrue(result['cleanup_required'])
         self.assertEqual(task.state, 'uncertain')
         self.assertNotIn('secret', str(result))
@@ -240,6 +244,7 @@ class UnitTests(unittest.TestCase):
             release.set()
             worker.join(2)
             closer.join(2)
+            task.cleanup_thread.join(2)
         self.assertTrue(finished, 'cleanup blocked behind the running exec')
         self.assertNotEqual(task.state, 'running')
 
@@ -285,6 +290,7 @@ class UnitTests(unittest.TestCase):
             timer.call_args.args[1]()
             release.set()
             worker.join(2)
+            task.cleanup_thread.join(2)
         self.assertEqual(results[0]['error'], 'command_timed_out')
         self.assertNotIn('private', str(results))
         self.assertEqual(task.state, 'uncertain')
