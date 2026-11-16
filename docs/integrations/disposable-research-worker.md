@@ -7,8 +7,8 @@
 - **Base commit:** `20189521b6aab6997ebde5a353542af2e63848de` (fetched `origin/beta`)
 - **Intended integration target:** `beta` (no integration authorized)
 - **Last updated:** 2026-11-15
-- **Latest immutable recovery checkpoint:** `81ea4a33fb4f29e255917c75e5d4eaa918a845de` (implementation commit; branch tip also contains a later dossier-only handoff)
-- **Feature implementation commit(s):** `81ea4a33fb4f29e255917c75e5d4eaa918a845de`
+- **Latest immutable recovery checkpoint:** `3cf82e6a87613201f3bd439ba35e166d469bd11c` (transport implementation; branch tip also contains this later dossier-only handoff)
+- **Feature implementation commit(s):** `81ea4a33fb4f29e255917c75e5d4eaa918a845de` (preflight); `3cf82e6a87613201f3bd439ba35e166d469bd11c` (transport)
 - **Inspiration / canonical references:** `safe-fetch`, `sandbox-run`, Hermes provider and Docker documentation; General Skills owns the generic safe-fetch skill. BBH's target stores and live runtime were not modified.
 
 ## New direction: host-native researcher and containerized tools
@@ -51,7 +51,7 @@ This branch implements only `skills/safe-fetch/scripts/research_worker_preflight
 - **Next step:** after approval, run one bounded benign inference probe without printing credentials; then design and test a broker/transport without broad network or host exposure; deliver source into task-owned isolated storage, integrate an actual agent with explicit source/citation and question interface, then prove the named negative controls and cleanup against real runtime behavior. Do not equate a prompt instruction, heuristic sanitizer, or this preflight with a security boundary.
 - **Why it blocks:** no substantive model call has succeeded, so user-requested agent operation and privacy/injection claims are unverified. This branch is not integration-ready.
 
-## Interruption / resume handoff
+## Historical interruption / resume handoff (superseded by new direction above)
 
 The immutable implementation checkpoint is `81ea4a33fb4f29e255917c75e5d4eaa918a845de`; the later branch tip contains this dossier-only handoff. Resume from this worktree, rerun the exact preflight and full tests, then implement/verify the genuinely isolated agent path only after resolving the endpoint/credential boundary. Do not alter an active hunter. The branch remains unmerged and unpushed.
 
