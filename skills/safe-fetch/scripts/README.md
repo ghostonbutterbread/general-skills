@@ -16,12 +16,21 @@
   automatically installed or activated. Host-owned code creates a
   `ResearchContainer()`, calls `start()`, registers `register_tool(ctx,
   resolve_authorized_task)`, and always calls `close()` in `finally`, retaining
-  its receipt. Reuse that instance only for the same child/task. A start failure,
-  timeout, cancellation, or uncertain cleanup requires exact-name follow-up;
-  never prune other containers. The container self-exits after 900 seconds and
-  uses Docker `--rm`, but daemon failure/delayed calls can still defeat timely
-  cleanup. Output is returned to the child only, bounded to 32768 bytes and
-  explicitly marked untrusted; `receipt()` omits command and output. Parent
+  its receipt. Reuse that instance only for the same child/task. `close()` also
+  serves as cancellation and does not wait for an in-flight exec. Task-local host
+  timers request exact-name removal at 900 seconds after start and at one second
+  after an in-flight command's deadline. A completed command's detached children
+  can continue until task close/expiry; command timeout is NOT their lifetime
+  bound. Never use this for work requiring per-command descendant isolation.
+  Timers require a live host process and responsive daemon, and in-container
+  sleep/`--rm` are not a trusted substitute after host death. Failed/timed-out
+  Docker operations, cancellation, or an incomplete listing leave state uncertain;
+  repeatedly call `close()` on the exact task instance/name and independently
+  reconcile delayed daemon operations. Absence at a single check cannot establish
+  that a timed-out create will not appear later. Never prune other containers.
+  The entire model-visible serialized JSON response is capped at 32768 UTF-8
+  bytes with truncation flagged; output is explicitly untrusted and `receipt()`
+  omits command and output. Parent
   must separately constrain/review the child's final result as untrusted data;
   this transport does not sanitize arbitrary natural-language summaries.
 
@@ -46,10 +55,12 @@
   verify/trust the image and Docker host before use. Network is intentionally
   unavailable; public fetch and full-source transfer are not implemented.
   Containers share the host kernel and do not guarantee defense against kernel
-  or daemon vulnerabilities. A command timeout marks the task non-reusable and
-  requires cleanup. `absent_at_check` is point-in-time only, while the explicit
-  `absent_at_check_delayed_operation_possible` warns that a timed-out daemon
-  request can still race the check. Run the opt-in real test with
+  or daemon vulnerabilities. Exit 124 or 137 may be a command's own exit and is
+  reported as ambiguous, not definitive timeout. Such a result, a host watchdog
+  expiry, or an exec client error marks the task non-reusable and requires cleanup.
+  `absent_at_check` is point-in-time only, while the explicit
+  `absent_at_check_delayed_operation_possible` leaves state uncertain and every
+  subsequent `close()` retries exact-name removal and inspection. Run the opt-in real test with
   `RESEARCH_DOCKER_TEST=1 PYTHONPATH="$PWD" python3 -m unittest discover -s tests -p test_research_container.py -v`.
 
 A pass is only evidence for those observed checks; it is not a security audit,

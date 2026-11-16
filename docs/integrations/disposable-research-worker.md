@@ -1,6 +1,6 @@
 # Disposable research worker — integration dossier
 
-- **Status:** task container transport implemented; restricted-native-child integration and independent review blocked pending core lifecycle API
+- **Status:** transport review fixes implemented; independent re-review, descendant-lifetime approval, and restricted-child integration remain blocked
 - **Owner:** delegated Hermes worker
 - **Branch / owning ref:** `feat/disposable-research-worker`
 - **Worktree:** `/home/ryushe/worktrees/general-research-worker-20261115`
@@ -11,11 +11,57 @@
 - **Feature implementation commit(s):** `81ea4a33fb4f29e255917c75e5d4eaa918a845de` (preflight); `3cf82e6a87613201f3bd439ba35e166d469bd11c` (transport)
 - **Inspiration / canonical references:** `safe-fetch`, `sandbox-run`, Hermes provider and Docker documentation; General Skills owns the generic safe-fetch skill. BBH's target stores and live runtime were not modified.
 
+## Independent transport review corrections and remaining gates
+
+The transport now keeps delayed-operation cleanup retryable, including after a
+point-in-time absence; it never promotes that observation to definitive closure.
+Task-owned host timers request removal at the 900-second task deadline and when a
+still-running command exceeds its deadline by one second. Cancellation does not
+wait behind exec; a create completing after cancellation triggers another exact-name
+cleanup attempt. Descendants of an already-completed command may remain for the
+rest of the task, so this does not provide per-command descendant isolation. The
+host timer is not durable across host-process death and a broken/stalled daemon can
+defeat timely cleanup. Uncertain outcomes require explicit repeated exact-name
+reconciliation, not a finite waiting period presented as proof.
+
+Post-launch Docker exceptions fail closed without returning exception or stdout;
+exit 124/137 is explicitly ambiguous. The entire model-visible JSON response is
+bounded by UTF-8 bytes including escaping, with invalid-byte replacement and
+incomplete/truncated drains accounted for. No raw command/output appears in the
+parent receipt. These are transport contracts, not evidence of a real child or a
+safe untrusted summary.
+
+Verification: `PYTHONPATH="$PWD" python3 -W error::ResourceWarning -m unittest
+discover -s tests -v` ran 72 tests: 71 passed, one opt-in Docker test skipped.
+This includes mock lifetime/late-create regressions. The previously
+approved ordinary Docker isolation/reuse test was run twice, neither with
+background/detached-descendant experiments: the first reported `unverified`
+cleanup after daemon slowness and failed; later explicit removal and readback of
+`research-task-d1ec6e3f0c6841b2a47475e32d043c4e` returned no such container and
+an empty exact-name listing. A second ordinary run passed, but its cleanup was
+`absent_at_check_delayed_operation_possible`; exact-name removal/readback of
+`research-task-428c7e2b86664607ae3f0d523c162c26` subsequently found no such
+container and an empty listing. Neither listing proves a delayed daemon request
+cannot still complete. No global cleanup/prune was used.
+
+**Withdrawn approval gate:** the independent reviewer's real-container
+background/escaped-descendant lifetime probe was blocked with approval withdrawn.
+Do not rerun it or reach the same outcome by a different command or mechanism.
+Only after the operator explicitly restores that approval, design and run a
+scoped task-owned E2E fixture verifying the descendant is gone on explicit
+cancel, host task expiry, command deadline, and cleanup failure/retry, with
+exact-name readback and no other containers touched; record its actual command,
+artifacts, and results. Currently only mocked timer/cancel behavior is verified.
+Host crash/daemon outage durability and per-command descendant isolation remain
+unverified limitations, not passed checks. The changed transport needs independent
+full-diff review; core exact-child lifecycle and real agent/model tests are separate
+gates. No merge, push, activation, host-auth use, target or model probe is authorized.
+
 ## New direction: host-native researcher and containerized tools
 
 The later task explicitly replaces the broker sketch below: the native child keeps its existing host provider/model; no model, credential, login, or broker runs inside Docker. The previously denied xAI probe remains forbidden and was not retried. `skills/safe-fetch/scripts/research_container.py` supplies one reusable, networkless per-task container and `register_tool(ctx, resolve_authorized_task=None)`. Its schema and trusted integration contract are documented in `skills/safe-fetch/scripts/README.md`. The default registration denies all tool calls. A caller-supplied resolver is host-trusted and MUST verify exact effective child tools, leaf status, and bound runtime identity before returning the task instance. Current public `PluginContext.subagent_lifecycle` has no exact effective-tool attestation; no real adapter has been written or activated. Registration cannot remove host tools.
 
-The implementation retains no raw output in `receipt()`, and tags/caps returned tool output; parent must independently treat the child final answer as untrusted and bound it. Commands can pass short inline content, but public fetch, network policy, full-source ingestion, parent-side summary sanitization and a live agent workflow are not implemented. The local Docker image tag is mutable, not pinned. The kernel and daemon remain trusted. `--rm` plus a 900-second container lifetime are not a guarantee of cleanup after daemon failure; exact-name readback is point-in-time and timeouts can cause delayed daemon effects.
+The implementation retains no raw output in `receipt()`, and tags/caps returned tool output; parent must independently treat the child final answer as untrusted and bound it. Commands can pass short inline content, but public fetch, network policy, full-source ingestion, parent-side summary sanitization and a live agent workflow are not implemented. The local Docker image tag is mutable, not pinned. The kernel and daemon remain trusted. The in-container sleep and `--rm` do not ensure a 900-second maximum: an untrusted same-UID command can interfere with the sleeper, and the host timer itself requires a live process and responsive daemon. Exact-name readback is point-in-time and timeouts can cause delayed daemon effects.
 
 Verification commands: `RESEARCH_DOCKER_TEST=1 PYTHONPATH="$PWD" python3 -W error::ResourceWarning -m unittest discover -s tests -p test_research_container.py -v`; `PYTHONPATH="$PWD" python3 -m unittest discover -s tests -v`. Real Docker exercised non-root, host-file and host-environment sentinel absence, no Docker socket, loopback-only network, task workspace reuse through the registered handler with a test-only resolver, nonzero exit, output cap, timeout, no reuse after timeout, and exact-name cleanup readback. A separate isolated-home scratch smoke invoked the real `PluginContext.register_tool`, real registry dispatch (denied without adapter), and registration disposal. The real-Docker resolver and context were test doubles, not a verified child lifecycle. This is not inference, prompt-injection, privacy certification, or end-to-end research evidence.
 

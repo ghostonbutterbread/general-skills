@@ -43,7 +43,17 @@ class UnitTests(unittest.TestCase):
             self.assertEqual(task.execute('true')['error'], 'container_not_running')
             receipt = task.close()
             self.assertEqual(receipt['cleanup'], 'absent_at_check_delayed_operation_possible')
-            self.assertEqual(task.close(), receipt)
+            self.assertEqual(task.state, 'uncertain')
+        with mock.patch.object(m, '_docker', side_effect=[(0, '', False), (0, task.name, False)]) as docker:
+            self.assertEqual(task.close()['cleanup'], 'unverified')
+            self.assertEqual(docker.call_args_list[0].args[0], ['rm', '-f', task.name])
+
+    def test_incomplete_container_listing_is_not_absence(self):
+        task = m.ResearchContainer()
+        task.state = 'running'
+        with mock.patch.object(m, '_docker', side_effect=[(0, '', False), (0, '', True)]):
+            self.assertEqual(task.close()['cleanup'], 'unverified')
+            self.assertEqual(task.state, 'uncertain')
 
     def test_exec_client_timeout_disallows_reuse(self):
         task = m.ResearchContainer()
@@ -51,6 +61,148 @@ class UnitTests(unittest.TestCase):
         with mock.patch.object(m, '_docker', return_value=(None, '', False)):
             self.assertTrue(task.execute('true')['cleanup_required'])
             self.assertEqual(task.execute('true')['error'], 'container_not_running')
+
+    def test_unexpected_exec_error_requires_cleanup_without_output_leak(self):
+        task = m.ResearchContainer()
+        task.state = 'running'
+        with mock.patch.object(m, '_docker', side_effect=RuntimeError('secret raw stdout')):
+            result = task.execute('true')
+        self.assertTrue(result['cleanup_required'])
+        self.assertEqual(task.state, 'uncertain')
+        self.assertNotIn('secret', str(result))
+        self.assertEqual(task.execute('true')['error'], 'container_not_running')
+
+    def test_wait_exception_after_client_launch_marks_uncertain(self):
+        import io
+        proc = mock.Mock()
+        proc.stdout = io.BytesIO(b'secret raw stdout')
+        proc.wait.side_effect = RuntimeError('secret raw stdout')
+        task = m.ResearchContainer()
+        task.state = 'running'
+        with mock.patch.object(m.subprocess, 'Popen', return_value=proc) as popen:
+            result = task.execute('true')
+        popen.assert_called_once()
+        proc.kill.assert_called_once()
+        self.assertTrue(result['cleanup_required'])
+        self.assertEqual(task.state, 'uncertain')
+        self.assertNotIn('secret', str(result))
+
+    def test_serialized_response_bound_with_invalid_bytes_and_escapes(self):
+        import io
+        proc = mock.Mock()
+        proc.stdout = io.BytesIO((b'\xff' + b'\x00') * (m.MAX_OUTPUT // 2))
+        proc.wait.return_value = 0
+        task = m.ResearchContainer()
+        task.state = 'running'
+        ctx = Context()
+        m.register_tool(ctx, lambda kw: task)
+        with mock.patch.object(m.subprocess, 'Popen', return_value=proc):
+            response = ctx.registered['handler']({'command': 'true'})
+        self.assertLessEqual(len(response.encode('utf-8')), m.MAX_OUTPUT)
+        self.assertTrue(json.loads(response)['truncated'])
+
+    def test_incomplete_drain_marks_output_truncated(self):
+        proc = mock.Mock()
+        proc.stdout = mock.Mock()
+        proc.wait.return_value = 0
+        reader = mock.Mock()
+        reader.is_alive.return_value = True
+        with mock.patch.object(m.subprocess, 'Popen', return_value=proc), mock.patch.object(
+                m.threading, 'Thread', return_value=reader):
+            _, _, truncated = m._docker(['exec'], 1)
+        self.assertTrue(truncated)
+
+    def test_timeout_exit_codes_are_ambiguous(self):
+        for code in (124, 137):
+            task = m.ResearchContainer()
+            task.state = 'running'
+            with mock.patch.object(m, '_docker', return_value=(code, '', False)):
+                result = task.execute('exit ' + str(code))
+            self.assertIsNone(result['timed_out'])
+            self.assertTrue(result['cleanup_required'])
+
+    def test_task_expiry_removes_only_owned_container_and_prevents_reuse(self):
+        task = m.ResearchContainer()
+        with mock.patch.object(m.threading, 'Timer') as timer, mock.patch.object(
+                m, '_docker', side_effect=[(0, '', False), (0, '', False), (0, '', False)]) as docker:
+            self.assertTrue(task.start()['ok'])
+            expiry = timer.call_args.args[1]
+            self.assertEqual(timer.call_args.args[0], 900)
+            expiry()
+            self.assertEqual(docker.call_args_list[1].args[0], ['rm', '-f', task.name])
+            self.assertEqual(task.execute('true')['error'], 'container_not_running')
+
+    def test_cancel_does_not_wait_for_inflight_exec(self):
+        import threading
+        entered, release = threading.Event(), threading.Event()
+        task = m.ResearchContainer()
+        task.state = 'running'
+        def docker(args, timeout):
+            if args[0] == 'exec':
+                entered.set()
+                release.wait(2)
+                return 0, 'untrusted', False
+            return 0, '', False
+        with mock.patch.object(m, '_docker', side_effect=docker):
+            worker = threading.Thread(target=task.execute, args=('true',))
+            worker.start()
+            self.assertTrue(entered.wait(1))
+            closer = threading.Thread(target=task.close)
+            closer.start()
+            closer.join(0.5)
+            finished = not closer.is_alive()
+            release.set()
+            worker.join(2)
+            closer.join(2)
+        self.assertTrue(finished, 'cleanup blocked behind the running exec')
+        self.assertNotEqual(task.state, 'running')
+
+    def test_cancel_during_start_reconciles_after_late_create(self):
+        import threading
+        entered, release = threading.Event(), threading.Event()
+        task = m.ResearchContainer()
+        calls = []
+        def docker(args, timeout):
+            calls.append(args)
+            if args[0] == 'run':
+                entered.set()
+                release.wait(2)
+            return 0, '', False
+        with mock.patch.object(m.threading, 'Timer'), mock.patch.object(m, '_docker', side_effect=docker):
+            result = []
+            worker = threading.Thread(target=lambda: result.append(task.start()))
+            worker.start()
+            self.assertTrue(entered.wait(1))
+            self.assertEqual(task.close()['cleanup'], 'absent_at_check_delayed_operation_possible')
+            release.set()
+            worker.join(2)
+        self.assertFalse(result[0]['ok'])
+        self.assertEqual(sum(c == ['rm', '-f', task.name] for c in calls), 2)
+        self.assertEqual(task.state, 'uncertain')
+
+    def test_host_command_deadline_closes_container_on_hung_exec(self):
+        import threading
+        entered, release = threading.Event(), threading.Event()
+        task = m.ResearchContainer()
+        task.state = 'running'
+        def docker(args, timeout):
+            if args[0] == 'exec':
+                entered.set()
+                release.wait(2)
+                return 0, 'private', False
+            return 0, '', False
+        with mock.patch.object(m.threading, 'Timer') as timer, mock.patch.object(m, '_docker', side_effect=docker):
+            results = []
+            worker = threading.Thread(target=lambda: results.append(task.execute('true', 3)))
+            worker.start()
+            self.assertTrue(entered.wait(1))
+            self.assertEqual(timer.call_args.args[0], 4)
+            timer.call_args.args[1]()
+            release.set()
+            worker.join(2)
+        self.assertEqual(results[0]['error'], 'task_cancelled')
+        self.assertNotIn('private', str(results))
+        self.assertEqual(task.state, 'uncertain')
 
     def test_invalid_inputs_do_not_call_docker(self):
         task = m.ResearchContainer()
@@ -91,7 +243,11 @@ class DockerTests(unittest.TestCase):
                 self.assertLessEqual(len(large['output']), m.MAX_OUTPUT)
                 timeout = task.execute('sleep 10', 1)
                 print('timeout:', timeout, flush=True)
-                self.assertTrue(timeout['timed_out'])
+                if timeout.get('error') == 'timeout_or_command_exit_ambiguous':
+                    self.assertIsNone(timeout['timed_out'])
+                else:
+                    self.assertEqual(timeout.get('error'), 'task_cancelled')
+                self.assertTrue(timeout['cleanup_required'])
                 self.assertEqual(task.execute('true')['error'], 'container_not_running')
                 self.assertNotIn('fixture', str(task.receipt()))
             finally:

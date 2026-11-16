@@ -49,9 +49,17 @@ def _docker(args, timeout):
         process.kill()
         process.wait()
         rc = None
+    except Exception:
+        try:
+            process.kill()
+            process.wait(timeout=2)
+        except Exception:
+            pass
+        reader.join(timeout=2)
+        raise
     reader.join(timeout=2)
     # A Docker child holding the stream may outlive the client. Do not wait forever.
-    return rc, bytes(chunks).decode("utf-8", "replace"), truncated
+    return rc, bytes(chunks).decode("utf-8", "replace"), truncated or reader.is_alive()
 
 
 class ResearchContainer:
@@ -61,24 +69,53 @@ class ResearchContainer:
         self.state = "new"
         self.cleanup_result = None
         self.lock = threading.RLock()
+        self.exec_lock = threading.Lock()
+        self.inflight = False
+        self.delayed_possible = False
+        self.timer = None
+        self.command_token = None
 
     def start(self):
         with self.lock:
             if self.state != "new":
                 raise RuntimeError("container already started or closed")
-            self.state = "uncertain"  # Docker may finish after a client timeout.
-            args = ["run", "-d", "--rm", "--init", "--pull=never", "--name", self.name,
-                    "--network", "none", "--read-only", "--cap-drop", "ALL",
-                    "--security-opt", "no-new-privileges", "--pids-limit", "64",
-                    "--memory", "256m", "--cpus", "1", "--user", "65534:65534",
-                    "--tmpfs", "/tmp:rw,nosuid,nodev,noexec,size=32m,mode=1777",
-                    "--workdir", "/tmp", "--entrypoint", "python", IMAGE,
-                    "-c", "import time; time.sleep(900)"]
+            self.state = "starting"
+            self.inflight = True
+            self.timer = threading.Timer(900, self.close)
+            self.timer.daemon = True
+            self.timer.start()
+        args = ["run", "-d", "--rm", "--init", "--pull=never", "--name", self.name,
+                "--network", "none", "--read-only", "--cap-drop", "ALL",
+                "--security-opt", "no-new-privileges", "--pids-limit", "64",
+                "--memory", "256m", "--cpus", "1", "--user", "65534:65534",
+                "--tmpfs", "/tmp:rw,nosuid,nodev,noexec,size=32m,mode=1777",
+                "--workdir", "/tmp", "--entrypoint", "python", IMAGE,
+                "-c", "import time; time.sleep(900)"]
+        try:
             rc, _, _ = _docker(args, 60)
-            if rc != 0:
-                return {"ok": False, "error": "start_failed_or_timed_out", "container": self.name}
-            self.state = "running"
-            return {"ok": True, "container": self.name, "network": "none"}
+        except Exception:
+            rc = None
+        with self.lock:
+            self.inflight = False
+            cancelled = self.state != "starting"
+            if rc != 0 or cancelled:
+                self.state = "uncertain"
+                self.delayed_possible = True
+            else:
+                self.state = "running"
+        if cancelled:
+            self.close()  # a create may have completed after cancellation
+        if rc != 0 or cancelled:
+            return {"ok": False, "error": "start_failed_or_timed_out", "container": self.name}
+        return {"ok": True, "container": self.name, "network": "none"}
+
+    def _expire_command(self, token):
+        with self.lock:
+            if self.command_token is not token or self.state != "running":
+                return
+            self.state = "uncertain"
+            self.delayed_possible = True
+        self.close()
 
     def execute(self, command, timeout=15):
         with self.lock:
@@ -88,42 +125,91 @@ class ResearchContainer:
                 return {"ok": False, "error": "invalid_command"}
             if type(timeout) is not int or not 1 <= timeout <= 60:
                 return {"ok": False, "error": "invalid_timeout"}
-            rc, output, truncated = _docker(
-                ["exec", self.name, "timeout", "-k", "1", str(timeout), "sh", "-c", command], timeout + 10)
-            if rc is None:
-                # A detached exec could remain active. Require cleanup, no reuse.
-                self.state = "uncertain"
-                return {"ok": False, "error": "docker_exec_timeout_or_unavailable", "cleanup_required": True}
-            if rc in (124, 137):
-                self.state = "uncertain"
-                return {"ok": False, "exit_code": rc, "timed_out": True,
+            if not self.exec_lock.acquire(blocking=False):
+                return {"ok": False, "error": "container_busy"}
+            self.inflight = True
+            token = object()
+            self.command_token = token
+            deadline = threading.Timer(timeout + 1, lambda: self._expire_command(token))
+            deadline.daemon = True
+            deadline.start()
+        try:
+            try:
+                rc, output, truncated = _docker(
+                    ["exec", self.name, "timeout", "-k", "1", str(timeout), "sh", "-c", command], timeout + 10)
+            except Exception:
+                rc, output, truncated = None, "", False
+            with self.lock:
+                self.inflight = False
+                self.command_token = None
+                deadline.cancel()
+                if self.state != "running":
+                    self.delayed_possible = True
+                    return {"ok": False, "error": "task_cancelled", "cleanup_required": True}
+                if rc is None or rc in (124, 137):
+                    self.state = "uncertain"
+                    self.delayed_possible = True
+                if rc is None:
+                    return {"ok": False, "error": "docker_exec_timeout_or_unavailable", "cleanup_required": True}
+                if rc in (124, 137):
+                    return {"ok": False, "exit_code": rc, "timed_out": None,
+                            "error": "timeout_or_command_exit_ambiguous",
+                            "output": output, "truncated": truncated,
+                            "trust": "untrusted_container_output", "cleanup_required": True}
+                return {"ok": rc == 0, "exit_code": rc, "timed_out": False,
                         "output": output, "truncated": truncated,
-                        "trust": "untrusted_container_output", "cleanup_required": True}
-            return {"ok": rc == 0, "exit_code": rc, "timed_out": False,
-                    "output": output, "truncated": truncated,
-                    "trust": "untrusted_container_output"}
+                        "trust": "untrusted_container_output"}
+        finally:
+            self.exec_lock.release()
 
     def close(self):
         with self.lock:
             if self.state == "closed":
                 return {"container": self.name, "cleanup": self.cleanup_result}
-            previous = self.state
+            if self.state in ("uncertain", "starting") or self.inflight:
+                self.delayed_possible = True
             self.state = "uncertain"
-            _docker(["rm", "-f", self.name], 20)
-            rc, output, _ = _docker(["ps", "-a", "--filter", "name=^/" + self.name + "$",
+        try:
+            rm_rc, _, _ = _docker(["rm", "-f", self.name], 20)
+            rc, output, listing_truncated = _docker(["ps", "-a", "--filter", "name=^/" + self.name + "$",
                                       "--format", "{{.Names}}"], 20)
-            # A timed-out create/exec can complete after the inspection.
-            cleanup = "absent_at_check" if rc == 0 and not output.strip() else "unverified"
-            if previous == "uncertain" and cleanup == "absent_at_check":
+        except Exception:
+            rm_rc, rc, output, listing_truncated = None, None, "", True
+        with self.lock:
+            if rm_rc is None:
+                self.delayed_possible = True
+            cleanup = "absent_at_check" if rc == 0 and not listing_truncated and not output.strip() else "unverified"
+            if self.delayed_possible and cleanup == "absent_at_check":
                 cleanup = "absent_at_check_delayed_operation_possible"
-            if cleanup != "unverified":
+            if cleanup == "absent_at_check":
                 self.cleanup_result = cleanup
                 self.state = "closed"
+                if self.timer:
+                    self.timer.cancel()
             return {"container": self.name, "cleanup": cleanup}
 
     def receipt(self):
         """Parent handoff deliberately excludes command and raw container output."""
         return {"container": self.name, "state": self.state, "network": "none"}
+
+
+def _model_response(result):
+    """Bound the entire serialized response, including JSON escaping."""
+    encoded = json.dumps(result)
+    if len(encoded.encode('utf-8')) <= MAX_OUTPUT:
+        return encoded
+    output = result.get('output', '')
+    result = dict(result, truncated=True)
+    low, high = 0, len(output)
+    while low < high:
+        mid = (low + high + 1) // 2
+        result['output'] = output[:mid]
+        if len(json.dumps(result).encode('utf-8')) <= MAX_OUTPUT:
+            low = mid
+        else:
+            high = mid - 1
+    result['output'] = output[:low]
+    return json.dumps(result)
 
 
 def register_tool(ctx, resolve_authorized_task=None):
@@ -138,7 +224,7 @@ def register_tool(ctx, resolve_authorized_task=None):
             task = resolve_authorized_task(kwargs) if resolve_authorized_task else None
             if not isinstance(task, ResearchContainer):
                 return json.dumps({"ok": False, "error": "exact_child_allowlist_not_verified"})
-            return json.dumps(task.execute(args.get("command"), args.get("timeout", 15)))
+            return _model_response(task.execute(args.get("command"), args.get("timeout", 15)))
         except Exception:
             return json.dumps({"ok": False, "error": "authorization_or_transport_failed"})
 
