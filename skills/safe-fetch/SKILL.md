@@ -9,7 +9,7 @@ Use this whenever external web content, documents, feeds, GitHub pages/issues, a
 
 ## Script index
 
-See [scripts/README.md](scripts/README.md) for the fetch helper and the experimental research-worker preflight.
+See [scripts/README.md](scripts/README.md) for the fetch helper and experimental research-container transport.
 
 ## Command
 
