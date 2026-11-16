@@ -8,6 +8,8 @@
 - **Native candidate:** `/home/ryushe/worktrees/hermes-research-tool-confinement` at `12569d07656b8acda918df70c19d706042d37c7f` (read-only)
 - **Target:** `beta`, subject to separate review and integration approval
 - **Updated:** 2026-11-15
+- **Latest immutable blocker/test checkpoint:** `175593e443c758d7fc8b2c88305cfc9a6c6264e8` on the owning branch; a later dossier-only handoff commit records this checkpoint.
+- **Adapter implementation commits:** none; implementation is blocked.
 - **Prior transport record:** `docs/integrations/disposable-research-worker.md`
 
 ## Intent and decision
@@ -28,16 +30,19 @@ Provide a documented plugin-safe, runtime-issued invocation attestation that ide
 
 ## Offline evidence
 
-`integration_tests/test_research_lifecycle_blocker.py` ran **4/4 passed**, using the real candidate `PluginContext`, registry, lifecycle service, and existing default-deny handler, with a fake child/builder/run function and a scheduler wrapper forcing the early-dispatch ordering. Cases: default deny for missing/spoofed IDs; parent-owned server snapshot versus UNKNOWN from child scope; plain registry kwargs are not independently authenticated; and child dispatch before `launch` returns is denied. These do **not** exercise real `AIAgent` creation, an actual model, a real container, host-tool confinement, or adapter cancellation. The wrapper only establishes a possible scheduling order, not a measured frequency.
+`integration_tests/test_research_lifecycle_blocker.py` ran **4/4 passed** against a scratch `git archive` of the exact native candidate commit, using its real `PluginContext`, registry, lifecycle service, and existing default-deny handler, with a fake child/builder/run function and a scheduler wrapper forcing the early-dispatch ordering. The native worktree acquired concurrent uncommitted changes during this task; the pinned archive run avoids attributing those edits to the candidate. Cases: default deny for missing/spoofed IDs; parent-owned server snapshot versus UNKNOWN from child scope; plain registry kwargs are not independently authenticated; and child dispatch before `launch` returns is denied. These do **not** exercise real `AIAgent` creation, an actual model, a real container, host-tool confinement, or adapter cancellation. The wrapper only establishes a possible scheduling order, not a measured frequency.
 
 Reproduce from this worktree with a fresh disposable scratch directory and an empty executable PATH; no inherited environment, credentials, Docker, or provider access:
 
 ```sh
 d=$(mktemp -d /home/ryushe/.hermes/cache/scratch/research-attest-fixture.XXXXXX)
-mkdir -p "$d/bin" "$d/home" "$d/hermes" "$d/config" "$d/cache" "$d/tmp"
+mkdir -p "$d/native" "$d/bin" "$d/home" "$d/hermes" "$d/config" "$d/cache" "$d/tmp"
+set -o pipefail
+git -C /home/ryushe/worktrees/hermes-research-tool-confinement archive \
+  12569d07656b8acda918df70c19d706042d37c7f | tar -xf - -C "$d/native"
 env -i HOME="$d/home" HERMES_HOME="$d/hermes" HERMES_RUNTIME_DIR="$d/runtime" \
   XDG_CONFIG_HOME="$d/config" XDG_CACHE_HOME="$d/cache" TMPDIR="$d/tmp" PATH="$d/bin" \
-  HERMES_NATIVE_CHECKOUT=/home/ryushe/worktrees/hermes-research-tool-confinement \
+  HERMES_NATIVE_CHECKOUT="$d/native" \
   PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 -W error::ResourceWarning \
   integration_tests/test_research_lifecycle_blocker.py -v
 # Remove only the task-created "$d" afterward.
