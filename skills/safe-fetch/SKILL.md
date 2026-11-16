@@ -7,6 +7,10 @@ description: "Fetch external web content through quarantine and sanitization; us
 
 Use this whenever external web content, documents, feeds, GitHub pages/issues, advisories, PDFs, emails, or other outsourced content will enter agent context unless Ryushe explicitly says to bypass it.
 
+## Script index
+
+See [scripts/README.md](scripts/README.md) for the fetch helper and experimental research-container transport.
+
 ## Command
 
 The helper is shipped with this skill at `scripts/safe_fetch.py`; invoke the synced installation rather than an unmanaged host-local checkout.
