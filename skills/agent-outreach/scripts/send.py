@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import http.client
 import json
 import os
 from pathlib import Path
@@ -35,7 +36,7 @@ def webhook_for(destination: str) -> str:
         config = tomllib.loads(path.read_text(encoding='utf-8'))
         secret_path = config['agent_outreach']['destinations'][destination]['webhook_file']
     except (OSError, UnicodeError, tomllib.TOMLDecodeError, KeyError, TypeError) as exc:
-        raise ValueError(f'Cannot load destination {destination!r} from General Skills config; configure its webhook_file.') from exc
+        raise ValueError('Cannot load the selected destination from General Skills config; configure its webhook_file.') from exc
     if not isinstance(secret_path, str) or not secret_path:
         raise ValueError('webhook_file must be a nonempty path.')
     secret = Path(os.path.expandvars(secret_path)).expanduser()
@@ -73,7 +74,7 @@ def main(argv: list[str] | None = None) -> int:
     try:
         url = webhook_for(args.destination)
         payload = json.dumps({'content': content, 'allowed_mentions': {'parse': []}}).encode('utf-8')
-        request = urllib.request.Request(url, data=payload, headers={'Content-Type': 'application/json'}, method='POST')
+        request = urllib.request.Request(url + '?wait=true', data=payload, headers={'Content-Type': 'application/json'}, method='POST')
         with open_webhook(request, timeout=10) as response:
             response.read()
     except ValueError as exc:
@@ -82,10 +83,13 @@ def main(argv: list[str] | None = None) -> int:
     except urllib.error.HTTPError as exc:
         status = exc.code
         exc.close()
-        print(f'Notification delivery failed: Discord returned HTTP {status}; check the destination or retry later. No automatic retry was made.', file=sys.stderr)
+        if status == 408 or status >= 500:
+            print(f'Notification delivery uncertain: Discord returned HTTP {status}. Check before retrying to avoid duplicates.', file=sys.stderr)
+        else:
+            print(f'Notification delivery failed: Discord returned HTTP {status}; check the destination or retry later. No automatic retry was made.', file=sys.stderr)
         return 1
-    except (OSError, urllib.error.URLError):
-        print('Notification delivery failed: network error or timeout; delivery may be uncertain. Check before retrying to avoid duplicates.', file=sys.stderr)
+    except (OSError, urllib.error.URLError, http.client.HTTPException):
+        print('Notification delivery uncertain: network or response error. Check before retrying to avoid duplicates.', file=sys.stderr)
         return 1
     print('Notification accepted by Discord; this does not confirm a human saw or approved it.')
     return 0

@@ -34,6 +34,7 @@ class OutreachTests(unittest.TestCase):
             with patch.dict(os.environ, {'GENERAL_SKILLS_CONFIG': str(config)}), patch.object(sender, 'open_webhook', side_effect=open_request):
                 result = sender.main(['--kind', 'handoff', '--agent', 'Scout', '--run', 'run-42', '--summary', 'Login needed', '--action', 'Complete login', '--status', 'Paused'])
             self.assertEqual(result, 0)
+            self.assertTrue(captured[0].full_url.endswith('?wait=true'))
             payload = json.loads(captured[0].data)
             self.assertIn('Login needed', payload['content'])
             self.assertIn('run-42', payload['content'])
@@ -101,6 +102,43 @@ class OutreachTests(unittest.TestCase):
             result = sender.main(['--kind', 'notice', '--agent', 'Agent', '--run', '42', '--summary', 'x' * 2100, '--action', 'Review', '--status', 'Paused'])
         self.assertEqual(result, 1)
         opener.assert_not_called()
+
+    def test_uncertain_post_failures_do_not_claim_definitive_failure(self):
+        import contextlib
+        import http.client
+        import io
+        import urllib.error
+        spec = importlib.util.spec_from_file_location('outreach_uncertain', SCRIPT)
+        sender = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(sender)
+        class InterruptedResponse:
+            def __enter__(self): return self
+            def __exit__(self, *args): pass
+            def read(self): raise http.client.IncompleteRead(b'')
+        for effect in (urllib.error.HTTPError('https://discord.com/api/webhooks/123/fake-token', 500, 'error', {}, None), InterruptedResponse()):
+            error = io.StringIO()
+            kwargs = {'side_effect': effect} if isinstance(effect, Exception) else {'return_value': effect}
+            with patch.object(sender, 'webhook_for', return_value='https://discord.com/api/webhooks/123/fake-token'), patch.object(sender, 'open_webhook', **kwargs), contextlib.redirect_stderr(error):
+                result = sender.main(['--kind', 'safety', '--agent', 'Builder', '--run', '42', '--summary', 'Unexpected write', '--action', 'Review', '--status', 'Paused'])
+            self.assertEqual(result, 1)
+            self.assertIn('uncertain', error.getvalue().lower())
+            self.assertIn('before retry', error.getvalue().lower())
+            self.assertNotIn('fake-token', error.getvalue())
+
+    def test_mistaken_destination_does_not_leak_url(self):
+        import contextlib
+        import io
+        spec = importlib.util.spec_from_file_location('outreach_destination', SCRIPT)
+        sender = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(sender)
+        with tempfile.TemporaryDirectory() as tmp:
+            config = Path(tmp) / 'config.toml'
+            config.write_text('[agent_outreach.destinations]\n')
+            error = io.StringIO()
+            with patch.dict(os.environ, {'GENERAL_SKILLS_CONFIG': str(config)}), contextlib.redirect_stderr(error):
+                result = sender.main(['--destination', 'https://discord.com/api/webhooks/123/fake-token', '--kind', 'notice', '--agent', 'A', '--run', '42', '--summary', 'Hi', '--action', 'Review', '--status', 'Paused'])
+            self.assertEqual(result, 1)
+            self.assertNotIn('fake-token', error.getvalue())
 
 if __name__ == '__main__':
     unittest.main()
