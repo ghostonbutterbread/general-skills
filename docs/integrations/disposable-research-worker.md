@@ -7,8 +7,8 @@
 - **Base commit:** `20189521b6aab6997ebde5a353542af2e63848de` (fetched `origin/beta`)
 - **Intended integration target:** `beta` (no integration authorized)
 - **Last updated:** 2026-11-15
-- **Latest immutable recovery checkpoint:** `a499b1e618cb1002dc97d2f4b32c1c1fb8112b2e` (engine completion repair, tests, and evidence; a later dossier-only handoff commit records this checkpoint)
-- **Feature implementation commit(s):** `81ea4a33fb4f29e255917c75e5d4eaa918a845de` (preflight); `3cf82e6a87613201f3bd439ba35e166d469bd11c` (transport); `ff325e79dd60520fb97875eb6eb29e105bf6abce` (transport review corrections); `198466b27a2076ee1fdd1967f7bf7157c223d144` (transport re-review corrections); `48803abeb735f621bb63c2ddb1fa33cc6d8b5817` (fail-closed status checkpoint); `a499b1e618cb1002dc97d2f4b32c1c1fb8112b2e` (engine completion repair)
+- **Latest immutable recovery checkpoint:** `268a525cca7e87ba61dffea3d45761cc861afb5b` (absolute Engine deadline repair, tests, and evidence; a later dossier-only handoff commit records this checkpoint)
+- **Feature implementation commit(s):** `81ea4a33fb4f29e255917c75e5d4eaa918a845de` (preflight); `3cf82e6a87613201f3bd439ba35e166d469bd11c` (transport); `ff325e79dd60520fb97875eb6eb29e105bf6abce` (transport review corrections); `198466b27a2076ee1fdd1967f7bf7157c223d144` (transport re-review corrections); `48803abeb735f621bb63c2ddb1fa33cc6d8b5817` (fail-closed status checkpoint); `a499b1e618cb1002dc97d2f4b32c1c1fb8112b2e` (engine completion repair); `268a525cca7e87ba61dffea3d45761cc861afb5b` (absolute deadline repair)
 - **Inspiration / canonical references:** `safe-fetch`, `sandbox-run`, Hermes provider and Docker documentation; General Skills owns the generic safe-fetch skill. BBH's target stores and live runtime were not modified.
 
 ## Engine absolute-deadline repair
