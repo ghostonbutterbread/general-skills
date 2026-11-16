@@ -9,6 +9,7 @@ SKILLS = ROOT / "skills"
 EXPECTED_SKILLS = {
     "account-manager",
     "account-tui-colors",
+    "agent-outreach",
     "bitwarden",
     "brainstorm",
     "coordination",

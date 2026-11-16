@@ -4,6 +4,7 @@ Reusable local OpenClaw/Codex skills that are not tied to one bug bounty harness
 
 ## Skills
 
+- `agent-outreach` - Cross-harness human handoff and urgent-signal notifications through configured private webhook destinations.
 - `atme` - `/atme` invokes the @me briefing: a compact, grounded current-work summary.
 - `safe-fetch` - Default external web-content ingestion through quarantine and sanitization unless explicitly bypassed.
 - `faq` - Problem-oriented solved fixes, script lookup, and central/program FAQ routing before agents re-solve recurring issues.
