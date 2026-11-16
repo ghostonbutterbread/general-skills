@@ -20,6 +20,102 @@ class Context:
 
 
 class UnitTests(unittest.TestCase):
+    def test_docker_uses_isolated_config_without_proxy_credentials(self):
+        import io
+        with tempfile.TemporaryDirectory() as home:
+            host = Path(home) / 'host-config'
+            host.mkdir()
+            (host / 'config.json').write_text(json.dumps({'proxies': {'default': {'httpProxy': 'http://user:secret@proxy'}}}))
+            proc = mock.Mock(stdout=io.BytesIO(b''))
+            proc.wait.return_value = 0
+            def launch(*args, **kwargs):
+                isolated = Path(kwargs['env']['DOCKER_CONFIG'])
+                self.assertNotEqual(isolated, host)
+                config = isolated / 'config.json'
+                self.assertNotIn('secret', config.read_text() if config.exists() else '')
+                self.assertEqual(kwargs['env']['DOCKER_HOST'], 'unix:///task.sock')
+                return proc
+            with mock.patch.dict(os.environ, {'DOCKER_CONFIG': str(host), 'DOCKER_HOST': 'unix:///task.sock'}, clear=True), mock.patch.object(m.subprocess, 'Popen', side_effect=launch):
+                self.assertEqual(m._docker(['run'], 1)[0], 0)
+
+    def test_docker_rejects_named_context_instead_of_changing_daemon(self):
+        with tempfile.TemporaryDirectory() as host:
+            (Path(host) / 'config.json').write_text('{"currentContext":"remote"}')
+            with mock.patch.dict(os.environ, {'DOCKER_CONFIG': host}, clear=True), mock.patch.object(m.subprocess, 'Popen') as launch:
+                self.assertIsNone(m._docker(['ps'], 1)[0])
+                launch.assert_not_called()
+        with mock.patch.dict(os.environ, {'DOCKER_CONTEXT': 'remote'}, clear=True), mock.patch.object(m.subprocess, 'Popen') as launch:
+            self.assertIsNone(m._docker(['ps'], 1)[0])
+            launch.assert_not_called()
+
+    def test_listing_read_failure_does_not_close_and_can_retry(self):
+        import io
+        class BrokenStream(io.BytesIO):
+            def read(self, size=-1):
+                raise OSError('read failed')
+        task = m.ResearchContainer()
+        task.state = 'running'
+        def process(stream):
+            proc = mock.Mock(stdout=stream)
+            proc.wait.return_value = 0
+            return proc
+        with mock.patch.object(m.subprocess, 'Popen', side_effect=[process(io.BytesIO()), process(BrokenStream())]):
+            self.assertEqual(task.close()['cleanup'], 'unverified')
+        self.assertEqual(task.state, 'uncertain')
+        with mock.patch.object(m, '_docker', return_value=(0, '', False)) as docker:
+            task.close()
+            self.assertEqual(docker.call_count, 2)
+
+    def test_reader_start_failure_reaps_client(self):
+        import io
+        proc = mock.Mock(stdout=io.BytesIO())
+        with mock.patch.object(m.subprocess, 'Popen', return_value=proc), mock.patch.object(m.threading, 'Thread') as thread:
+            thread.return_value.start.side_effect = RuntimeError('thread unavailable')
+            with self.assertRaises(RuntimeError):
+                m._docker(['exec'], 1)
+        proc.kill.assert_called_once()
+        proc.wait.assert_called()
+
+    def test_reader_start_failure_still_waits_if_kill_fails(self):
+        import io
+        proc = mock.Mock(stdout=io.BytesIO())
+        proc.kill.side_effect = ProcessLookupError('already exited')
+        with mock.patch.object(m.subprocess, 'Popen', return_value=proc), mock.patch.object(m.threading, 'Thread') as thread:
+            thread.return_value.start.side_effect = RuntimeError('thread unavailable')
+            with self.assertRaises(RuntimeError):
+                m._docker(['exec'], 1)
+        proc.wait.assert_called()
+
+    def test_start_timer_failure_does_not_launch_or_leave_inflight(self):
+        task = m.ResearchContainer()
+        with mock.patch.object(m.threading, 'Timer') as timer, mock.patch.object(m, '_docker') as docker:
+            timer.return_value.start.side_effect = RuntimeError('thread unavailable')
+            self.assertFalse(task.start()['ok'])
+            docker.assert_not_called()
+        self.assertFalse(task.inflight)
+        self.assertNotEqual(task.state, 'running')
+
+    def test_exec_timer_failure_releases_busy_lock_without_launch(self):
+        task = m.ResearchContainer()
+        task.state = 'running'
+        with mock.patch.object(m.threading, 'Timer') as timer, mock.patch.object(m, '_docker') as docker:
+            timer.return_value.start.side_effect = RuntimeError('thread unavailable')
+            self.assertFalse(task.execute('true')['ok'])
+            docker.assert_not_called()
+        self.assertFalse(task.inflight)
+        self.assertIsNone(task.command_token)
+        self.assertTrue(task.exec_lock.acquire(blocking=False))
+        task.exec_lock.release()
+
+    def test_exit_125_is_uncertain_and_disallows_reuse(self):
+        task = m.ResearchContainer()
+        task.state = 'running'
+        with mock.patch.object(m, '_docker', return_value=(125, '', False)):
+            result = task.execute('true')
+        self.assertTrue(result['cleanup_required'])
+        self.assertEqual(task.state, 'uncertain')
+        self.assertEqual(task.execute('true')['error'], 'container_not_running')
+
     def test_plugin_denies_without_adapter_and_never_executes(self):
         ctx = Context()
         self.assertEqual(m.register_tool(ctx), 'registered')

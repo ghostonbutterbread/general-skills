@@ -13,6 +13,31 @@
 
 ## Independent transport review corrections and remaining gates
 
+Re-review corrections: every transport Docker CLI invocation gets a private,
+empty temporary config; proxy/auth settings from the host config are not copied.
+Named Docker contexts are rejected instead of silently switching daemons;
+`DOCKER_HOST` and TLS environment settings remain host-side. The caller must
+keep daemon selection stable through cleanup. Drain errors propagate into
+uncertain, retryable cleanup; reader-start failure kills and waits for the client;
+timer-start failure cannot leave an in-flight or exec lock held; exit 125 is
+treated as an ambiguous transport/command failure requiring cleanup.
+
+Regression-first evidence: the initial seven tests failed against `cf58f2c`
+(three failures/four errors); a separate failed-kill/reap regression also failed
+before correction. `PYTHONPATH="$PWD" python3 -W error::ResourceWarning -m unittest
+discover -s tests -p 'test_research*.py' -v` ran 31 tests: 30 passed, one
+opt-in real Docker test skipped. The full suite ran 80: 79 passed, one skipped.
+Read-only `docker context inspect` comparisons, using a disposable empty config,
+matched the host default context and matched a synthetic `DOCKER_HOST` selection;
+no container was started. Mocked tests do not prove real proxy credentials are
+absent from a running container or validate TLS/remote daemon behavior.
+
+**Additional known blocker:** the separate older `research_worker_preflight.py`
+still uses the host Docker CLI config and may inject proxy credentials into its
+container. Do not run it with credential-bearing proxy settings; fix and verify
+its CLI config boundary separately before relying on it. The new isolation is
+specific to `research_container.py` and is not a blanket guarantee for scripts.
+
 The transport now keeps delayed-operation cleanup retryable, including after a
 point-in-time absence; it never promotes that observation to definitive closure.
 Task-owned host timers request removal at the 900-second task deadline and when a
@@ -88,14 +113,13 @@ This branch implements only `skills/safe-fetch/scripts/research_worker_preflight
 - A possible architecture to investigate after the approval gate is a task-owned host-only inference broker exposed to a `--network none` container via a single Unix-domain socket, with fixed model/path and bounded request/count, explicit cleanup, and no host-auth or Docker-socket mounts. This is a design sketch, not an implemented or audited security boundary; full source is necessarily sent to the model provider and output is untrusted. The built-in proxy's unauthenticated TCP listener is not itself sufficient. Protect against upstream credential disclosure, request smuggling, unintended endpoint access, resource exhaustion and host filesystem exposure; test the actual runtime rather than presuming socket isolation.
 - Follow-up verification: `PYTHONPATH="$PWD" python3 -m unittest discover -s tests -v` passed all 56 tests; `git diff --check` passed. These tests do not validate a model-backed researcher.
 
-## Blockers and deferred work
+## Current blockers and deferred work
 
 - **Missing:** a real, contained agent doing multi-question reasoning over full supplied source; actual hostile-source/prompt-injection and private-data exfiltration tests, output validation, safe handoff and reuse/cleanup tests.
 - **Approval blocker:** the host-side, no-secret-output xAI inference probe was not executed because its command approval was withdrawn. The operator must restore/explicitly grant the relevant command approval before any retry of that outcome. Do not bypass the approval by changing commands, using the built-in proxy, or another provider.
-- **Environment needed:** after the approval gate is resolved, validate whether an existing authenticated provider is inference-entitled and whether its subscription permits this use; otherwise provision an authorized dedicated inference endpoint with a narrowly scoped, revocable credential/budget, or an isolated local model endpoint. In all cases the credential must remain on the host, not in the container. A networkless agent cannot independently reach a remote provider.
-- **Trigger:** operator grants the blocked model-access approval and an authorized, inference-capable provider/mediation path is established; Docker execution must be reliable enough to complete the probe.
-- **Next step:** after approval, run one bounded benign inference probe without printing credentials; then design and test a broker/transport without broad network or host exposure; deliver source into task-owned isolated storage, integrate an actual agent with explicit source/citation and question interface, then prove the named negative controls and cleanup against real runtime behavior. Do not equate a prompt instruction, heuristic sanitizer, or this preflight with a security boundary.
-- **Why it blocks:** no substantive model call has succeeded, so user-requested agent operation and privacy/injection claims are unverified. This branch is not integration-ready.
+- **Host-native direction:** the child retains its existing authorized host provider; the task container runs tools only. No broker or model in Docker is required. A real adapter must attest exact effective child tools, leaf status and bound runtime identity; the present public lifecycle does not provide that proof. Source ingestion, a bounded untrusted parent handoff, and actual researcher workflow also remain unimplemented.
+- **Trigger / next step:** after independent review and availability of the public attestation contract, integrate the host-native adapter and verify child isolation, source/citation handling and bounded handoff under expressly authorized model settings. The withdrawn xAI approval restriction above remains in force, including any attempt at the same outcome via another provider. Separately, only explicit restored approval permits the denied real descendant-lifetime fixture described above. Do not equate a prompt instruction, heuristic sanitizer, or this preflight with a security boundary.
+- **Why it blocks:** this branch has not established a real restricted-child researcher, authorized end-to-end model operation, or the claimed privacy/injection and descendant-lifetime behaviors. It is not integration-ready.
 
 ## Historical interruption / resume handoff (superseded by new direction above)
 

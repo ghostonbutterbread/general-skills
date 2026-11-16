@@ -6,7 +6,10 @@ trusted lifecycle adapter and for residual container and timeout limitations.
 from __future__ import annotations
 
 import json
+import os
+from pathlib import Path
 import subprocess
+import tempfile
 import threading
 import uuid
 
@@ -17,14 +20,41 @@ MAX_COMMAND = 8192
 
 
 def _docker(args, timeout):
-    """Drain untrusted output continuously but retain only a bounded prefix."""
+    """Use a private CLI config and drain output to a bounded prefix.
+
+    Named contexts live in the user's CLI config; refusing them prevents the
+    isolated config from silently selecting a different daemon.
+    """
+    try:
+        env = os.environ.copy()
+        host_config = Path(env.get("DOCKER_CONFIG") or Path.home() / ".docker")
+        config_file = host_config / "config.json"
+        try:
+            with config_file.open(encoding="utf-8") as source:
+                context = json.load(source).get("currentContext")
+        except FileNotFoundError:
+            context = None
+        if context not in (None, "", "default") or env.get("DOCKER_CONTEXT", "") not in ("", "default"):
+            return None, "", False
+        # Docker's default TLS certificate directory follows its config dir.
+        if (env.get("DOCKER_TLS") or env.get("DOCKER_TLS_VERIFY")) and not env.get("DOCKER_CERT_PATH"):
+            env["DOCKER_CERT_PATH"] = str(host_config)
+    except (OSError, ValueError, AttributeError, TypeError):
+        return None, "", False
+    with tempfile.TemporaryDirectory(prefix="research-docker-config-") as config:
+        env["DOCKER_CONFIG"] = config
+        return _docker_client(args, timeout, env)
+
+
+def _docker_client(args, timeout, env):
     try:
         process = subprocess.Popen(["docker", *args], stdout=subprocess.PIPE,
-                                   stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL)
+                                   stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL, env=env)
     except OSError:
         return None, "", False
     chunks = bytearray()
     truncated = False
+    drain_error = []
     stream = process.stdout
     assert stream is not None  # stdout=PIPE above
 
@@ -38,12 +68,18 @@ def _docker(args, timeout):
                 remaining = max(0, MAX_OUTPUT - len(chunks))
                 chunks.extend(data[:remaining])
                 truncated |= len(data) > remaining
+        except Exception as exc:
+            drain_error.append(exc)
         finally:
-            stream.close()
+            try:
+                stream.close()
+            except Exception as exc:
+                drain_error.append(exc)
 
-    reader = threading.Thread(target=drain, daemon=True)
-    reader.start()
+    reader = None
     try:
+        reader = threading.Thread(target=drain, daemon=True)
+        reader.start()
         rc = process.wait(timeout=timeout)
     except subprocess.TimeoutExpired:
         process.kill()
@@ -52,12 +88,20 @@ def _docker(args, timeout):
     except Exception:
         try:
             process.kill()
+        except OSError:
+            pass
+        try:
             process.wait(timeout=2)
         except Exception:
             pass
-        reader.join(timeout=2)
+        if reader is not None and reader.ident is not None:
+            reader.join(timeout=2)
+        else:
+            stream.close()
         raise
     reader.join(timeout=2)
+    if drain_error:
+        raise OSError("Docker output drain failed") from drain_error[0]
     # A Docker child holding the stream may outlive the client. Do not wait forever.
     return rc, bytes(chunks).decode("utf-8", "replace"), truncated or reader.is_alive()
 
@@ -81,9 +125,16 @@ class ResearchContainer:
                 raise RuntimeError("container already started or closed")
             self.state = "starting"
             self.inflight = True
-            self.timer = threading.Timer(900, self.close)
-            self.timer.daemon = True
-            self.timer.start()
+            try:
+                self.timer = threading.Timer(900, self.close)
+                self.timer.daemon = True
+                self.timer.start()
+            except Exception:
+                if self.timer:
+                    self.timer.cancel()
+                self.inflight = False
+                self.state = "uncertain"
+                return {"ok": False, "error": "task_timer_unavailable", "container": self.name}
         args = ["run", "-d", "--rm", "--init", "--pull=never", "--name", self.name,
                 "--network", "none", "--read-only", "--cap-drop", "ALL",
                 "--security-opt", "no-new-privileges", "--pids-limit", "64",
@@ -130,9 +181,18 @@ class ResearchContainer:
             self.inflight = True
             token = object()
             self.command_token = token
-            deadline = threading.Timer(timeout + 1, lambda: self._expire_command(token))
-            deadline.daemon = True
-            deadline.start()
+            deadline = None
+            try:
+                deadline = threading.Timer(timeout + 1, lambda: self._expire_command(token))
+                deadline.daemon = True
+                deadline.start()
+            except Exception:
+                if deadline:
+                    deadline.cancel()
+                self.inflight = False
+                self.command_token = None
+                self.exec_lock.release()
+                return {"ok": False, "error": "command_timer_unavailable"}
         try:
             try:
                 rc, output, truncated = _docker(
@@ -146,11 +206,16 @@ class ResearchContainer:
                 if self.state != "running":
                     self.delayed_possible = True
                     return {"ok": False, "error": "task_cancelled", "cleanup_required": True}
-                if rc is None or rc in (124, 137):
+                if rc is None or rc in (124, 125, 137):
                     self.state = "uncertain"
                     self.delayed_possible = True
                 if rc is None:
                     return {"ok": False, "error": "docker_exec_timeout_or_unavailable", "cleanup_required": True}
+                if rc == 125:
+                    return {"ok": False, "exit_code": rc, "timed_out": None,
+                            "error": "docker_or_command_exit_ambiguous",
+                            "output": output, "truncated": truncated,
+                            "trust": "untrusted_container_output", "cleanup_required": True}
                 if rc in (124, 137):
                     return {"ok": False, "exit_code": rc, "timed_out": None,
                             "error": "timeout_or_command_exit_ambiguous",

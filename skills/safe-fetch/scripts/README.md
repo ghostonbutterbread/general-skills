@@ -4,7 +4,10 @@
 - `research_worker_preflight.py` — **experimental diagnostic only**, not a
   research agent. Run `python3 research_worker_preflight.py --timeout 20` to
   probe a fixed locally available `python:3.12-slim` Docker image. No network,
-  host mounts, caller commands, live credentials, or image pulls are requested.
+  host mounts, caller commands, explicitly supplied credentials, or image pulls
+  are requested. Unlike `research_container.py`, this older diagnostic still
+  uses the host Docker CLI config, which can inject proxy credentials: do not run
+  it with credential-bearing Docker proxy settings until that path is fixed.
   It tests non-root UID, read-only root mount, a host-file canary, an environment
   canary, and the network namespace, then removes only its generated container.
   It exits nonzero on missing/failed checks or uncertain cleanup. Cleanup's
@@ -50,13 +53,21 @@
   The tool schema is `research_container(command: string, timeout: int=15)`;
   timeout range is 1–60 seconds. Commands run as UID 65534, read-only root,
   bounded tmpfs, no capabilities, resource limits, no host mounts or Docker
-  socket, and **network none**. No credentials or host environment are passed
-  into the container. The local `python:3.12-slim` tag is not digest-pinned;
+  socket, and **network none**. Docker operations use a fresh private empty CLI
+  config, preventing host-configured proxy/auth injection; host environment and
+  host credentials are not explicitly passed to the container. Host-side CLI
+  environment (including `DOCKER_HOST` and TLS settings) is still used to reach
+  Docker. Named Docker contexts, unreadable/malformed config, or an otherwise
+  unresolvable context fail closed rather than silently selecting another daemon;
+  configure a supported default context / `DOCKER_HOST` before use. Keep daemon
+  selection stable for the task lifetime, including cleanup. The local
+  `python:3.12-slim` tag is not digest-pinned;
   verify/trust the image and Docker host before use. Network is intentionally
   unavailable; public fetch and full-source transfer are not implemented.
   Containers share the host kernel and do not guarantee defense against kernel
   or daemon vulnerabilities. Exit 124 or 137 may be a command's own exit and is
-  reported as ambiguous, not definitive timeout. Such a result, a host watchdog
+  reported as ambiguous, not definitive timeout. Exit 125 may be either the
+  command's exit or a Docker CLI/transport failure. Such a result, a host watchdog
   expiry, or an exec client error marks the task non-reusable and requires cleanup.
   `absent_at_check` is point-in-time only, while the explicit
   `absent_at_check_delayed_operation_possible` leaves state uncertain and every
