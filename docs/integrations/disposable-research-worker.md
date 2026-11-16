@@ -12,14 +12,26 @@
 - **Inspiration / canonical references:** `safe-fetch`, `sandbox-run`, Hermes provider and Docker documentation; General Skills owns the generic safe-fetch skill. BBH's target stores and live runtime were not modified.
 - **Correction implementation:** `c66ab070656d91737ab5d9b95ae4ea9c1c09c379` on this feature branch; not propagated, merged, pushed, or activated.
 
+## Release review correction
+
+Independent review requested changes for the older preflight diagnostic's use of
+host Docker CLI configuration and contradictory network wording. The standalone
+preflight diagnostic and its dedicated tests are excluded from this release;
+the research transport already isolates Docker CLI configuration. The script
+README now consistently describes bridge networking. Earlier preflight entries
+below are historical evidence, not a current runnable interface. The full suite
+without that excluded diagnostic ran 94 tests: 93 passed and one opt-in real
+Docker test skipped. The real HTTPS/cleanup test was run separately as recorded
+below. No native researcher is implemented by this release.
+
 ## Internet access correction
 
 At Ryushe's direction, the research container uses Docker's ordinary `bridge`
 network instead of `none`; its start and parent receipts report `bridge`. This
 permits internet access and can also reach services accessible from that bridge.
 It is not an internet-only firewall. No host mount, Docker socket, or explicit
-credentials were added. The separate older preflight intentionally still tests
-an offline container and is not a researcher.
+credentials were added. The separate older offline preflight is excluded from the
+release, as noted above.
 
 A real task-owned container returned HTTP 200 from `https://example.com`, ran
 foreground commands with exits 0, 1, 7 and 0, and reported `absent_at_check` on

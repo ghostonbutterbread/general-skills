@@ -1,22 +1,10 @@
 # Safe-fetch scripts
 
 - `safe_fetch.py` — quarantine and sanitize external content.
-- `research_worker_preflight.py` — **experimental diagnostic only**, not a
-  research agent. Run `python3 research_worker_preflight.py --timeout 20` to
-  probe a fixed locally available `python:3.12-slim` Docker image. No network,
-  host mounts, caller commands, explicitly supplied credentials, or image pulls
-  are requested. Unlike `research_container.py`, this older diagnostic still
-  uses the host Docker CLI config, which can inject proxy credentials: do not run
-  it with credential-bearing Docker proxy settings until that path is fixed.
-  It tests non-root UID, read-only root mount, a host-file canary, an environment
-  canary, and the network namespace, then removes only its generated container.
-  It exits nonzero on missing/failed checks or uncertain cleanup. Cleanup's
-  `absent_at_check` is a point-in-time observation, not proof against a delayed
-  daemon operation after a timeout; recheck that exact name if Docker stalls.
 
 - `research_container.py` — experimental host-side transport for a restricted
-  native researcher; it does not itself launch a model or a subagent. It is not
-  automatically installed or activated. Host-owned code creates a
+  native researcher; it does not itself launch a model or a subagent, and merely
+  installing the file does not register a working researcher. Host-owned code creates a
   `ResearchContainer()`, calls `start()`, registers `register_tool(ctx,
   resolve_authorized_task)`, and always calls `close()` in `finally`, retaining
   its receipt. Exec creation, attached output and completion inspection use the
@@ -87,8 +75,8 @@
   socket is pinned for CLI lifecycle operations; changing selection while the task
   is active prevents exec and cleanup until the original selection is restored.
   The local `python:3.12-slim` tag is not digest-pinned;
-  verify/trust the image and Docker host before use. Network is intentionally
-  unavailable; public fetch and full-source transfer are not implemented.
+  verify/trust the image and Docker host before use. The container can access
+  the internet, but source transfer to a researcher is not yet implemented.
   Containers share the host kernel and do not guarantee defense against kernel
   or daemon vulnerabilities. Timeout uses a host watchdog, not the shell's `timeout`
   exit code; a watchdog expiry or unverified exec marks the task non-reusable and
@@ -97,9 +85,6 @@
   subsequent `close()` retries exact-name removal and inspection. Run the opt-in real test with
   `RESEARCH_DOCKER_TEST=1 PYTHONPATH="$PWD" python3 -m unittest discover -s tests -p test_research_container.py -v`.
 
-A pass is only evidence for those observed checks; it is not a security audit,
-model-authentication test, or proof that a research-agent path exists. The
-probe does not test full-source ingestion, model calls, prompt injection,
-knowledge promotion, reuse, or exfiltration resistance of an actual agent.
-It does not authorize launching one. See the branch-local integration dossier for
-blocked work and deferred end-to-end gates.
+Passing tests is not proof that a research-agent path exists. Full-source
+ingestion, model calls, prompt injection and knowledge promotion by an actual
+agent remain unverified.
