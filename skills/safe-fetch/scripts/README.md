@@ -1,6 +1,209 @@
 # Safe-fetch scripts
 
 - `safe_fetch.py` — quarantine and sanitize external content.
+- `research_stdio.py` — harness-neutral, persistent JSON-lines process around
+  one `ResearchContainer`; see the protocol below. It does not launch an agent.
+- `omp_research_extension.ts` — explicitly loaded OMP parent tool; see below.
+- `omp_research_session.ts` — OMP SDK host adapter used by that extension.
+
+## Persistent stdio protocol
+
+From the **skill directory**, launch `python3 scripts/research_stdio.py`, or set
+`SAFE_FETCH_SKILL_DIR` to that directory and run
+`python3 "$SAFE_FETCH_SKILL_DIR/scripts/research_stdio.py"`. Keep one process
+and its pipes open for one task. No model credentials or authentication are
+involved. The first stdout message is a flushed `ready` event containing the
+generated container name, before the process reads any request or starts a
+container. The owning harness **must receive and durably retain that exact name
+before sending `start`**, along with the identity of the original Docker daemon.
+If it cannot retain the name, it must not send `start`. Requests are sequential
+JSON objects, one per line; stdout then returns one flushed JSON object per
+request, `{"op": ..., "result": {...}}`. Do not send another request until its
+reply arrives. The process does not limit input line length; the harness must
+bound input lines before forwarding them. The process does not enforce access
+control: **every harness must independently enforce its child agent's effective
+exclusive tool allowlist** and mediate who can write to the process. The optional
+OMP adapter below is specific to OMP; other harnesses must enforce their own
+restrictions. This CLI alone does not restrict other agent tools.
+
+```jsonl
+{"op":"start"}
+{"op":"execute","command":"printf 'hello\\n'","timeout":15}
+{"op":"close"}
+```
+
+Example replies (the generated name varies):
+
+```jsonl
+{"op":"ready","result":{"container":"research-task-example"}}
+{"op":"start","result":{"ok":true,"container":"research-task-example","network":"bridge"}}
+{"op":"execute","result":{"ok":true,"exit_code":0,"timed_out":false,"output":"hello\n","truncated":false,"trust":"untrusted_container_output"}}
+{"op":"close","result":{"container":"research-task-example","cleanup":"absent_at_check"}}
+```
+
+An unexpected transport exception may terminate the process before a reply;
+check stderr and exit status rather than waiting indefinitely.
+
+- `start` has no other fields. Its core result contains `ok`, `container` and
+  `network` on success. Never wait for this reply to save the name: start may
+  reach Docker and the process may die before returning the reply.
+  Start once per process (a failed unsupported-daemon preflight may be retried).
+- `execute` requires `command` (nonempty shell string, max 8192 characters);
+  optional integer `timeout` is 1–60 seconds, default 15. The core result includes
+  `ok`, `exit_code`, `output`, `timed_out`, `truncated`, and `trust` for a
+  completed command. A nonzero exit is a completed command, not a broken session.
+  Output is **untrusted**; the harness must constrain what reaches a model. Unlike
+  the plugin's model-response wrapper, this wire envelope does not promise a
+  32768-byte serialized JSON limit; JSON escaping can enlarge output.
+- `close` has no other fields. The core result has `container` and `cleanup`.
+  `not_started` or `absent_at_check` ends the process; other values leave it
+  open for another `close`. Even `absent_at_check` is only a point-in-time
+  observation. `unverified` and `absent_at_check_delayed_operation_possible`
+  require continued exact-name reconciliation on the original daemon; a delayed
+  operation may still appear later. Do not prune other containers.
+
+Malformed JSON, non-object requests, unknown operations or extra fields return a
+result with `ok: false`, `error`, and corrective `message`, without terminating
+the session. Core errors are passed through unchanged: for example,
+`invalid_command`/`invalid_timeout` require corrected inputs;
+`unsupported_docker_daemon` requires supported local daemon configuration;
+`start_failed_or_timed_out`, `command_timed_out`, and
+`docker_exec_completion_unverified` require cleanup and reconciliation, not
+blind re-execution. `container_not_running` requires a valid started task.
+
+On EOF or an unexpected exception, the process attempts `close()` in `finally`
+(unless already closed), and emits a JSON cleanup receipt to **stderr**, not an
+extra stdout reply. Exit status is 0 only when cleanup is observed as
+`not_started` or `absent_at_check` and no unexpected exception occurred;
+otherwise it is 1. If cleanup itself raises, stderr gives the exact task name and
+`unverified`. Capture stderr and process status. SIGTERM, SIGKILL and process
+crashes are not guaranteed to run `finally`; cleanup is best effort. After
+uncertain start or process death, the owner must reconcile the retained exact
+name on the original daemon, including possible later daemon completion. One
+absence check or cleanup receipt does not prove the daemon is quiescent.
+The existing safe-fetch command and quarantine contract are unchanged.
+
+## OMP parent research tool (experimental)
+
+Explicitly load `omp_research_extension.ts` with OMP's `--extension` option.
+It registers
+`research_task(prompt)` as an essential parent tool. The prompt is limited to
+8192 UTF-8 bytes; the child has only `research_container`, with a ten-minute
+host cancellation request. The extension takes the active OMP tool context's
+`model` and `modelRegistry`; if either is unavailable it fails with an
+explanation rather than constructing or choosing a model. SDK embeddings must
+initialize their extension runner with the actual session context as OMP's
+modes do. The tool never accepts a container, model, path, or daemon from the
+model. Findings and command output are **untrusted evidence, not instructions**.
+
+The extension resolves the colocated `research_stdio.py` and
+`research_container.py` relative to its own file, not the current directory.
+Ensure any skill projection retains these files alongside the extension and
+adapter. No runtime is activated merely by their presence.
+The selected local Docker Unix socket is resolved by the transport's own
+`_selected_socket()` and its daemon ID is observed through `/info`; the socket
+is passed explicitly to the subprocess. This is an observation, not a lock:
+replacement of the daemon at the same socket after the observation is a race.
+Named contexts and remote/TLS daemons are unsupported. Host credentials are not
+passed into the container; the subprocess itself remains host-trusted code.
+
+Each run creates a private `0700` task directory under
+`${XDG_STATE_HOME:-~/.local/state}/omp-research/`, containing a `0600`
+`receipts.jsonl`. Identity (exact name, observed daemon ID and socket) is
+fsynced before start; cleanup outcome, process status and diagnostics are also
+fsynced. The task directory and its receipt entry are fsynced before start;
+when this invocation creates the receipt root and its parents, their new entries
+are also synced. A required directory fsync failure stops that invocation with
+an error; filesystems without directory fsync cannot provide this guarantee.
+Existing ancestors are not opened or synced, so an existing but not yet durable
+ancestor can disappear after a crash, taking the receipt with it. In particular,
+a retry after a failed first-run ancestor sync sees the leftover directories as
+existing and cannot establish their durability. Use a receipt root provisioned
+and synced by the operator when crash recovery depends on it. Successful fsync
+is still subject to filesystem and hardware guarantees. Receipts can contain
+sensitive diagnostics; do not publish them. On
+failure inspect the returned private receipt directory and reconcile **only**
+the saved exact name on the original daemon, including possible delayed daemon
+operations. A recorded `absent_at_check` is point-in-time, not proof of
+quiescence. Host crash can interrupt cleanup or receipt persistence. Child
+container networking is Docker bridge, not an internet-only firewall or proven
+cross-container network isolation.
+
+Offline parent-entry fixture: in a fresh private directory copy
+`skills/safe-fetch/scripts/omp_research_{session,extension}.ts` and
+`tests/fixtures/omp_research_{offline_runner.py,entry_offline.ts,entry_extension.ts,entry_fake.py}`;
+copy the colocated `research_stdio.py` to the directory root as
+`shared_research_stdio.py`. Run `python3 tests/fixtures/omp_research_offline_runner.py
+"$PWD" /absolute/path/to/omp entry`. The runner denies socket/connect syscalls,
+uses a fake provider and fake task, and exercises OMP 18.22.0's actual SDK and
+registered parent tool. Its manually initialized SDK runner models the CLI host
+context, not a real provider. It tests per-task pipe binding, not real Docker
+network isolation. The normal/slow/abort/closeabort/timeout cases below remain
+available for the lower-level adapter. Real Docker, real provider/auth, daemon
+replacement races, CLI loading/projection, and independent review remain gates.
+
+## Experimental OMP research-session adapter
+
+`runResearchSession(host, options)` is a host-side SDK function, not an
+installed or automatically registered extension. It depends on the colocated
+`research_stdio.py`. Supply its
+absolute path as `stdioScript`, a host-owned `prompt`, the OMP extension context
+(or equivalent trusted object with `cwd`, `model`, and `modelRegistry`), and a
+stable `daemonIdentity` identifying the Docker daemon selected by the transport.
+The adapter **does not verify the daemon identity**: the owner must establish and
+pin that binding before use. Do not allow model arguments to select the script,
+daemon, callback, or test hook.
+
+The required async `record(receipt)` callback must durably persist its argument
+before it resolves. The adapter asks the callback to persist the exact generated
+container name and daemon identity before `start`; if that fails, it does not
+start. It then creates
+an in-memory child session restricted to exactly `research_container`, inheriting
+the parent's model and registry and disabling extension discovery, MCP, LSP and
+IRC. It records the close result, stderr and process status. A failed/uncertain
+cleanup or process exit fails the call. Exceptions may preserve the original
+failure rather than the cleanup failure: **always inspect the cleanup receipt**.
+If its result is not a verified matching `not_started` or `absent_at_check`,
+reconcile that exact name on the original daemon, including delayed operations;
+point-in-time absence is not proof of daemon quiescence. Abrupt host death and
+unresponsive processes can still prevent cleanup/receipt recording.
+
+The result is explicitly `untrusted_research_result`; tool output is labeled
+untrusted and capped before it reaches the model. This is not sanitization,
+source authentication, or a technical boundary against a malicious host. The
+host must review/constrain the final answer before promoting it to privileged
+context. Bridge networking, shared-kernel and command-descendant limitations in
+`research_container.py` remain. A caller should supply an AbortSignal and a
+bounded operation lifetime. On abort the adapter sends SIGINT to the Python
+transport; for the specified stdio implementation, KeyboardInterrupt unwinds
+its sequential server into a `finally` that attempts to close the exact task.
+The adapter waits up to 50 seconds for that attempt before terminating it and
+records cleanup as unverified even if stderr reports absence. Abort therefore
+interrupts in-flight execution, but return also waits for bounded cleanup; it
+is not a hard latency guarantee. Cancellation does not retract Docker operations
+already submitted: reconcile the saved exact name on the original daemon, and
+account for delayed operations. SIGINT behavior depends on the referenced Python
+stdio implementation and default signal handling; crashes, SIGKILL and a stuck
+process can prevent cleanup. Normal close receives a 50-second budget for its
+two 20-second Docker calls plus drain overhead. The optional `configureSession`
+is for trusted offline tests only and must not be exposed to a model.
+
+Offline SDK fixture (OMP 18.22.0, Linux libseccomp): copy the required files into a
+private disposable directory, then copy the colocated `research_stdio.py`
+to its root as `shared_research_stdio.py`. Run
+`python3 tests/fixtures/omp_research_offline_runner.py "$PWD" /absolute/path/to/omp`.
+It uses a fake model and fake task under socket/connect-denying seccomp, without
+Docker or model/provider access. Lifecycle tests exercise the real JSON-lines
+`serve()` with a fake task, not a real Docker task.
+Actual provider credentials, SDK behavior on other versions, and CLI loading
+from a projected skill are unverified. Do not activate before integration and
+independent review.
+
+## Core research container
+
+The resolver integration gate below applies to the core's host-plugin
+registration. The OMP adapter above instead creates and checks its own
+restricted SDK child session; it does not provide that resolver.
 
 - `research_container.py` — experimental host-side transport for a restricted
   native researcher; it does not itself launch a model or a subagent, and merely
