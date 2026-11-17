@@ -5,6 +5,7 @@
 - **Branch:** `feat/omp-research-session`.
 - **Base:** `f17eaa16e90ddfc14bfb9de5f74065900c8e4a04`; intended integration target `beta`.
 - **Previous recovery checkpoint:** `3cb3aecf975873e733c47f9e15167251b180043c`.
+- **Latest implementation/recovery checkpoint:** `d0debc457530b20e1fd8454c56c84caa24111714`; the current branch tip includes a later dossier-only handoff commit.
 - **Dependency:** `feat/research-container-stdio` tip `2fa728f`; its `research_stdio.py` is not present on this branch. The two features need explicit combined integration and review.
 
 ## Intent and implemented contract
