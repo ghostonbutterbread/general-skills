@@ -6,7 +6,8 @@
 - **Base:** `f17eaa16e90ddfc14bfb9de5f74065900c8e4a04`; intended integration target `beta`.
 - **Previous recovery checkpoint:** `3cb3aecf975873e733c47f9e15167251b180043c`.
 - **Previous entry implementation checkpoint:** `d0debc457530b20e1fd8454c56c84caa24111714`.
-- **Previous receipt-durability checkpoint:** `11840907f495c0d6e9f8fb9afc16b98f3f9fe9a8`; the current branch tip corrects its search-only ancestor regression.
+- **Previous receipt-durability checkpoint:** `11840907f495c0d6e9f8fb9afc16b98f3f9fe9a8`.
+- **Search-only regression fix implementation checkpoint:** `4ea279c601d6ba07629ecc5a27fcf23211070aae`; the current branch tip contains a later dossier-only handoff update.
 - **Dependency:** `feat/research-container-stdio` tip `2fa728f`; its `research_stdio.py` is not present on this branch. The two features need explicit combined integration and review.
 
 ## Intent and implemented contract
