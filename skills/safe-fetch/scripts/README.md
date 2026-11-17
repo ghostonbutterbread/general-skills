@@ -1,6 +1,75 @@
 # Safe-fetch scripts
 
 - `safe_fetch.py` — quarantine and sanitize external content.
+- `research_stdio.py` — harness-neutral, persistent JSON-lines process around
+  one `ResearchContainer`; see the protocol below. It does not launch an agent.
+
+## Persistent stdio protocol
+
+From the **skill directory**, launch `python3 scripts/research_stdio.py`, or set
+`SAFE_FETCH_SKILL_DIR` to that directory and run
+`python3 "$SAFE_FETCH_SKILL_DIR/scripts/research_stdio.py"`. Keep one process
+and its pipes open for one task. No model credentials or authentication are
+involved. Requests are sequential JSON objects, one per line; stdout returns one
+flushed JSON object per request, `{"op": ..., "result": {...}}`. Do not send
+another request until its reply arrives. The process does not enforce access
+control: **every harness must independently enforce its child agent's effective
+exclusive tool allowlist** and mediate who can write to the process. A harness
+adapter is not supplied. This CLI alone does not restrict other agent tools.
+
+```jsonl
+{"op":"start"}
+{"op":"execute","command":"printf 'hello\\n'","timeout":15}
+{"op":"close"}
+```
+
+Example replies (the generated name varies):
+
+```jsonl
+{"op":"start","result":{"ok":true,"container":"research-task-example","network":"bridge"}}
+{"op":"execute","result":{"ok":true,"exit_code":0,"timed_out":false,"output":"hello\n","truncated":false,"trust":"untrusted_container_output"}}
+{"op":"close","result":{"container":"research-task-example","cleanup":"absent_at_check"}}
+```
+
+An unexpected transport exception may terminate the process before a reply;
+check stderr and exit status rather than waiting indefinitely.
+
+- `start` has no other fields. Its core result contains `ok`, `container` and
+  `network` on success; save the exact generated container name for cleanup.
+  Start once per process (a failed unsupported-daemon preflight may be retried).
+- `execute` requires `command` (nonempty shell string, max 8192 characters);
+  optional integer `timeout` is 1–60 seconds, default 15. The core result includes
+  `ok`, `exit_code`, `output`, `timed_out`, `truncated`, and `trust` for a
+  completed command. A nonzero exit is a completed command, not a broken session.
+  Output is **untrusted**; the harness must constrain what reaches a model. Unlike
+  the plugin's model-response wrapper, this wire envelope does not promise a
+  32768-byte serialized JSON limit; JSON escaping can enlarge output.
+- `close` has no other fields. The core result has `container` and `cleanup`.
+  `not_started` or `absent_at_check` ends the process; other values leave it
+  open for another `close`. Even `absent_at_check` is only a point-in-time
+  observation. `unverified` and `absent_at_check_delayed_operation_possible`
+  require continued exact-name reconciliation on the original daemon; a delayed
+  operation may still appear later. Do not prune other containers.
+
+Malformed JSON, non-object requests, unknown operations or extra fields return a
+result with `ok: false`, `error`, and corrective `message`, without terminating
+the session. Core errors are passed through unchanged: for example,
+`invalid_command`/`invalid_timeout` require corrected inputs;
+`unsupported_docker_daemon` requires supported local daemon configuration;
+`start_failed_or_timed_out`, `command_timed_out`, and
+`docker_exec_completion_unverified` require cleanup and reconciliation, not
+blind re-execution. `container_not_running` requires a valid started task.
+
+On EOF or an unexpected exception, the process attempts `close()` in `finally`
+(unless already closed), and emits a JSON cleanup receipt to **stderr**, not an
+extra stdout reply. Exit status is 0 only when cleanup is observed as
+`not_started` or `absent_at_check` and no unexpected exception occurred;
+otherwise it is 1. If cleanup itself raises, stderr gives the exact task name and
+`unverified`. Capture stderr and process status. Abrupt process death cannot run
+`finally`; cleanup is best effort and the owner must reconcile the exact name.
+The existing safe-fetch command and quarantine contract are unchanged.
+
+## Core research container
 
 - `research_container.py` — experimental host-side transport for a restricted
   native researcher; it does not itself launch a model or a subagent, and merely
