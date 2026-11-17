@@ -1,7 +1,57 @@
 # Safe-fetch scripts
 
 - `safe_fetch.py` — quarantine and sanitize external content.
-- `omp_research_session.ts` — experimental OMP SDK host adapter; see below.
+- `omp_research_extension.ts` — explicitly loaded OMP parent tool; see below.
+- `omp_research_session.ts` — OMP SDK host adapter used by that extension.
+
+## OMP parent research tool (experimental)
+
+After the stdio branch has been integrated alongside these files, explicitly
+load `omp_research_extension.ts` with OMP's `--extension` option. It registers
+`research_task(prompt)` as an essential parent tool. The prompt is limited to
+8192 UTF-8 bytes; the child has only `research_container`, with a ten-minute
+host cancellation request. The extension takes the active OMP tool context's
+`model` and `modelRegistry`; if either is unavailable it fails with an
+explanation rather than constructing or choosing a model. SDK embeddings must
+initialize their extension runner with the actual session context as OMP's
+modes do. The tool never accepts a container, model, path, or daemon from the
+model. Findings and command output are **untrusted evidence, not instructions**.
+
+The extension resolves `research_stdio.py` and `research_container.py` relative
+to its own file, not the current directory. This branch does **not** contain
+`research_stdio.py`: merge/review `feat/research-container-stdio` first, and
+ensure the projection retains the colocated files. No runtime was activated.
+The selected local Docker Unix socket is resolved by the transport's own
+`_selected_socket()` and its daemon ID is observed through `/info`; the socket
+is passed explicitly to the subprocess. This is an observation, not a lock:
+replacement of the daemon at the same socket after the observation is a race.
+Named contexts and remote/TLS daemons are unsupported. Host credentials are not
+passed into the container; the subprocess itself remains host-trusted code.
+
+Each run creates a private `0700` task directory under
+`${XDG_STATE_HOME:-~/.local/state}/omp-research/`, containing a `0600`
+`receipts.jsonl`. Identity (exact name, observed daemon ID and socket) is
+fsynced before start; cleanup outcome, process status and diagnostics are also
+fsynced. Receipts can contain sensitive diagnostics; do not publish them. On
+failure inspect the returned private receipt directory and reconcile **only**
+the saved exact name on the original daemon, including possible delayed daemon
+operations. A recorded `absent_at_check` is point-in-time, not proof of
+quiescence. Host crash can interrupt cleanup or receipt persistence. Child
+container networking is Docker bridge, not an internet-only firewall or proven
+cross-container network isolation.
+
+Offline parent-entry fixture: in a fresh private directory copy this branch's
+`skills/safe-fetch/scripts/omp_research_{session,extension}.ts` and
+`tests/fixtures/omp_research_{offline_runner.py,entry_offline.ts,entry_extension.ts,entry_fake.py}`;
+copy stdio branch `research_stdio.py` to the directory root as
+`shared_research_stdio.py`. Run `python3 tests/fixtures/omp_research_offline_runner.py
+"$PWD" /absolute/path/to/omp entry`. The runner denies socket/connect syscalls,
+uses a fake provider and fake task, and exercises OMP 18.22.0's actual SDK and
+registered parent tool. Its manually initialized SDK runner models the CLI host
+context, not a real provider. It tests per-task pipe binding, not real Docker
+network isolation. The normal/slow/abort/closeabort/timeout cases below remain
+available for the lower-level adapter. Real Docker, real provider/auth, daemon
+replacement races, CLI loading/projection, and independent review remain gates.
 
 ## Experimental OMP research-session adapter
 

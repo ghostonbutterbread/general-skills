@@ -1,133 +1,83 @@
 # OMP research-session integration dossier
 
-- **Status:** review corrections implemented; still blocked experiment, not re-reviewed or activated
-- **Owner:** delegated Hermes worker; parent owns integration
-- **Branch:** `feat/omp-research-session`
-- **Base commit:** `f17eaa16e90ddfc14bfb9de5f74065900c8e4a04`
-- **Intended integration target:** `beta`
-- **Last updated:** 2026-11-17 UTC
-- **Owning feature branch/ref:** `feat/omp-research-session`
-- **Latest immutable recovery checkpoint:** `77420e7b3f3c5cbf6eefb2b10bdad85cf50a9dc1` (cleanup-cancellation fix; a later dossier-only handoff commit updates this record)
-- **Feature implementation commit(s):** `3d9f56d1cdc233af8b79fa4dc31ada1ef71004e2`, `1e1ccaaad2bf3a5453617fa1d430a8ed3549f4c0`, `77420e7b3f3c5cbf6eefb2b10bdad85cf50a9dc1`
-- **Inspiration / canonical references:** OMP 18.22.0 installed on Hoster; stdio branch `feat/research-container-stdio` at `c027134`.
+- **Status:** feature candidate; independent review and integration deferred to parent. Not activated.
+- **Owner:** delegated Hermes worker; parent owns integration, Kanban and review.
+- **Branch:** `feat/omp-research-session`.
+- **Base:** `f17eaa16e90ddfc14bfb9de5f74065900c8e4a04`; intended integration target `beta`.
+- **Previous recovery checkpoint:** `3cb3aecf975873e733c47f9e15167251b180043c`.
+- **Dependency:** `feat/research-container-stdio` tip `2fa728f`; its `research_stdio.py` is not present on this branch. The two features need explicit combined integration and review.
 
-## Intent
+## Intent and implemented contract
 
-Connect one shared host-owned research stdio process to a restricted OMP SDK
-session; inherit the parent model/provider, preserve container identity before
-start, and keep research output untrusted. No integration or activation is
-in scope for this branch.
+`omp_research_extension.ts` is a real OMP extension factory registering the
+essential parent tool `research_task`. It consumes a bounded prompt and obtains
+`model`, `modelRegistry` and `cwd` from the actual extension tool context. It
+fails closed with an actionable error if the model or registry is missing; it
+never guesses a model. The extension invokes the existing adapter with a
+restricted in-memory child whose only tool is `research_container`, labels
+findings as untrusted, passes cancellation, and requests cancellation after ten
+minutes. Tool input cannot pick a path, daemon, model, receipt callback or child
+identity. The optional constructor hooks are trusted test-only dependencies,
+not exposed to a model.
 
-## Implemented contract
+The extension resolves colocated stdio relative to its own file, uses the core's
+local socket selector and observes the daemon ID via `/info`, and pins the
+socket path in the transport subprocess environment. Its private per-task
+0600 JSONL receipt records and fsyncs exact container and observed daemon
+identity before start, and records the cleanup result and process outcome. The
+private task directory and parent entry are fsynced. Parent-readable findings are
+untrusted data, not instructions. Host credentials are not mounted or otherwise
+explicitly passed to the container.
 
-`skills/safe-fetch/scripts/omp_research_session.ts` exports a host-only async
-adapter. The owner supplies trusted parent context, script path, daemon identity,
-durable receipt callback and prompt. It starts one process, creates a separate
-in-memory restricted SDK session with one custom tool, closes, checks the receipt
-and returns explicitly untrusted text. Daemon identity is a caller assertion.
-No production extension registers the function, supplies durable storage, or
-selects/verifies the Docker daemon; this branch alone does not provide a usable
-production research tool. It depends on the separate stdio branch.
+The socket/daemon ID check is an observation, not exclusion against a daemon
+replacement at the same socket. Cleanup can be uncertain; a single absence check
+is not quiescence. The bridge network can reach other bridge-accessible services;
+per-task process/pipe binding does not establish network isolation. No service,
+profile, model credential, target or real container was modified.
 
-Review corrections: normal close now allows 50 seconds for the existing two
-20-second Docker calls and drain overhead. Abort wakes any waiting response and
-sends SIGINT to the stdio process. With the referenced Python implementation's
-default handler, this interrupts an executing call and runs its exact-task
-`finally` close; the adapter waits boundedly for that attempt, always records
-interrupted cleanup as unverified and retains the saved name. An EOF retry of
-an unverified normal close also receives a 50-second exit budget. The caller's
-abort return is not guaranteed within a small fixed latency: cleanup and SDK
-disposal still take time. Signals can fail, blocked host operations can outlast
-budgets, and submitted daemon operations can complete late. No stdio protocol
-or other feature worktree was changed. Cancellation arriving during normal
-cleanup or receipt persistence is checked after the receipt is recorded and
-prevents a successful result. Cleanup is not interrupted, and its receipt retains
-verified or unverified status. An earlier failure retains precedence.
+## Evidence
 
-## Evidence and review
+- Hoster `/home/ryushe/.local/bin/omp --version`: `omp/18.22.0`.
+- Hoster user-systemd unit `hoster-omp-entry-fixture-cdma` exited success. Its
+  command was `python3 tests/fixtures/omp_research_offline_runner.py <fresh-private-root> /home/ryushe/.local/bin/omp entry`; it copied stdio from the separate feature and used its actual `serve()` with a fake task. The runner verified seccomp denied socket and connect (EPERM), isolated HOME, and required the `OMP ENTRY OFFLINE PASS` marker. OMP exit 1 after that marker was expected because no default model was configured in the isolated HOME.
+- The production extension also loaded by path into an OMP SDK parent and
+  registered `research_task` as an active tool. The OMP SDK parent then loaded
+  the same registration via an offline test wrapper;
+  the fixture initialized the SDK extension runner's context as an embedding host
+  must. Parent mock called the registered entry and a mock child called the real
+  custom-tool adapter. It checked same model/registry object identity; only the
+  custom child tool was advertised; `bash`, `read` and `task` were denied;
+  returned evidence carried trust labels; normal, unverified-close and parent
+  cancellation paths recorded matching private identity/cleanup receipts.
+- Two fake tasks had unique names and separate pipes. A child supplied the first
+  task's name as an extra container argument during the second task: OMP 18.22
+  stripped the extra property rather than rejecting the call, and the command
+  still ran only on the second fake task's bound pipe. This is not a test of
+  actual container or network separation.
+- Regression: Hoster user-systemd unit `hoster-omp-adapter-closeabort-uxpt`
+  passed the existing adapter fixture with network syscalls denied, including
+  abort during normal close, receipt persistence, and unverified cleanup.
+- Earlier adapter-only tests and review are retained in Git history at
+  `3cb3aec`. Independent review accepted its cancellation fix according to the
+  parent handoff; this new entry and complete diff still require independent review.
+- Hoster cleanup-sidecar inspection ran separately, no eligible scope; it retained
+  one unregistered, live scope (needs-attention context, no action taken).
 
-- Hoster via the explicitly authorized Tailscale address; no LAN alias.
-- OMP 18.22.0 compiled bundle's extension-context implementation supplies
-  `cwd`, `modelRegistry`, and a `model` getter. Its SDK uses the supplied
-  `modelRegistry` and derives default credential resolution from its resolver.
-- `python3 tests/fixtures/omp_research_offline_runner.py <private-root> /home/ryushe/.local/bin/omp`
-  on Hoster: **PASS**, socket and connect syscalls blocked by seccomp, isolated
-  HOME, installed bundled mock model, fake container task. Exact advertised
-  and active tool, rejected built-in, identity-before-start, receipt failure,
-  unverified cleanup, trust marker and parent model/registry object inheritance
-  were checked. Tested both stand-in protocol and real `research_stdio.py`
-  `serve()` from `c027134` against FakeTask (no Docker). OMP's exit 1 after
-  successful fixture is expected because isolated HOME has no default model.
-- Independent review of the original adapter identified the short close and
-  blocked-execute abort defects. Corrections require independent re-review.
-- Offline red tests on Hoster with real stdio `serve()` and fake task: 16-second
-  close failed at the old 10-second timeout; in-flight abort returned after
-  4002 ms. Same sandbox after correction: complete fixture passed, 16-second
-  close exited successfully without SIGTERM, abort returned in 6 ms, and a
-  genuine blocked close timed out after 53072 ms with exact name and unverified
-  cleanup retained. An abort-with-delayed-close case entered cleanup promptly
-  and returned in 2006 ms, not before its two-second fake cleanup.
-  Each fixture run denied socket/connect syscalls through seccomp, isolated HOME,
-  used OMP 18.22.0's mock model and no real Docker or provider. The `stderr`
-  cleanup diagnostic was checked, but deliberately not promoted to verification.
-- `env -u RESEARCH_DOCKER_TEST PATH=/nonexistent PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="$PWD" /usr/bin/python3 -m unittest discover -s tests -p test_research_stdio.py -v`
-  in the separate stdio worktree: 13 passed. That branch was not edited.
-- Follow-up review regression: with actual OMP 18.22.0, fake model and task, and
-  the `c027134` stdio `serve()`, `OMP_TEST_CASE=closeabort` first failed on
-  `0ce5faa` because abort during close returned success. After the fix, the
-  fixture passed for abort during the two-second close, during receipt persistence,
-  and with unverified cleanup; it checked preserved identity and cleanup receipts.
-  `OMP_TEST_CASE=slow` passed the 16-second close; `OMP_TEST_CASE=abort` passed
-  interrupted execute (6 ms) and the two-second delayed cleanup (2007 ms).
-  Each case also runs the normal-completion assertions. The runner denied
-  socket/connect using seccomp and isolated HOME; no real model, provider,
-  Docker or target was used. OMP exit 1 after the PASS marker is expected with
-  no default model in isolated HOME. Commands on Hoster:
-  `python3 tests/fixtures/omp_research_offline_runner.py <private-root> /home/ryushe/.local/bin/omp <closeabort|slow|abort>`.
-- Project Kanban CLI: `delegate_task child contexts cannot mutate Kanban tasks or boards`;
-  parent must update the existing task. This permission issue is separate from
-  SDK and SSH connectivity.
+## Blockers / next action
 
-## Blockers and deferred work
-
-- **Missing:** actual parent extension registration, durable receipt backend,
-  verified daemon selection/binding, and integration with shared stdio branch.
-  **Trigger:** parent integrates both branches and provides trusted host wiring.
-  **Why:** current callback and daemon identity are host-supplied assertions.
-- **Missing:** real model/provider authentication and request behavior. Static
-  bundle and fake prove object inheritance, not provider credentials, custom
-  provider hooks, account routing, billing, or a real request. **Trigger:** only
-  explicit renewed authorization for real model access; then exercise the actual
-  entry point with a permitted provider and verify the received model identity.
-- **Missing:** actual Docker/end-to-end cancellation and uncertainty tests,
-  durable recording on host death, and independent security/reliability review.
-  **Trigger:** separate approval and safe supported test environment; no Docker,
-  targets, previously forbidden descendant probe, or real model was used here.
-- `configureSession` is a trusted test hook; it must not be accessible to the
-  child or model. Tool restrictions do not sandbox malicious host code. Delayed
-  daemon operations and cleanup uncertainty still need exact-name reconciliation.
-
-## Interruption / resume handoff
-
-- **Owning feature branch/ref:** `feat/omp-research-session`
-- **Latest immutable recovery checkpoint:** `77420e7b3f3c5cbf6eefb2b10bdad85cf50a9dc1` (cleanup-cancellation fix; this dossier is a later handoff-only commit)
-- **Feature implementation commit(s):** `3d9f56d1cdc233af8b79fa4dc31ada1ef71004e2`, `1e1ccaaad2bf3a5453617fa1d430a8ed3549f4c0`, `77420e7b3f3c5cbf6eefb2b10bdad85cf50a9dc1`
-- **Exact resume point:** independently re-review these corrections and the
-  stdio dependency, especially SIGINT/close behavior and delayed operations; wire a
-  trusted parent and durable receipts, and obtain only separately authorized
-  real integration evidence. Do not merge, activate, or assume actual provider
-  or Docker success from the offline test.
-- **Working-tree state at handoff:** see final Git status.
-
-## Decision gates
-
-- **Integration:** reconcile stdio dependency, independent review, validate
-  host wiring and exact-daemon identity/cleanup contract.
-- **Activation:** explicit authorization plus evidence for the real workflow.
-- **Promotion:** separate operator decision.
-
-## Decision record
-
-- 2026-11-17 UTC — offline SDK adapter experiment; real provider and Docker
-  deliberately not accessed. Retain this dossier until the feature is integrated,
-  rejected, or superseded.
+1. Parent: independently review the complete feature and stdio dependency,
+   especially daemon observation/replacement, receipt durability and cleanup,
+   OMP extension context and scope of untrusted output. Integrate against the
+   current beta only after combined tests and explicit dependency reconciliation.
+2. The offline test injects fake daemon selection and a fake task. Real daemon
+   `/info`/selection, CLI extension loading from the actual projected skill,
+   actual Docker lifecycle and public HTTPS remain unverified. Repeat on a fresh
+   task-owned container only when a responsive daemon is available and the parent
+   authorizes it; preserve exact-name receipts and do not touch earlier blocked
+   containers. No real provider/model inference is authorized; verify separately
+   only after explicit renewed approval.
+3. Do not claim model/provider auth behavior, cross-container network isolation,
+   daemon replacement safety or crash-proof cleanup from the fixture. Review
+   bridge access and daemon identity race before any activation.
+4. No merge, push or activation is authorized by this feature commit. Remove the
+   branch-local dossier on accepted integration. Parent handles Kanban.

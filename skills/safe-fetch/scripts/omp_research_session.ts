@@ -19,11 +19,12 @@ export async function runResearchSession(host: any, options: {
   record: (receipt: object) => Promise<void>;
   signal?: AbortSignal;
   configureSession?: (session: any) => void; // trusted offline-test hook
+  transportEnv?: NodeJS.ProcessEnv; // trusted host-selected daemon, not model input
 }) {
   if (!host.model || !host.modelRegistry || !options.daemonIdentity || !options.stdioScript ||
       !options.prompt || typeof options.record !== 'function') throw new Error('Missing trusted host context or research configuration');
   if (options.signal?.aborted) throw new Error('Research cancelled before launch');
-  const child = spawn('python3', [options.stdioScript], { stdio: ['pipe', 'pipe', 'pipe'] });
+  const child = spawn('python3', [options.stdioScript], { stdio: ['pipe', 'pipe', 'pipe'], env: options.transportEnv ?? process.env });
   let stderr = '';
   child.stderr.on('data', (b: Buffer) => { stderr = (stderr + b.toString()).slice(-MAX_RESULT); });
   let exit: any;
