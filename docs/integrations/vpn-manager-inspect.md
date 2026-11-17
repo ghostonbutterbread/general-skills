@@ -1,6 +1,6 @@
 # Local VPN manager inspection integration dossier
 
-- **Status:** feature; independent review pending
+- **Status:** independently reviewed read-only slice; beta integration pending
 - **Owner / branch:** delegated inspector task, `feat/vpn-manager-inspect`
 - **Base / latest immutable pre-feature checkpoint:** `f17eaa16e90ddfc14bfb9de5f74065900c8e4a04`
 - **Intended integration target:** `beta`
@@ -55,7 +55,8 @@ not system-wide absence; interface names are only heuristics.
   activation or evidence of real VPN routing.
 - Exact test launcher for both runs: `/usr/bin/python3`, invoked in a process
   with `env -i HOME=/home/ryushe/.hermes/profiles/bugfix/cache/scratch/egress-offline XDG_CONFIG_HOME=/home/ryushe/.hermes/profiles/bugfix/cache/scratch/egress-offline/config XDG_CACHE_HOME=/home/ryushe/.hermes/profiles/bugfix/cache/scratch/egress-offline/cache XDG_STATE_HOME=/home/ryushe/.hermes/profiles/bugfix/cache/scratch/egress-offline/state TMPDIR=/home/ryushe/.hermes/profiles/bugfix/cache/scratch/egress-offline PATH=/usr/bin:/bin PYTHONNOUSERSITE=1`, followed by `/usr/bin/python3 /home/ryushe/.hermes/profiles/bugfix/cache/scratch/egress-offline/launch.py -B -m unittest discover -s tests -p test_egress_inspect.py -k documented -v` for RED, and the same command without `-k documented` for GREEN (7 passed). The launcher reestablishes scratch-only environment, checks seccomp setup and self-tests socket denial before exec. Same launcher and environment with `-p test_script_manager_policy.py -v` instead: 11 passed.
-- Independent review of the corrected complete feature diff and test evidence is pending.
+- Independent review of the complete feature found a cwd-dependent usage command. After correction, independent re-review accepted the bounded checkpoint: 7 provider tests and 1 BBH routing test passed under network denial. The wider refresh feature remains outside this release.
+- Fresh beta comparison by parent: `origin/beta` and the clean selected local beta both at `f17eaa16e90ddfc14bfb9de5f74065900c8e4a04` after fetch.
 
 ## Blockers and deferred work
 
@@ -71,10 +72,10 @@ not system-wide absence; interface names are only heuristics.
   preference, identity, failure, CLI and route regressions. Do not permanently
   maintain two conflicting implementations. Follow that branch's independent
   protection and review gates; this diagnostic cannot clear them.
-- **Review and integration:** obtain independent complete-diff review; the
-  parent owns review, any beta reconciliation and promotion. No fetch was done
-  during this task because live network was prohibited; the supplied fetched
-  `origin/beta` base was used. Refresh upstream only when network is permitted.
+- **Review and integration:** bounded feature review completed. Re-fetch and
+  verify the exact target tip before integration; preserve unrelated work and
+  remove this branch-local dossier from the beta merge. Runtime activation and
+  stable promotion remain separate decisions.
 
 ## Handoff and gates
 
