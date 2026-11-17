@@ -35,6 +35,7 @@ class OutreachTests(unittest.TestCase):
                 result = sender.main(['--kind', 'handoff', '--agent', 'Scout', '--run', 'run-42', '--summary', 'Login needed', '--action', 'Complete login', '--status', 'Paused'])
             self.assertEqual(result, 0)
             self.assertTrue(captured[0].full_url.endswith('?wait=true'))
+            self.assertEqual(captured[0].get_header('User-agent'), 'AgentOutreach/1.0')
             payload = json.loads(captured[0].data)
             self.assertIn('Login needed', payload['content'])
             self.assertIn('run-42', payload['content'])
