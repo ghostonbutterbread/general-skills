@@ -4,7 +4,7 @@
 - **Owner / branch:** delegated inspector task, `feat/vpn-manager-inspect`
 - **Base / latest immutable pre-feature checkpoint:** `f17eaa16e90ddfc14bfb9de5f74065900c8e4a04`
 - **Intended integration target:** `beta`
-- **Implementation:** the commit containing this dossier on the owning branch; exact tip is supplied in the handoff.
+- **Implementation checkpoint:** `5dacff753e3924c19e4dc2bbe67c478284c1c247` on `feat/vpn-manager-inspect` contains the cwd correction, regression, and review evidence; this handoff-only update follows it. Resume with independent correction recheck at the branch tip.
 - **Inspiration:** `feat/shared-egress-recovery` at `9f4705b`, notably `egress_coordinator.py`'s inspection and its tests; that worktree is not modified.
 
 ## Intent and contract
