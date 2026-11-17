@@ -7,8 +7,8 @@
 - **Intended integration target:** `beta`
 - **Last updated:** 2026-11-17 UTC
 - **Owning feature branch/ref:** `feat/omp-research-session`
-- **Latest immutable recovery checkpoint:** see subsequent dossier checkpoint
-- **Feature implementation commit(s):** see subsequent dossier checkpoint
+- **Latest immutable recovery checkpoint:** `3d9f56d1cdc233af8b79fa4dc31ada1ef71004e2` (implementation; this branch also contains a later dossier-only handoff commit)
+- **Feature implementation commit(s):** `3d9f56d1cdc233af8b79fa4dc31ada1ef71004e2`
 - **Inspiration / canonical references:** OMP 18.22.0 installed on Hoster; stdio branch `feat/research-container-stdio` at `c027134`.
 
 ## Intent
@@ -70,7 +70,8 @@ production research tool. It depends on the separate stdio branch.
 ## Interruption / resume handoff
 
 - **Owning feature branch/ref:** `feat/omp-research-session`
-- **Latest immutable recovery checkpoint:** see next dossier-only commit
+- **Latest immutable recovery checkpoint:** `3d9f56d1cdc233af8b79fa4dc31ada1ef71004e2` (implementation; this dossier is a later handoff-only commit)
+- **Feature implementation commit(s):** `3d9f56d1cdc233af8b79fa4dc31ada1ef71004e2`
 - **Exact resume point:** review this diff and the stdio dependency, wire a
   trusted parent and durable receipts, and obtain only separately authorized
   real integration evidence. Do not merge, activate, or assume actual provider
