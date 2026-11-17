@@ -3,7 +3,18 @@
 import importlib.util
 import json
 import os
+import signal
 import sys
+import time
+
+
+def terminated(_signum, _frame):
+    with open(os.environ['OMP_TEST_LOG'], 'a', encoding='utf-8') as log:
+        log.write('SIGTERM\n')
+    os._exit(143)
+
+
+signal.signal(signal.SIGTERM, terminated)
 
 
 class FakeTask:
@@ -19,10 +30,12 @@ class FakeTask:
 
     def execute(self, command, timeout):
         self.call('execute')
+        time.sleep(float(os.environ.get('OMP_TEST_EXEC_DELAY', '0')))
         return {'ok': True, 'output': 'untrusted fake data', 'trust': 'untrusted_container_output'}
 
     def close(self):
         self.call('close')
+        time.sleep(float(os.environ.get('OMP_TEST_CLOSE_DELAY', '0')))
         return {'container': self.name, 'cleanup': 'unverified' if os.environ.get('OMP_TEST_BAD_CLOSE') else 'absent_at_check'}
 
 

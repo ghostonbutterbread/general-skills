@@ -8,6 +8,8 @@ const TOOL = 'research_container';
 // The stdio JSON envelope may be substantially larger than its raw output.
 const MAX_LINE = 512 * 1024;
 const MAX_RESULT = 32768;
+// close() may perform two 20s Docker calls plus output-drain overhead.
+const CLOSE_BUDGET_MS = 50000;
 
 /** `record` must durably persist each receipt before resolving. All options are
  * host-controlled, never model arguments. `daemonIdentity` identifies the exact
@@ -76,7 +78,17 @@ export async function runResearchSession(host: any, options: {
     if (response?.op !== op || !response.result || typeof response.result !== 'object') throw new Error('Invalid research transport response');
     return response.result;
   }
-  const abort = () => { void session?.abort(); };
+  let interrupted = false;
+  const abort = () => {
+    // The sequential server cannot read a close while execute is blocked.
+    // Default Python SIGINT unwinds serve() into its task.close() finally.
+    // It cannot retract daemon operations already submitted.
+    interrupted = true;
+    child.kill('SIGINT');
+    ended = true;
+    wake?.(); // Do not wait for a reply while the server performs cleanup.
+    void Promise.resolve().then(() => session?.abort()).catch(() => {});
+  };
   options.signal?.addEventListener('abort', abort, { once: true });
   try {
     const ready = await receive(10000);
@@ -129,14 +141,17 @@ export async function runResearchSession(host: any, options: {
   finally {
     options.signal?.removeEventListener('abort', abort);
     try { await session?.dispose(); } catch (e) { failure ??= e; }
+    let closeTimedOut = false;
     try {
       // If a request timed out, there may be an outstanding reply. Do not treat
       // any later message as a verified cleanup receipt unless it is close.
-      if (!exit) cleanup = await request('close', {}, 10000);
-    } catch (e) { failure ??= e; }
+      if (!exit && !interrupted) cleanup = await request('close', {}, CLOSE_BUDGET_MS);
+    } catch (e) { closeTimedOut = true; failure ??= e; }
     child.stdin.end();
     let timer: any;
-    await Promise.race([exited, new Promise(resolve => { timer = setTimeout(resolve, 3000); })]);
+    // SIGINT invokes finally-close; an unverified reply triggers an EOF retry.
+    const needsFinalClose = interrupted || (!closeTimedOut && !['not_started', 'absent_at_check'].includes(cleanup.cleanup));
+    await Promise.race([exited, new Promise(resolve => { timer = setTimeout(resolve, needsFinalClose ? CLOSE_BUDGET_MS : 3000); })]);
     clearTimeout(timer);
     if (!exit) { child.kill('SIGTERM'); await Promise.race([exited, new Promise(resolve => setTimeout(resolve, 1000))]); }
     if (!exit) child.kill('SIGKILL');

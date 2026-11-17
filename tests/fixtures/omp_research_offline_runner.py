@@ -38,10 +38,12 @@ print('Network socket creation denied with EPERM')
 env = {'HOME': root, 'PATH': '/usr/bin:/bin', 'XDG_CONFIG_HOME': root + '/config',
        'XDG_CACHE_HOME': root + '/cache', 'XDG_DATA_HOME': root + '/data',
        'TERM': 'dumb', 'NO_COLOR': '1'}
+if len(sys.argv) > 3:
+    env['OMP_TEST_CASE'] = sys.argv[3]
 cmd = [omp, '--mode', 'rpc', '--offline', '--no-session', '--no-extensions', '--no-skills',
        '--no-rules', '--no-context-files', '--no-lsp', '--no-pty', '--no-title', '--extension',
        root + '/tests/fixtures/omp_research_offline.ts', '--cwd', root]
-p = subprocess.run(cmd, input='', text=True, capture_output=True, env=env, cwd=root, timeout=40)
+p = subprocess.run(cmd, input='', text=True, capture_output=True, env=env, cwd=root, timeout=110)
 print('omp exit:', p.returncode, '(1 expected after fixture: no default model)')
 print(p.stderr)
 if p.returncode != 1 or 'OMP ADAPTER OFFLINE PASS' not in p.stderr:

@@ -36,17 +36,27 @@ source authentication, or a technical boundary against a malicious host. The
 host must review/constrain the final answer before promoting it to privileged
 context. Bridge networking, shared-kernel and command-descendant limitations in
 `research_container.py` remain. A caller should supply an AbortSignal and a
-bounded operation lifetime; cancellation does not retract Docker operations
-already submitted. The optional `configureSession` is for trusted offline tests
-only and must not be exposed to a model.
+bounded operation lifetime. On abort the adapter sends SIGINT to the Python
+transport; for the specified stdio implementation, KeyboardInterrupt unwinds
+its sequential server into a `finally` that attempts to close the exact task.
+The adapter waits up to 50 seconds for that attempt before terminating it and
+records cleanup as unverified even if stderr reports absence. Abort therefore
+interrupts in-flight execution, but return also waits for bounded cleanup; it
+is not a hard latency guarantee. Cancellation does not retract Docker operations
+already submitted: reconcile the saved exact name on the original daemon, and
+account for delayed operations. SIGINT behavior depends on the referenced Python
+stdio implementation and default signal handling; crashes, SIGKILL and a stuck
+process can prevent cleanup. Normal close receives a 50-second budget for its
+two 20-second Docker calls plus drain overhead. The optional `configureSession`
+is for trusted offline tests only and must not be exposed to a model.
 
 Offline SDK fixture (OMP 18.22.0, Linux libseccomp): copy this branch into a
-private disposable directory and run
+private disposable directory, then copy the separate branch's `research_stdio.py`
+to its root as `shared_research_stdio.py`. Run
 `python3 tests/fixtures/omp_research_offline_runner.py "$PWD" /absolute/path/to/omp`.
-It uses fake model/stdio under socket/connect-denying seccomp, without Docker or
-model/provider access. To exercise the separate branch's real JSON-lines `serve`
-with a fake task, copy that branch's `research_stdio.py` to the fixture root as
-`shared_research_stdio.py` before running; no actual Docker task is constructed.
+It uses a fake model and fake task under socket/connect-denying seccomp, without
+Docker or model/provider access. Lifecycle tests exercise the real JSON-lines
+`serve()` with a fake task, not a real Docker task.
 Actual provider credentials, SDK behavior on other
 versions, durable host receipt storage, and integration into a real parent
 extension are unverified. Do not activate before integration and independent

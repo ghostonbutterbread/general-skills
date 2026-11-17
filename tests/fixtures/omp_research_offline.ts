@@ -69,6 +69,108 @@ export default async function () {
     } catch { badCleanupRejected = true; }
     delete process.env.OMP_TEST_BAD_CLOSE;
     if (!badCleanupRejected) throw Error('unverified cleanup accepted');
+    if (!process.env.OMP_TEST_REAL_STDIO) throw Error('real stdio server is required for lifecycle tests');
+    if (!process.env.OMP_TEST_CASE || process.env.OMP_TEST_CASE === 'slow') {
+      process.env.OMP_TEST_CLOSE_DELAY = '16';
+      const slowCloseMock = createMockModel({ responses: [{ content: [{ type: 'text', text: 'done' }] }] });
+      const slowReceipts: any[] = [];
+      writeFileSync(log, '');
+      await runResearchSession({ cwd: root, model: parent.model, modelRegistry: parent.modelRegistry }, {
+        prompt: 'Return.', stdioScript: root + '/tests/fixtures/omp_research_stdio_fake.py',
+        daemonIdentity: 'fake-daemon', record: async r => { slowReceipts.push(r); },
+        configureSession: s => { s.agent.streamFn = slowCloseMock.stream; },
+      });
+      delete process.env.OMP_TEST_CLOSE_DELAY;
+      if (slowReceipts.at(-1)?.process?.code !== 0 || slowReceipts.at(-1)?.result?.cleanup !== 'absent_at_check') throw Error('slow cleanup not verified');
+      if (readFileSync(log, 'utf8') !== 'start\nclose\n') throw Error('slow close was interrupted');
+    }
+    if (!process.env.OMP_TEST_CASE || process.env.OMP_TEST_CASE === 'abort') {
+      process.env.OMP_TEST_EXEC_DELAY = '4';
+      const abortMock = createMockModel({ responses: [
+        { content: [{ type: 'toolCall', id: 'abort', name: 'research_container', arguments: { command: 'sleep' } }] },
+        { content: [{ type: 'text', text: 'unexpected completion' }] },
+      ] });
+      const controller = new AbortController();
+      const abortReceipts: any[] = [];
+      writeFileSync(log, '');
+      let aborted = false;
+      const running = runResearchSession({ cwd: root, model: parent.model, modelRegistry: parent.modelRegistry }, {
+        prompt: 'Use the tool.', stdioScript: root + '/tests/fixtures/omp_research_stdio_fake.py',
+        daemonIdentity: 'fake-daemon', record: async r => { abortReceipts.push(r); }, signal: controller.signal,
+        configureSession: s => { s.agent.streamFn = abortMock.stream; },
+      }).catch(() => { aborted = true; });
+      const deadline = Date.now() + 5000;
+      while (!readFileSync(log, 'utf8').includes('execute\n')) {
+        if (Date.now() > deadline) throw Error('execute did not start');
+        await new Promise(resolve => setTimeout(resolve, 10));
+      }
+      const began = Date.now();
+      controller.abort();
+      await running;
+      const elapsed = Date.now() - began;
+      delete process.env.OMP_TEST_EXEC_DELAY;
+      if (!aborted || elapsed > 750) throw Error('abort did not interrupt execute promptly: ' + elapsed + 'ms');
+      if (readFileSync(log, 'utf8') !== 'start\nexecute\nclose\n') throw Error('abort did not invoke task cleanup');
+      if (abortReceipts[0]?.container !== 'research-task-offline-fixture' || abortReceipts.at(-1)?.container !== abortReceipts[0]?.container) throw Error('abort lost exact name');
+      if (abortReceipts.at(-1)?.result?.cleanup !== 'unverified') throw Error('interrupted cleanup must remain unverified');
+      const diagnostic = abortReceipts.at(-1)?.stderr ?? '';
+      if (!diagnostic.includes('"op": "cleanup"') || !diagnostic.includes('research-task-offline-fixture')) throw Error('server finally cleanup diagnostic missing');
+      console.error('LIFECYCLE PASS: interrupt ' + elapsed + 'ms');
+
+      // The command must be interrupted promptly even if cleanup itself is slow;
+      // the caller still waits for bounded cleanup and records uncertainty.
+      process.env.OMP_TEST_EXEC_DELAY = '4';
+      process.env.OMP_TEST_CLOSE_DELAY = '2';
+      const delayedMock = createMockModel({ responses: [
+        { content: [{ type: 'toolCall', id: 'delayed', name: 'research_container', arguments: { command: 'sleep' } }] },
+        { content: [{ type: 'text', text: 'unexpected completion' }] },
+      ] });
+      const delayedController = new AbortController();
+      writeFileSync(log, '');
+      const delayed = runResearchSession({ cwd: root, model: parent.model, modelRegistry: parent.modelRegistry }, {
+        prompt: 'Use the tool.', stdioScript: root + '/tests/fixtures/omp_research_stdio_fake.py',
+        daemonIdentity: 'fake-daemon', record: async () => {}, signal: delayedController.signal,
+        configureSession: s => { s.agent.streamFn = delayedMock.stream; },
+      }).then(() => { throw Error('cancel unexpectedly succeeded'); }, () => {});
+      const executeDeadline = Date.now() + 5000;
+      while (!readFileSync(log, 'utf8').includes('execute\n')) {
+        if (Date.now() > executeDeadline) throw Error('delayed execute did not start');
+        await new Promise(resolve => setTimeout(resolve, 10));
+      }
+      const interruptedAt = Date.now();
+      delayedController.abort();
+      while (!readFileSync(log, 'utf8').includes('close\n')) {
+        if (Date.now() - interruptedAt > 750) throw Error('slow cleanup did not begin promptly');
+        await new Promise(resolve => setTimeout(resolve, 10));
+      }
+      await delayed;
+      const delayedElapsed = Date.now() - interruptedAt;
+      delete process.env.OMP_TEST_EXEC_DELAY;
+      delete process.env.OMP_TEST_CLOSE_DELAY;
+      if (delayedElapsed < 1900 || delayedElapsed > 3500) throw Error('did not wait for delayed cleanup: ' + delayedElapsed + 'ms');
+      console.error('LIFECYCLE PASS: interrupt before slow cleanup; return ' + delayedElapsed + 'ms');
+    }
+    if (!process.env.OMP_TEST_CASE || process.env.OMP_TEST_CASE === 'timeout') {
+      process.env.OMP_TEST_CLOSE_DELAY = '60';
+      const timeoutMock = createMockModel({ responses: [{ content: [{ type: 'text', text: 'done' }] }] });
+      const timeoutReceipts: any[] = [];
+      writeFileSync(log, '');
+      let timeoutFailed = false;
+      const began = Date.now();
+      try {
+        await runResearchSession({ cwd: root, model: parent.model, modelRegistry: parent.modelRegistry }, {
+          prompt: 'Return.', stdioScript: root + '/tests/fixtures/omp_research_stdio_fake.py',
+          daemonIdentity: 'fake-daemon', record: async r => { timeoutReceipts.push(r); },
+          configureSession: s => { s.agent.streamFn = timeoutMock.stream; },
+        });
+      } catch { timeoutFailed = true; }
+      delete process.env.OMP_TEST_CLOSE_DELAY;
+      const elapsed = Date.now() - began;
+      if (!timeoutFailed || elapsed < 50000 || elapsed > 57000) throw Error('close timeout not bounded as expected: ' + elapsed + 'ms');
+      if (readFileSync(log, 'utf8') !== 'start\nclose\nSIGTERM\n') throw Error('timeout did not terminate blocked transport');
+      if (timeoutReceipts.at(-1)?.container !== timeoutReceipts[0]?.container || timeoutReceipts.at(-1)?.result?.cleanup !== 'unverified') throw Error('timeout lost identity or uncertainty');
+      console.error('LIFECYCLE PASS: genuine timeout ' + elapsed + 'ms');
+    }
     console.error('OMP ADAPTER OFFLINE PASS');
   } finally { await parent.dispose(); }
 }

@@ -1,6 +1,6 @@
 # OMP research-session integration dossier
 
-- **Status:** blocked experiment; not reviewed or activated
+- **Status:** review corrections implemented; still blocked experiment, not re-reviewed or activated
 - **Owner:** delegated Hermes worker; parent owns integration
 - **Branch:** `feat/omp-research-session`
 - **Base commit:** `f17eaa16e90ddfc14bfb9de5f74065900c8e4a04`
@@ -29,6 +29,18 @@ No production extension registers the function, supplies durable storage, or
 selects/verifies the Docker daemon; this branch alone does not provide a usable
 production research tool. It depends on the separate stdio branch.
 
+Review corrections: normal close now allows 50 seconds for the existing two
+20-second Docker calls and drain overhead. Abort wakes any waiting response and
+sends SIGINT to the stdio process. With the referenced Python implementation's
+default handler, this interrupts an executing call and runs its exact-task
+`finally` close; the adapter waits boundedly for that attempt, always records
+interrupted cleanup as unverified and retains the saved name. An EOF retry of
+an unverified normal close also receives a 50-second exit budget. The caller's
+abort return is not guaranteed within a small fixed latency: cleanup and SDK
+disposal still take time. Signals can fail, blocked host operations can outlast
+budgets, and submitted daemon operations can complete late. No stdio protocol
+or other feature worktree was changed.
+
 ## Evidence and review
 
 - Hoster via the explicitly authorized Tailscale address; no LAN alias.
@@ -43,7 +55,20 @@ production research tool. It depends on the separate stdio branch.
   were checked. Tested both stand-in protocol and real `research_stdio.py`
   `serve()` from `c027134` against FakeTask (no Docker). OMP's exit 1 after
   successful fixture is expected because isolated HOME has no default model.
-- Independent review: not performed; required before integration.
+- Independent review of the original adapter identified the short close and
+  blocked-execute abort defects. Corrections require independent re-review.
+- Offline red tests on Hoster with real stdio `serve()` and fake task: 16-second
+  close failed at the old 10-second timeout; in-flight abort returned after
+  4002 ms. Same sandbox after correction: complete fixture passed, 16-second
+  close exited successfully without SIGTERM, abort returned in 6 ms, and a
+  genuine blocked close timed out after 53072 ms with exact name and unverified
+  cleanup retained. An abort-with-delayed-close case entered cleanup promptly
+  and returned in 2006 ms, not before its two-second fake cleanup.
+  Each fixture run denied socket/connect syscalls through seccomp, isolated HOME,
+  used OMP 18.22.0's mock model and no real Docker or provider. The `stderr`
+  cleanup diagnostic was checked, but deliberately not promoted to verification.
+- `env -u RESEARCH_DOCKER_TEST PATH=/nonexistent PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="$PWD" /usr/bin/python3 -m unittest discover -s tests -p test_research_stdio.py -v`
+  in the separate stdio worktree: 13 passed. That branch was not edited.
 - Project Kanban CLI: `delegate_task child contexts cannot mutate Kanban tasks or boards`;
   parent must update the existing task. This permission issue is separate from
   SDK and SSH connectivity.
@@ -72,7 +97,8 @@ production research tool. It depends on the separate stdio branch.
 - **Owning feature branch/ref:** `feat/omp-research-session`
 - **Latest immutable recovery checkpoint:** `3d9f56d1cdc233af8b79fa4dc31ada1ef71004e2` (implementation; this dossier is a later handoff-only commit)
 - **Feature implementation commit(s):** `3d9f56d1cdc233af8b79fa4dc31ada1ef71004e2`
-- **Exact resume point:** review this diff and the stdio dependency, wire a
+- **Exact resume point:** independently re-review these corrections and the
+  stdio dependency, especially SIGINT/close behavior and delayed operations; wire a
   trusted parent and durable receipts, and obtain only separately authorized
   real integration evidence. Do not merge, activate, or assume actual provider
   or Docker success from the offline test.
