@@ -38,16 +38,16 @@ not system-wide absence; interface names are only heuristics.
   socket call was the fence's intentionally denied self-test. No production
   script/fixture child socket call occurred in that trace. This is a fixture
   receipt, not proof about third-party CLI behavior.
+- Parent independently ran the actual CLI on this host: `manager=tailscale`, selected exit online, saved/effective IDs matching, `RouteAll=false`, standalone Mullvad disconnected, IPv4 route interface `tailscale0`, no reported issues, and `action=none`. This was a read-only local snapshot; no DNS/public probe or VPN mutation occurred. It does not prove public egress, DNS, IPv6, kill-switch behavior or readiness for rotation.
+- Parent independently ran `/usr/bin/python3 /home/ryushe/.hermes/profiles/bugfix/cache/scratch/egress-offline/launch.py -m unittest discover -s tests -p test_egress_inspect.py -v`: 6 passed with inherited network denial.
 - Independent review of this complete feature diff and test evidence is pending.
 
 ## Blockers and deferred work
 
-- **Real-host read-only inspection:** not run; actual Tailscale/Mullvad clients
-  and `ip` require local daemon/kernel sockets while this task's fixture fence
-  denies all sockets. Run `python3 skills/script-manager/scripts/egress_inspect.py`
-  on the intended host only when local read-only daemon/kernel communication is
-  permitted; do not run DNS/HTTP probes or modify VPN state. This prevents
-  claiming observed live compatibility or activation, not fixture completeness.
+- **Real-host read-only inspection:** completed on the parent host as recorded
+  above. Real CLI behavior on other hosts, including a connected standalone
+  Mullvad tunnel, remains unverified; recheck locally before relying on a
+  different host. No public probes or state changes are implied.
 - **Wider coordinated refresh:** incomplete and deliberately excluded. No IP
   sample, lock, rotation, recovery, target unblocking, DNS/IPv6 verification,
   kill switch, or protected-path backend is supplied here. Before integrating
