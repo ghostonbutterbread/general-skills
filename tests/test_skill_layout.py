@@ -17,6 +17,7 @@ EXPECTED_SKILLS = {
     "dotfile-management",
     "faq",
     "mail",
+    "my-computer",
     "hoster-ssh",
     "hoster-tmux-child-reaper",
     "atme",
