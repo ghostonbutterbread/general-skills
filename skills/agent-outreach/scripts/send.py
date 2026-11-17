@@ -80,7 +80,7 @@ def main(argv: list[str] | None = None) -> int:
         return 1
     payload = json.dumps({'content': content, 'allowed_mentions': {'parse': []}}).encode('utf-8')
     try:
-        request = urllib.request.Request(url + '?wait=true', data=payload, headers={'Content-Type': 'application/json'}, method='POST')
+        request = urllib.request.Request(url + '?wait=true', data=payload, headers={'Content-Type': 'application/json', 'User-Agent': 'AgentOutreach/1.0'}, method='POST')
         with open_webhook(request, timeout=10) as response:
             status = response.status
             confirmation = json.loads(response.read())
