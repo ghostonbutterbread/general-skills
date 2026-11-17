@@ -29,8 +29,10 @@ The revised `ready` handshake was then exercised with a new task-owned container
 It emitted the name before start as intended, but Docker start returned uncertain;
 the following inspect found that exact container in `created` state. The parent
 removed that exact container and a subsequent inspect reported no such object.
-The revised-handshake real-Docker run is **not a pass**. Diagnose the Docker
-start failure and repeat only after understanding the cause. No prior blocked
+A subsequent diagnostic using a second owned container again timed out: Docker
+events showed 44 seconds from create to start and 52 seconds from kill to destroy;
+the second exact name was subsequently absent at an inspect. This indicates a
+slow local Docker lifecycle, not a passed revised-protocol test. No prior blocked
 container was touched; no model-access or detached-descendant probe was run.
 
 ## Evidence and review
@@ -43,12 +45,12 @@ Run from this worktree. Offline commands clear the opt-in real-Docker flag, use 
 - Same command with `test_research_engine.py`: 20 passed, fake Unix Engine.
 - `printf '%s\n' '{"op":"close"}' | env -u RESEARCH_DOCKER_TEST PATH=/nonexistent /usr/bin/python3 skills/safe-fetch/scripts/research_stdio.py`: ready then close with the same name, `not_started`, exit 0; no Docker used.
 - Parent reports an earlier real stdio Docker test of the **pre-ready protocol**: foreground HTTPS returned 200, exit 7 was followed by `printf REUSED`, and close reported `absent_at_check`. The first verifier had a case mismatch; a separate exact-new-name inspect passed. This is point-in-time evidence only, not evidence of daemon quiescence or a real-Docker test of the revised handshake. This worker did not run real Docker, touch the previously blocked container, or run withdrawn model/descendant probes.
-- Independent complete-diff re-review after the ready fix remains required; the prior reviewer found the startup gap and has not approved this correction. Kanban CLI denied delegated child access previously; parent tracks this task.
+- Independent complete-diff re-review approved the ready fix as code, while retaining the failed revised-protocol Docker test as a separate blocker. The parent tracks Kanban.
 
 ## Blockers and deferred work
 
-- **Independent re-review:** parent must arrange review of the complete candidate and corrected startup/cleanup contract before integration or release. In particular, validate that the owner saves the ready name before sending start and that uncertain/late operations are reconciled on the original daemon.
-- **Revised-protocol live Docker test not run:** if separately authorized and needed, use a fresh task-owned container and the documented ready handshake; run a foreground HTTPS request and a nonzero-then-reuse check, capture the exact name before start, close and independently inspect only that name. One absence observation does not establish quiescence. Do not touch earlier containers or run withdrawn probes.
+- **Independent re-review:** the corrected handshake is approved as code; the owner must save the ready name before sending start and reconcile uncertain/late operations on the original daemon.
+- **Revised-protocol live Docker test failed:** local Docker lifecycle was slow as recorded above. When a responsive daemon is available, repeat with a fresh task-owned container, capture its name before start, run foreground HTTPS and nonzero-then-reuse checks, close and independently inspect only that name. One absence observation does not establish quiescence. Do not touch earlier containers or run withdrawn probes.
 - **Integration / activation:** parent must reconcile the advanced beta ref, run appropriate integration checks and independently review before merge. Remove this branch-local dossier on accepted integration. A future harness-specific adapter must prove effective tool restrictions and own process/cleanup lifecycle. No runtime changed here; promotion requires separate approval.
 
 ## Interruption / resume handoff
