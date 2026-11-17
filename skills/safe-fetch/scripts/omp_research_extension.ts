@@ -30,9 +30,13 @@ async function receiptWriter() {
   if (!st.isDirectory() || st.isSymbolicLink() || st.uid !== process.getuid?.() || (st.mode & 0o077)) throw Error('Research receipt directory must be owned by the user and private (0700)');
   const dir = await mkdtemp(join(root, 'task-'));
   const file = await open(join(dir, 'receipts.jsonl'), 'wx', 0o600);
-  // Persist both directory entries before an identity receipt can authorize start.
+  // Sync every parent entry, including recursively created ancestors. Repeat on
+  // retries: a previous failed sync may have left directories visible but not durable.
   try {
-    for (const p of [dir, root]) { const h = await open(p, 'r'); try { await h.sync(); } finally { await h.close(); } }
+    for (let p = dir; ; p = dirname(p)) {
+      const h = await open(p, 'r'); try { await h.sync(); } finally { await h.close(); }
+      if (dirname(p) === p) break;
+    }
   } catch (error) { await file.close(); throw error; }
   return {
     dir,
