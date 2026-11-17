@@ -7,8 +7,8 @@
 - **Intended integration target:** `beta`
 - **Last updated:** 2026-11-17 UTC
 - **Owning feature branch/ref:** `feat/omp-research-session`
-- **Latest immutable recovery checkpoint:** `1e1ccaaad2bf3a5453617fa1d430a8ed3549f4c0` (review corrections; a later dossier-only handoff commit updates this record)
-- **Feature implementation commit(s):** `3d9f56d1cdc233af8b79fa4dc31ada1ef71004e2`, `1e1ccaaad2bf3a5453617fa1d430a8ed3549f4c0`
+- **Latest immutable recovery checkpoint:** `77420e7b3f3c5cbf6eefb2b10bdad85cf50a9dc1` (cleanup-cancellation fix; a later dossier-only handoff commit updates this record)
+- **Feature implementation commit(s):** `3d9f56d1cdc233af8b79fa4dc31ada1ef71004e2`, `1e1ccaaad2bf3a5453617fa1d430a8ed3549f4c0`, `77420e7b3f3c5cbf6eefb2b10bdad85cf50a9dc1`
 - **Inspiration / canonical references:** OMP 18.22.0 installed on Hoster; stdio branch `feat/research-container-stdio` at `c027134`.
 
 ## Intent
@@ -110,8 +110,8 @@ verified or unverified status. An earlier failure retains precedence.
 ## Interruption / resume handoff
 
 - **Owning feature branch/ref:** `feat/omp-research-session`
-- **Latest immutable recovery checkpoint:** `1e1ccaaad2bf3a5453617fa1d430a8ed3549f4c0` (review corrections; this dossier is a later handoff-only commit)
-- **Feature implementation commit(s):** `3d9f56d1cdc233af8b79fa4dc31ada1ef71004e2`, `1e1ccaaad2bf3a5453617fa1d430a8ed3549f4c0`
+- **Latest immutable recovery checkpoint:** `77420e7b3f3c5cbf6eefb2b10bdad85cf50a9dc1` (cleanup-cancellation fix; this dossier is a later handoff-only commit)
+- **Feature implementation commit(s):** `3d9f56d1cdc233af8b79fa4dc31ada1ef71004e2`, `1e1ccaaad2bf3a5453617fa1d430a8ed3549f4c0`, `77420e7b3f3c5cbf6eefb2b10bdad85cf50a9dc1`
 - **Exact resume point:** independently re-review these corrections and the
   stdio dependency, especially SIGINT/close behavior and delayed operations; wire a
   trusted parent and durable receipts, and obtain only separately authorized
