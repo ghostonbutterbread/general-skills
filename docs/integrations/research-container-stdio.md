@@ -8,8 +8,8 @@
 - **Intended integration target:** `beta`; fetched target has advanced and integration compatibility must be checked by parent
 - **Last updated:** 2026-11-16
 - **Owning feature branch/ref:** `feat/research-container-stdio`
-- **Latest immutable recovery checkpoint before this change:** `ca72443784eefbd65bad31a3b9227dee1726a482` (prior dossier handoff)
-- **Original feature implementation:** `51501a516382540ebcbbc8f837ea18121c4f3b6c`; ready-event fix follows that checkpoint on this branch.
+- **Latest immutable implementation/recovery checkpoint:** `a9be03b2e24e01b0d294b6ad44b11f3bfb7348e3` (ready-event fix); the branch tip contains a later dossier-only handoff commit.
+- **Original feature implementation:** `51501a516382540ebcbbc8f837ea18121c4f3b6c`; prior handoff `ca72443784eefbd65bad31a3b9227dee1726a482`.
 - **Inspiration / canonical references:** existing `skills/safe-fetch/scripts/research_container.py` and script README; independent reviewer found a process-death-before-start-reply cleanup gap.
 
 ## Intent and contract
@@ -40,7 +40,7 @@ Run from this worktree. Offline commands clear the opt-in real-Docker flag, use 
 
 - **Owning feature branch/ref:** `feat/research-container-stdio`.
 - **Resume point:** inspect the ready-event fix and evidence on the feature tip, obtain independent re-review, and reconcile against current `beta`; do not merge or deploy automatically.
-- **Recovery checkpoint:** the prior immutable checkpoint above remains an ancestor; the ready fix is in the following feature commit(s).
+- **Recovery checkpoint:** `a9be03b2e24e01b0d294b6ad44b11f3bfb7348e3`; inspect the later dossier-only handoff commit too.
 
 ## Decision record
 
