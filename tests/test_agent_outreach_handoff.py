@@ -15,6 +15,8 @@ class ActionableHandoffTests(unittest.TestCase):
             'fallback',
             'expiry',
             'how to signal completion',
+            'who can access the handoff service',
+            'if no monitored completion channel is known',
             'do not invent',
         ):
             with self.subTest(required=required):
