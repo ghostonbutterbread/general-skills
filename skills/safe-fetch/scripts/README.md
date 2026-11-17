@@ -1,6 +1,56 @@
 # Safe-fetch scripts
 
 - `safe_fetch.py` — quarantine and sanitize external content.
+- `omp_research_session.ts` — experimental OMP SDK host adapter; see below.
+
+## Experimental OMP research-session adapter
+
+`runResearchSession(host, options)` is a host-side SDK function, not an
+installed or automatically registered extension. It depends on the separate
+`research_stdio.py` implementation from branch `feat/research-container-stdio`
+(commit `c027134`); that file is not yet in this branch's beta base. Supply its
+absolute path as `stdioScript`, a host-owned `prompt`, the OMP extension context
+(or equivalent trusted object with `cwd`, `model`, and `modelRegistry`), and a
+stable `daemonIdentity` identifying the Docker daemon selected by the transport.
+The adapter **does not verify the daemon identity**: the owner must establish and
+pin that binding before use. Do not allow model arguments to select the script,
+daemon, callback, or test hook.
+
+The required async `record(receipt)` callback must durably persist its argument
+before it resolves. The adapter asks the callback to persist the exact generated
+container name and daemon identity before `start`; if that fails, it does not
+start. It then creates
+an in-memory child session restricted to exactly `research_container`, inheriting
+the parent's model and registry and disabling extension discovery, MCP, LSP and
+IRC. It records the close result, stderr and process status. A failed/uncertain
+cleanup or process exit fails the call. Exceptions may preserve the original
+failure rather than the cleanup failure: **always inspect the cleanup receipt**.
+If its result is not a verified matching `not_started` or `absent_at_check`,
+reconcile that exact name on the original daemon, including delayed operations;
+point-in-time absence is not proof of daemon quiescence. Abrupt host death and
+unresponsive processes can still prevent cleanup/receipt recording.
+
+The result is explicitly `untrusted_research_result`; tool output is labeled
+untrusted and capped before it reaches the model. This is not sanitization,
+source authentication, or a technical boundary against a malicious host. The
+host must review/constrain the final answer before promoting it to privileged
+context. Bridge networking, shared-kernel and command-descendant limitations in
+`research_container.py` remain. A caller should supply an AbortSignal and a
+bounded operation lifetime; cancellation does not retract Docker operations
+already submitted. The optional `configureSession` is for trusted offline tests
+only and must not be exposed to a model.
+
+Offline SDK fixture (OMP 18.22.0, Linux libseccomp): copy this branch into a
+private disposable directory and run
+`python3 tests/fixtures/omp_research_offline_runner.py "$PWD" /absolute/path/to/omp`.
+It uses fake model/stdio under socket/connect-denying seccomp, without Docker or
+model/provider access. To exercise the separate branch's real JSON-lines `serve`
+with a fake task, copy that branch's `research_stdio.py` to the fixture root as
+`shared_research_stdio.py` before running; no actual Docker task is constructed.
+Actual provider credentials, SDK behavior on other
+versions, durable host receipt storage, and integration into a real parent
+extension are unverified. Do not activate before integration and independent
+review.
 
 - `research_container.py` — experimental host-side transport for a restricted
   native researcher; it does not itself launch a model or a subagent, and merely
