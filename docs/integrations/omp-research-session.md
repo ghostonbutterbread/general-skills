@@ -39,7 +39,10 @@ an unverified normal close also receives a 50-second exit budget. The caller's
 abort return is not guaranteed within a small fixed latency: cleanup and SDK
 disposal still take time. Signals can fail, blocked host operations can outlast
 budgets, and submitted daemon operations can complete late. No stdio protocol
-or other feature worktree was changed.
+or other feature worktree was changed. Cancellation arriving during normal
+cleanup or receipt persistence is checked after the receipt is recorded and
+prevents a successful result. Cleanup is not interrupted, and its receipt retains
+verified or unverified status. An earlier failure retains precedence.
 
 ## Evidence and review
 
@@ -69,6 +72,18 @@ or other feature worktree was changed.
   cleanup diagnostic was checked, but deliberately not promoted to verification.
 - `env -u RESEARCH_DOCKER_TEST PATH=/nonexistent PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="$PWD" /usr/bin/python3 -m unittest discover -s tests -p test_research_stdio.py -v`
   in the separate stdio worktree: 13 passed. That branch was not edited.
+- Follow-up review regression: with actual OMP 18.22.0, fake model and task, and
+  the `c027134` stdio `serve()`, `OMP_TEST_CASE=closeabort` first failed on
+  `0ce5faa` because abort during close returned success. After the fix, the
+  fixture passed for abort during the two-second close, during receipt persistence,
+  and with unverified cleanup; it checked preserved identity and cleanup receipts.
+  `OMP_TEST_CASE=slow` passed the 16-second close; `OMP_TEST_CASE=abort` passed
+  interrupted execute (6 ms) and the two-second delayed cleanup (2007 ms).
+  Each case also runs the normal-completion assertions. The runner denied
+  socket/connect using seccomp and isolated HOME; no real model, provider,
+  Docker or target was used. OMP exit 1 after the PASS marker is expected with
+  no default model in isolated HOME. Commands on Hoster:
+  `python3 tests/fixtures/omp_research_offline_runner.py <private-root> /home/ryushe/.local/bin/omp <closeabort|slow|abort>`.
 - Project Kanban CLI: `delegate_task child contexts cannot mutate Kanban tasks or boards`;
   parent must update the existing task. This permission issue is separate from
   SDK and SSH connectivity.

@@ -150,6 +150,73 @@ export default async function () {
       if (delayedElapsed < 1900 || delayedElapsed > 3500) throw Error('did not wait for delayed cleanup: ' + delayedElapsed + 'ms');
       console.error('LIFECYCLE PASS: interrupt before slow cleanup; return ' + delayedElapsed + 'ms');
     }
+    if (!process.env.OMP_TEST_CASE || process.env.OMP_TEST_CASE === 'closeabort') {
+      process.env.OMP_TEST_CLOSE_DELAY = '2';
+      const closeMock = createMockModel({ responses: [{ content: [{ type: 'text', text: 'done' }] }] });
+      const controller = new AbortController();
+      const closeReceipts: any[] = [];
+      writeFileSync(log, '');
+      const running = runResearchSession({ cwd: root, model: parent.model, modelRegistry: parent.modelRegistry }, {
+        prompt: 'Return.', stdioScript: root + '/tests/fixtures/omp_research_stdio_fake.py',
+        daemonIdentity: 'fake-daemon', record: async r => { closeReceipts.push(r); }, signal: controller.signal,
+        configureSession: s => { s.agent.streamFn = closeMock.stream; },
+      }).then(() => null, e => e);
+      const deadline = Date.now() + 5000;
+      while (!readFileSync(log, 'utf8').includes('close\n')) {
+        if (Date.now() > deadline) throw Error('normal cleanup did not start');
+        await new Promise(resolve => setTimeout(resolve, 10));
+      }
+      const began = Date.now();
+      controller.abort();
+      const error = await running;
+      delete process.env.OMP_TEST_CLOSE_DELAY;
+      if (!error || !String(error).includes('cancelled')) throw Error('abort during close returned success or did not report cancellation: ' + error);
+      if (Date.now() - began < 1500) throw Error('abort interrupted normal cleanup');
+      if (readFileSync(log, 'utf8') !== 'start\nclose\n') throw Error('abort during close disrupted cleanup');
+      const receipt = closeReceipts.at(-1);
+      if (closeReceipts.map(r => r.event).join(',') !== 'identity,cleanup' ||
+          receipt?.container !== closeReceipts[0]?.container || receipt?.result?.cleanup !== 'absent_at_check' ||
+          receipt?.process?.code !== 0) throw Error('abort during close lost cleanup receipt');
+      console.error('LIFECYCLE PASS: abort during normal close retains receipt');
+
+      const receiptMock = createMockModel({ responses: [{ content: [{ type: 'text', text: 'done' }] }] });
+      const receiptController = new AbortController();
+      const persisted: any[] = [];
+      const receiptError = await runResearchSession({ cwd: root, model: parent.model, modelRegistry: parent.modelRegistry }, {
+        prompt: 'Return.', stdioScript: root + '/tests/fixtures/omp_research_stdio_fake.py',
+        daemonIdentity: 'fake-daemon', signal: receiptController.signal,
+        record: async (r: any) => { persisted.push(r); if (r.event === 'cleanup') receiptController.abort(); },
+        configureSession: s => { s.agent.streamFn = receiptMock.stream; },
+      }).then(() => null, e => e);
+      if (!receiptError || !String(receiptError).includes('cancelled') || persisted.at(-1)?.result?.cleanup !== 'absent_at_check') throw Error('abort during cleanup receipt not honored');
+      console.error('LIFECYCLE PASS: abort during receipt persistence');
+
+      process.env.OMP_TEST_BAD_CLOSE = '1';
+      process.env.OMP_TEST_CLOSE_DELAY = '2';
+      const uncertainMock = createMockModel({ responses: [{ content: [{ type: 'text', text: 'done' }] }] });
+      const uncertainController = new AbortController();
+      const uncertainReceipts: any[] = [];
+      writeFileSync(log, '');
+      const uncertain = runResearchSession({ cwd: root, model: parent.model, modelRegistry: parent.modelRegistry }, {
+        prompt: 'Return.', stdioScript: root + '/tests/fixtures/omp_research_stdio_fake.py',
+        daemonIdentity: 'fake-daemon', signal: uncertainController.signal,
+        record: async r => { uncertainReceipts.push(r); },
+        configureSession: s => { s.agent.streamFn = uncertainMock.stream; },
+      }).then(() => null, e => e);
+      const uncertainDeadline = Date.now() + 5000;
+      while (!readFileSync(log, 'utf8').includes('close\n')) {
+        if (Date.now() > uncertainDeadline) throw Error('uncertain cleanup did not start');
+        await new Promise(resolve => setTimeout(resolve, 10));
+      }
+      uncertainController.abort();
+      const uncertainError = await uncertain;
+      delete process.env.OMP_TEST_BAD_CLOSE;
+      delete process.env.OMP_TEST_CLOSE_DELAY;
+      if (!uncertainError || !String(uncertainError).includes('cancelled') ||
+          uncertainReceipts.at(-1)?.container !== uncertainReceipts[0]?.container ||
+          uncertainReceipts.at(-1)?.result?.cleanup !== 'unverified') throw Error('cancel lost cleanup uncertainty');
+      console.error('LIFECYCLE PASS: abort retains unverified cleanup');
+    }
     if (!process.env.OMP_TEST_CASE || process.env.OMP_TEST_CASE === 'timeout') {
       process.env.OMP_TEST_CLOSE_DELAY = '60';
       const timeoutMock = createMockModel({ responses: [{ content: [{ type: 'text', text: 'done' }] }] });

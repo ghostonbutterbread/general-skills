@@ -159,6 +159,7 @@ export async function runResearchSession(host: any, options: {
     try { await options.record({ event: 'cleanup', container: name, daemon: options.daemonIdentity, result: cleanup, process: exit ?? { status: 'unverified' }, stderr }); }
     catch (e) { failure ??= e; }
   }
+  if (options.signal?.aborted) failure ??= new Error('Research cancelled');
   if (!name || cleanup.container !== name || !['not_started', 'absent_at_check'].includes(cleanup.cleanup) || !exit || exit.code !== 0) failure ??= new Error('Research cleanup is unverified; reconcile exact name on original daemon');
   if (failure) throw failure;
   return { trust: 'untrusted_research_result', content: result, container: name, cleanup };
