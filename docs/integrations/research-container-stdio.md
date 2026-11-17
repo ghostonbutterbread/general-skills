@@ -8,8 +8,8 @@
 - **Intended integration target:** `beta`
 - **Last updated:** 2026-11-16
 - **Owning feature branch/ref:** `feat/research-container-stdio`
-- **Latest immutable recovery checkpoint:** see subsequent dossier-only handoff commit
-- **Feature implementation commit(s):** see subsequent dossier-only handoff commit
+- **Latest immutable recovery checkpoint:** `51501a516382540ebcbbc8f837ea18121c4f3b6c` (implementation; a later dossier-only handoff commit follows)
+- **Feature implementation commit(s):** `51501a516382540ebcbbc8f837ea18121c4f3b6c` (implementation; a later dossier-only handoff commit follows)
 - **Inspiration / canonical references:** existing `skills/safe-fetch/scripts/research_container.py` and script README.
 
 ## Intent
@@ -40,8 +40,8 @@ Provide a small harness-neutral process interface to the existing task-scoped re
 ## Interruption / resume handoff
 
 - **Owning feature branch/ref:** `feat/research-container-stdio`
-- **Latest immutable recovery checkpoint:** see subsequent dossier-only handoff commit
-- **Feature implementation commit(s):** see subsequent dossier-only handoff commit
+- **Latest immutable recovery checkpoint:** `51501a516382540ebcbbc8f837ea18121c4f3b6c` (implementation; a later dossier-only handoff commit follows)
+- **Feature implementation commit(s):** `51501a516382540ebcbbc8f837ea18121c4f3b6c` (implementation; a later dossier-only handoff commit follows)
 - **Exact resume point:** inspect branch diff and dossier, arrange independent review and approved real Docker test; do not merge or deploy automatically.
 - **Working-tree state at handoff:** clean after committed handoff.
 
