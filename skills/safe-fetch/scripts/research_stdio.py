@@ -18,6 +18,7 @@ def serve(source, sink, diagnostics, task):
         sink.flush()
 
     try:
+        reply('ready', {'container': task.name})
         for line in source:
             try:
                 request = json.loads(line)

@@ -10,9 +10,15 @@ From the **skill directory**, launch `python3 scripts/research_stdio.py`, or set
 `SAFE_FETCH_SKILL_DIR` to that directory and run
 `python3 "$SAFE_FETCH_SKILL_DIR/scripts/research_stdio.py"`. Keep one process
 and its pipes open for one task. No model credentials or authentication are
-involved. Requests are sequential JSON objects, one per line; stdout returns one
-flushed JSON object per request, `{"op": ..., "result": {...}}`. Do not send
-another request until its reply arrives. The process does not enforce access
+involved. The first stdout message is a flushed `ready` event containing the
+generated container name, before the process reads any request or starts a
+container. The owning harness **must receive and durably retain that exact name
+before sending `start`**, along with the identity of the original Docker daemon.
+If it cannot retain the name, it must not send `start`. Requests are sequential
+JSON objects, one per line; stdout then returns one flushed JSON object per
+request, `{"op": ..., "result": {...}}`. Do not send another request until its
+reply arrives. The process does not limit input line length; the harness must
+bound input lines before forwarding them. The process does not enforce access
 control: **every harness must independently enforce its child agent's effective
 exclusive tool allowlist** and mediate who can write to the process. A harness
 adapter is not supplied. This CLI alone does not restrict other agent tools.
@@ -26,6 +32,7 @@ adapter is not supplied. This CLI alone does not restrict other agent tools.
 Example replies (the generated name varies):
 
 ```jsonl
+{"op":"ready","result":{"container":"research-task-example"}}
 {"op":"start","result":{"ok":true,"container":"research-task-example","network":"bridge"}}
 {"op":"execute","result":{"ok":true,"exit_code":0,"timed_out":false,"output":"hello\n","truncated":false,"trust":"untrusted_container_output"}}
 {"op":"close","result":{"container":"research-task-example","cleanup":"absent_at_check"}}
@@ -35,7 +42,8 @@ An unexpected transport exception may terminate the process before a reply;
 check stderr and exit status rather than waiting indefinitely.
 
 - `start` has no other fields. Its core result contains `ok`, `container` and
-  `network` on success; save the exact generated container name for cleanup.
+  `network` on success. Never wait for this reply to save the name: start may
+  reach Docker and the process may die before returning the reply.
   Start once per process (a failed unsupported-daemon preflight may be retried).
 - `execute` requires `command` (nonempty shell string, max 8192 characters);
   optional integer `timeout` is 1–60 seconds, default 15. The core result includes
@@ -65,8 +73,11 @@ On EOF or an unexpected exception, the process attempts `close()` in `finally`
 extra stdout reply. Exit status is 0 only when cleanup is observed as
 `not_started` or `absent_at_check` and no unexpected exception occurred;
 otherwise it is 1. If cleanup itself raises, stderr gives the exact task name and
-`unverified`. Capture stderr and process status. Abrupt process death cannot run
-`finally`; cleanup is best effort and the owner must reconcile the exact name.
+`unverified`. Capture stderr and process status. SIGTERM, SIGKILL and process
+crashes are not guaranteed to run `finally`; cleanup is best effort. After
+uncertain start or process death, the owner must reconcile the retained exact
+name on the original daemon, including possible later daemon completion. One
+absence check or cleanup receipt does not prove the daemon is quiescent.
 The existing safe-fetch command and quarantine contract are unchanged.
 
 ## Core research container

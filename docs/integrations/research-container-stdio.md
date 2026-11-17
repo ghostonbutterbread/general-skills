@@ -1,56 +1,48 @@
 # Research-container stdio integration dossier
 
-- **Status:** feature; review and real-Docker evidence pending
+- **Status:** feature; revised protocol requires independent re-review before integration or release
 - **Owner:** delegated Hermes subagent; parent owns integration/review
 - **Branch:** `feat/research-container-stdio`
 - **Worktree:** `/home/ryushe/worktrees/general-skills-research-stdio`
-- **Base commit:** `cd5f8d05a6e67573a2b0567d404b0cb680af9a22` (fetched `origin/beta`)
-- **Intended integration target:** `beta`
+- **Base commit:** `cd5f8d05a6e67573a2b0567d404b0cb680af9a22` (fetched `origin/beta` when feature started)
+- **Intended integration target:** `beta`; fetched target has advanced and integration compatibility must be checked by parent
 - **Last updated:** 2026-11-16
 - **Owning feature branch/ref:** `feat/research-container-stdio`
-- **Latest immutable recovery checkpoint:** `51501a516382540ebcbbc8f837ea18121c4f3b6c` (implementation; a later dossier-only handoff commit follows)
-- **Feature implementation commit(s):** `51501a516382540ebcbbc8f837ea18121c4f3b6c` (implementation; a later dossier-only handoff commit follows)
-- **Inspiration / canonical references:** existing `skills/safe-fetch/scripts/research_container.py` and script README.
+- **Latest immutable recovery checkpoint before this change:** `ca72443784eefbd65bad31a3b9227dee1726a482` (prior dossier handoff)
+- **Original feature implementation:** `51501a516382540ebcbbc8f837ea18121c4f3b6c`; ready-event fix follows that checkpoint on this branch.
+- **Inspiration / canonical references:** existing `skills/safe-fetch/scripts/research_container.py` and script README; independent reviewer found a process-death-before-start-reply cleanup gap.
 
-## Intent
+## Intent and contract
 
 Provide a small harness-neutral process interface to the existing task-scoped research transport. Preserve the core, safe-fetch command and quarantine contract. This is a transport, not a harness integration or an agent restriction.
 
-## Implemented contract
-
-`research_stdio.py` owns one core instance; sequential JSON-lines `start`, `execute`, `close` requests return the core result in an envelope. Invalid input has an actionable error; completed nonzero commands remain reusable. Close retries remain possible while the process lives; EOF/exception calls close in `finally` and reports cleanup to stderr. Cleanup can remain uncertain. The harness must exclusively allowlist the intended child tool, mediate its pipe, constrain untrusted output, and track exact-name cleanup. There is no adapter, credential access, model call, source-ingestion path, or end-to-end researcher claim.
+`research_stdio.py` owns one core instance. It first writes and flushes `{"op":"ready","result":{"container":"<generated-name>"}}` before reading requests or invoking start. The harness must durably retain that exact name and the original daemon identity before sending `start`. Thereafter sequential JSON-lines `start`, `execute`, `close` requests return the core result in an envelope. Invalid input has an actionable error; completed nonzero commands remain reusable. Close retries remain possible while the process lives; EOF/exception calls close in `finally` and reports cleanup to stderr. SIGTERM, SIGKILL and process crashes do not guarantee cleanup; a single absence check cannot exclude a late daemon operation. Reconcile the exact name on the original daemon after uncertain start or process death. The harness must also bound input lines, exclusively allowlist the intended child tool, mediate its pipe, and constrain untrusted output. There is no adapter, credential access, model call, source-ingestion path, or end-to-end researcher claim.
 
 ## Evidence and review
 
-- `env -u RESEARCH_DOCKER_TEST PATH=/nonexistent /usr/bin/python3 -m unittest discover -s tests -p test_research_stdio.py -v`: 10 passed; actual CLI subprocess uses fake transport and real core is exercised with mocked Docker/Engine.
+Run from this worktree. Offline commands clear the opt-in real-Docker flag, use an unavailable Docker CLI PATH, and put this worktree first on the Python path:
+
+- `env -u RESEARCH_DOCKER_TEST PATH=/nonexistent PYTHONPATH="$PWD/tests" /usr/bin/python3 -m unittest test_research_stdio.StdioTests.test_ready_name_is_flushed_before_blocking_start_and_sigterm -v` failed before the fix because no ready message arrived, then passed after the fix. This uses the real CLI script with injected fake core; it reads the flushed generated name before any start, sends start, waits until the fake start is blocked, and terminates the process with SIGTERM. It does not claim a real daemon operation or cleanup.
+- `env -u RESEARCH_DOCKER_TEST PATH=/nonexistent PYTHONPATH="$PWD" /usr/bin/python3 -m unittest discover -s tests -p test_research_stdio.py -v`: 13 passed, including prebuffered request ordering, flush failure, sequential reuse, and fake-core subprocess.
 - Same command with `test_research_container.py`: 24 passed, one opt-in real Docker test skipped.
 - Same command with `test_research_engine.py`: 20 passed, fake Unix Engine.
-- Actual CLI, no start: `printf '%s\n' '{"op":"close"}' | env PATH=/nonexistent /usr/bin/python3 skills/safe-fetch/scripts/research_stdio.py` returned `not_started`, exit 0.
-- `git diff --check`: passed. Independent complete-diff review: pending parent assignment.
-- Kanban CLI denied delegated child access; parent must track this task and link this dossier/branch.
+- `printf '%s\n' '{"op":"close"}' | env -u RESEARCH_DOCKER_TEST PATH=/nonexistent /usr/bin/python3 skills/safe-fetch/scripts/research_stdio.py`: ready then close with the same name, `not_started`, exit 0; no Docker used.
+- Parent reports an earlier real stdio Docker test of the **pre-ready protocol**: foreground HTTPS returned 200, exit 7 was followed by `printf REUSED`, and close reported `absent_at_check`. The first verifier had a case mismatch; a separate exact-new-name inspect passed. This is point-in-time evidence only, not evidence of daemon quiescence or a real-Docker test of the revised handshake. This worker did not run real Docker, touch the previously blocked container, or run withdrawn model/descendant probes.
+- Independent complete-diff re-review after the ready fix remains required; the prior reviewer found the startup gap and has not approved this correction. Kanban CLI denied delegated child access previously; parent tracks this task.
 
 ## Blockers and deferred work
 
-- **Missing evidence:** real foreground CLI → core → Docker bridge HTTPS request and exact-name cleanup, plus independent review. No approval for that real Docker action was supplied in this delegated context; no prior blocked container was touched. The withdrawn real model and detached-descendant probes were not run.
-- **Fixture / environment:** after explicit approval, use this CLI to start its freshly generated unique task-owned container, execute a foreground Python HTTPS request to a valid public HTTPS endpoint, inspect its stdout/exit and close; capture its returned exact name and cleanup receipt. Independently reconcile only that exact name, including delayed-operation risk. Never inspect or act on any earlier container. Do not run existing opt-in tests blindly because their scope may differ from this approval.
-- **Trigger:** explicit real Docker test approval and an available suitable daemon/image/network; obtain independent review from parent before integration.
-- **Impact:** real Docker entrypoint/HTTPS and integrated researcher workflow remain unverified. No activation or E2E claim.
-- **Next:** parent reviews branch; authorize bounded real test if desired; implement a separate harness-specific adapter with a proven effective child tool allowlist and process/cleanup lifecycle.
+- **Independent re-review:** parent must arrange review of the complete candidate and corrected startup/cleanup contract before integration or release. In particular, validate that the owner saves the ready name before sending start and that uncertain/late operations are reconciled on the original daemon.
+- **Revised-protocol live Docker test not run:** if separately authorized and needed, use a fresh task-owned container and the documented ready handshake; run a foreground HTTPS request and a nonzero-then-reuse check, capture the exact name before start, close and independently inspect only that name. One absence observation does not establish quiescence. Do not touch earlier containers or run withdrawn probes.
+- **Integration / activation:** parent must reconcile the advanced beta ref, run appropriate integration checks and independently review before merge. Remove this branch-local dossier on accepted integration. A future harness-specific adapter must prove effective tool restrictions and own process/cleanup lifecycle. No runtime changed here; promotion requires separate approval.
 
 ## Interruption / resume handoff
 
-- **Owning feature branch/ref:** `feat/research-container-stdio`
-- **Latest immutable recovery checkpoint:** `51501a516382540ebcbbc8f837ea18121c4f3b6c` (implementation; a later dossier-only handoff commit follows)
-- **Feature implementation commit(s):** `51501a516382540ebcbbc8f837ea18121c4f3b6c` (implementation; a later dossier-only handoff commit follows)
-- **Exact resume point:** inspect branch diff and dossier, arrange independent review and approved real Docker test; do not merge or deploy automatically.
-- **Working-tree state at handoff:** clean after committed handoff.
-
-## Decision gates
-
-- **Integration gate:** independent review; report missing live test or complete it with approval; remove dossier from beta on accepted merge.
-- **Activation / cohort gate:** explicit future harness adapter and verified tool restrictions plus owner authorization; no runtime changed here.
-- **Promotion gate:** separate explicit approval.
+- **Owning feature branch/ref:** `feat/research-container-stdio`.
+- **Resume point:** inspect the ready-event fix and evidence on the feature tip, obtain independent re-review, and reconcile against current `beta`; do not merge or deploy automatically.
+- **Recovery checkpoint:** the prior immutable checkpoint above remains an ancestor; the ready fix is in the following feature commit(s).
 
 ## Decision record
 
-- 2026-11-16 — feature authored on fetched beta; offline tests passed; real Docker and independent review deferred.
+- 2026-11-16 — Original feature authored on fetched beta; offline tests passed.
+- 2026-11-16 — Parent reported the bounded pre-fix real Docker test and independent reviewer identified the missing early name. Add flushed ready event and offline process-death regression; independent re-review required.
