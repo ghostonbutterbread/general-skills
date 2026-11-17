@@ -12,12 +12,12 @@ Before adding a script here, ask:
 
 ## Script Index
 
-Paths are relative to this directory. No helpers are implemented here yet.
-When one is added, record only its path and purpose/when to use it, following
+Paths are relative to this directory. Follow
 [the entry template](../references/script-record-template.md). Keep detailed
-usage in its help or associated documentation. Maintain this same index for
-new, renamed, or removed scripts; update the [skill pointer](../SKILL.md) if
-its location changes.
+usage in associated documentation. Maintain this same index for new, renamed,
+or removed scripts; update the [skill pointer](../SKILL.md) if its location changes.
+
+- `egress_inspect.py` — Inspect local VPN manager and IPv4 route observations; see [usage](egress_inspect.md).
 
 ## Unimplemented Idea (not an available script)
 
