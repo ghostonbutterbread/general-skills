@@ -32,13 +32,14 @@ class OutreachTests(unittest.TestCase):
                 captured.append(request)
                 return Response()
             with patch.dict(os.environ, {'GENERAL_SKILLS_CONFIG': str(config)}), patch.object(sender, 'open_webhook', side_effect=open_request):
-                result = sender.main(['--kind', 'handoff', '--agent', 'Scout', '--run', 'run-42', '--summary', 'Login needed', '--action', 'Complete login', '--status', 'Paused'])
+                result = sender.main(['--kind', 'handoff', '--agent', 'Scout', '--run', 'run-42', '--summary', 'Login needed', '--action', 'Complete login', '--status', 'Paused', '--link', 'https://example.invalid/handoff'])
             self.assertEqual(result, 0)
             self.assertTrue(captured[0].full_url.endswith('?wait=true'))
             self.assertEqual(captured[0].get_header('User-agent'), 'AgentOutreach/1.0')
             payload = json.loads(captured[0].data)
             self.assertIn('Login needed', payload['content'])
             self.assertIn('run-42', payload['content'])
+            self.assertIn('https://example.invalid/handoff', payload['content'])
             self.assertEqual(payload['allowed_mentions'], {'parse': []})
             self.assertNotIn('fake-token', payload['content'])
 

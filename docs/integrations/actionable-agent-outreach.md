@@ -1,0 +1,8 @@
+# Actionable agent-outreach handoffs
+
+- **Status / owner:** in progress / Hermes, General Skills task `t_88c66523`.
+- **Base:** beta `cd5f8d05a6e67573a2b0567d404b0cb680af9a22`; feature `feat/actionable-agent-outreach`; target beta.
+- **Intent:** when a human is needed, proactively notify and include the specific action and actual safe user-reachable handoff URL, identity/role context, status, relevant expiry, fallback, and monitored completion channel. Never send credentials or bearer links. State missing/unsafe routes and preserve existing workflow safety.
+- **Evidence:** documentation regression was red before updating the skill, then green. Existing sender payload test extended to assert a safe handoff URL is preserved. Initial 105-test full suite had an unrelated research timing cutoff fail at 3.213 seconds vs 3.2; focused rerun and full rerun passed (one skip). Captured in papercut `PC-20261117-001850-7c044656`. Independent route audit and review pending.
+- **Boundary:** general skill instructions alone do not enforce runtime triggers; audit existing handoff/blocker owner routes separately. No live notification is necessary for documentation changes. Shared credentials are not touched.
+- **Next:** reconcile caller-route audit; validate policy/security and independently review exact change; integrate/push beta, then verify actual local and Hoster projections and a fresh resolver. Do not put this dossier on beta.
