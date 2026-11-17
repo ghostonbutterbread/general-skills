@@ -22,20 +22,23 @@ address does not establish the proxy port or authorize an unrelated operation.
 
 ## Current device
 
-1. For Herdr, seek a fresh lookup of the current controller for the **current
-   pane** each time the device matters. The proposed per-pane integration
-   candidate is `herdr pane controller --current --json`, pending provider verification.
-   Do not assume the command is available or its interface is implemented: use
-   it only after the actual provider and interface have been verified in the
-   environment. Do not infer another pane's controller.
-2. The candidate success JSON has an envelope with `result.type` equal to
-   `pane_controller`, `result.status`, `result.source_ip`, and `result.reason`;
-   this is not a verified deployed interface. Once the exact client/server interface
-   is verified, use the SSH source IP directly only when the command exits zero,
+1. For Herdr, seek a fresh lookup of the current controller for the current Herdr pane
+   each time the device matters. This per-pane interface was verified in an isolated Hoster trial
+   with the candidate client and server and actual OMP; Ryushe confirmed actual use.
+   It requires a compatible client and server, not merely this skill: stock older
+   or unknown installations may not support it. In a managed Herdr pane (check
+   `HERDR_ENV=1`), attempt `herdr pane controller --current --json` using the
+   Herdr client on that machine's PATH, without an external verification receipt.
+   Do not infer another pane's controller. If outside a managed pane or the client
+   or method is unavailable, ask Ryushe; do not install, replace, restart, or
+   upgrade a server or disturb existing sessions to make the lookup work.
+2. Parse the response as a valid JSON object. The success JSON has an envelope with `result.type` equal to
+   `pane_controller`, `result.status`, `result.source_ip`, and `result.reason`.
+   Use the SSH source IP directly only when the command exits zero,
    there is no error envelope, `result.type` is `pane_controller`, `result.status`
    is `inferred`, and `result.source_ip` is a valid usable IP for the connection
    context, without maintaining a device table.
-   The candidate derives it from `SSH_CONNECTION` in the local Unix-socket peer's
+   The tested interface derives it from `SSH_CONNECTION` in the local Unix-socket peer's
    environment: it is an untrusted hint that can be spoofed, not an authenticated
    network peer. Call it **inferred**, not proof of who authored a message or which
    physical device it is. NAT, relays and changing connections can make an IP

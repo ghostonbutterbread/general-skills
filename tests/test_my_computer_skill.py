@@ -1,4 +1,4 @@
-"""Documentation contract for the proposed controller lookup, not provider tests."""
+"""Documentation contract for controller lookup, not provider tests."""
 
 import unittest
 from pathlib import Path
@@ -24,13 +24,22 @@ class MyComputerSkillTests(unittest.TestCase):
         self.assertIn("my notes", text)
         self.assertIn("normal meaning", text)
 
-    def test_candidate_lookup_is_inferred_and_not_a_deployed_contract(self):
+    def test_lookup_is_actionable_on_compatible_installations(self):
         text = self.text()
+        normalized = " ".join(text.split())
         for phrase in ("per-pane", "current controller", "inferred", "not proof",
-                       "pending provider verification", "`herdr pane controller --current --json`",
-                       "Do not assume the command is available"):
+                       "`herdr pane controller --current --json`",
+                       "compatible client and server", "current Herdr pane",
+                       "without an external verification receipt", "`HERDR_ENV=1`",
+                       "Herdr client on that machine's PATH", "stock older or unknown",
+                       "do not install, replace, restart, or upgrade a server"):
             with self.subTest(phrase=phrase):
-                self.assertIn(phrase, text)
+                self.assertIn(phrase, normalized)
+        self.assertRegex(normalized, r"(?i)attempt .*`herdr pane controller --current --json`")
+        self.assertIn("verified in an isolated Hoster trial", normalized)
+        self.assertIn("Ryushe confirmed actual use", normalized)
+        self.assertNotIn("pending provider verification", normalized)
+        self.assertNotIn("not a verified deployed interface", normalized)
         self.assertRegex(text, r"(?is)unknown.*ambiguous.*unsupported.*ask Ryushe")
         self.assertIn("`SSH_CONNECTION`", text)
         self.assertIn("stale", text)
@@ -39,18 +48,23 @@ class MyComputerSkillTests(unittest.TestCase):
         self.assertIn("fresh lookup", text)
         self.assertRegex(text, r"`result.status`\s+is `inferred`")
 
-    def test_candidate_nested_result_and_untrusted_hint_are_documented(self):
+    def test_nested_result_and_untrusted_hint_are_documented(self):
         text = self.text()
         for phrase in ("`result.type`", "`pane_controller`", "`result.status`",
                        "`result.source_ip`", "`result.reason`",
-                       "not a verified deployed interface", "exact client/server interface",
-                       "command exits zero", "no error envelope", "valid usable IP",
+                       "valid JSON object", "command exits zero", "no error envelope", "valid usable IP",
                        "for the connection", "local Unix-socket peer's", "environment",
                        "untrusted hint", "can be spoofed", "not an authenticated",
                        "network peer"):
             with self.subTest(phrase=phrase):
                 self.assertIn(phrase, text)
         self.assertRegex(text, r"(?is)missing or malformed response or IP.*unexpected result type.*non-inferred status.*ask Ryushe")
+
+    def test_readme_states_trial_and_compatibility_boundary(self):
+        readme = (ROOT / "README.md").read_text()
+        entry = next(line for line in readme.splitlines() if line.startswith("- `my-computer`"))
+        self.assertRegex(entry, r"verified.*trial.*compatible client and server.*ask")
+        self.assertNotIn("Herdr integration is pending verification", entry)
 
     def test_named_device_uses_existing_host_resolution(self):
         text = self.text()
