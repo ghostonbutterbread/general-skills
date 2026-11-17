@@ -18,6 +18,21 @@ Provide a small harness-neutral process interface to the existing task-scoped re
 
 `research_stdio.py` owns one core instance. It first writes and flushes `{"op":"ready","result":{"container":"<generated-name>"}}` before reading requests or invoking start. The harness must durably retain that exact name and the original daemon identity before sending `start`. Thereafter sequential JSON-lines `start`, `execute`, `close` requests return the core result in an envelope. Invalid input has an actionable error; completed nonzero commands remain reusable. Close retries remain possible while the process lives; EOF/exception calls close in `finally` and reports cleanup to stderr. SIGTERM, SIGKILL and process crashes do not guarantee cleanup; a single absence check cannot exclude a late daemon operation. Reconcile the exact name on the original daemon after uncertain start or process death. The harness must also bound input lines, exclusively allowlist the intended child tool, mediate its pipe, and constrain untrusted output. There is no adapter, credential access, model call, source-ingestion path, or end-to-end researcher claim.
 
+## Parent real-Docker receipts
+
+The first CLI revision ran a real task-owned bridge container: HTTPS returned
+200, an exit-7 command was followed by a successful reused command, and close
+returned `absent_at_check`. A first post-close assertion incorrectly expected a
+capitalized Docker error; a separate exact-name inspect verified absence.
+
+The revised `ready` handshake was then exercised with a new task-owned container.
+It emitted the name before start as intended, but Docker start returned uncertain;
+the following inspect found that exact container in `created` state. The parent
+removed that exact container and a subsequent inspect reported no such object.
+The revised-handshake real-Docker run is **not a pass**. Diagnose the Docker
+start failure and repeat only after understanding the cause. No prior blocked
+container was touched; no model-access or detached-descendant probe was run.
+
 ## Evidence and review
 
 Run from this worktree. Offline commands clear the opt-in real-Docker flag, use an unavailable Docker CLI PATH, and put this worktree first on the Python path:
