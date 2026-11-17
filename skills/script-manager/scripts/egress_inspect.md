@@ -1,7 +1,25 @@
 # Local egress manager inspection
 
+Resolve the installed `script-manager` skill directory from the active runtime's
+skill loader, then follow its `scripts/README.md` entry to this usage guide. Do
+not assume the current working directory is the skills source checkout. The
+helper is diagnostic only: it does not authorize traffic, IP rotation, or a VPN
+manager switch.
+
+For a Hermes runtime where `$HOME/.hermes/synced-skills/script-manager` exists
+and is the active installation of this skill, this command works from any
+working directory:
+
 ```sh
-python3 skills/script-manager/scripts/egress_inspect.py
+python3 "$HOME/.hermes/synced-skills/script-manager/scripts/egress_inspect.py"
+```
+
+For another runtime or installation, replace the placeholder with the actual
+absolute directory resolved by that runtime's skill loader (do not guess a
+checkout or lane):
+
+```sh
+python3 "<resolved-script-manager-skill-dir>/scripts/egress_inspect.py"
 ```
 
 The command prints one JSON object to stdout and writes no state files. It

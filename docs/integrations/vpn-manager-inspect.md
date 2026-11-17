@@ -40,7 +40,22 @@ not system-wide absence; interface names are only heuristics.
   receipt, not proof about third-party CLI behavior.
 - Parent independently ran the actual CLI on this host: `manager=tailscale`, selected exit online, saved/effective IDs matching, `RouteAll=false`, standalone Mullvad disconnected, IPv4 route interface `tailscale0`, no reported issues, and `action=none`. This was a read-only local snapshot; no DNS/public probe or VPN mutation occurred. It does not prove public egress, DNS, IPv6, kill-switch behavior or readiness for rotation.
 - Parent independently ran `/usr/bin/python3 /home/ryushe/.hermes/profiles/bugfix/cache/scratch/egress-offline/launch.py -m unittest discover -s tests -p test_egress_inspect.py -v`: 6 passed with inherited network denial.
-- Independent review of this complete feature diff and test evidence is pending.
+- Independent reviewer found the usage command was relative to the General Skills
+  source root, so it failed from a BBH agent's unrelated working directory.
+  The feature now documents resolving the active runtime's installed skill,
+  with a conditional Hermes `$HOME/.hermes/synced-skills` example and a portable
+  resolved-directory placeholder. It explicitly disclaims traffic and rotation
+  authorization. Correction needs independent reviewer recheck.
+- Cwd regression RED: the documented command, extracted through the installed
+  skill -> index -> usage discovery path, failed with `can't open file` under a
+  synthetic BBH cwd. GREEN: the same discovery and shell command passes using a
+  scratch HOME symlink to this feature's provider, fake PATH commands, and an
+  inherited seccomp socket/socketpair/connect/io_uring ban. The test checks the
+  JSON, `action=none`, and exactly the five fake calls; it is not live runtime
+  activation or evidence of real VPN routing.
+- Exact test launcher for both runs: `/usr/bin/python3`, invoked in a process
+  with `env -i HOME=/home/ryushe/.hermes/profiles/bugfix/cache/scratch/egress-offline XDG_CONFIG_HOME=/home/ryushe/.hermes/profiles/bugfix/cache/scratch/egress-offline/config XDG_CACHE_HOME=/home/ryushe/.hermes/profiles/bugfix/cache/scratch/egress-offline/cache XDG_STATE_HOME=/home/ryushe/.hermes/profiles/bugfix/cache/scratch/egress-offline/state TMPDIR=/home/ryushe/.hermes/profiles/bugfix/cache/scratch/egress-offline PATH=/usr/bin:/bin PYTHONNOUSERSITE=1`, followed by `/usr/bin/python3 /home/ryushe/.hermes/profiles/bugfix/cache/scratch/egress-offline/launch.py -B -m unittest discover -s tests -p test_egress_inspect.py -k documented -v` for RED, and the same command without `-k documented` for GREEN (7 passed). The launcher reestablishes scratch-only environment, checks seccomp setup and self-tests socket denial before exec. Same launcher and environment with `-p test_script_manager_policy.py -v` instead: 11 passed.
+- Independent review of the corrected complete feature diff and test evidence is pending.
 
 ## Blockers and deferred work
 

@@ -72,6 +72,33 @@ sys.stdout.write(reply[1]); sys.exit(reply[0])
         self.assertEqual(set((self.root / 'calls').read_text().splitlines()), set(self.observed()))
         self.assertFalse((self.root / 'state').exists())
 
+    def test_documented_discovery_and_command_from_bbh_working_directory(self):
+        home = self.root / 'home'
+        installed = home / '.hermes/synced-skills/script-manager'
+        installed.parent.mkdir(parents=True)
+        installed.symlink_to(SCRIPT.parents[1], target_is_directory=True)
+        bbh_cwd = self.root / 'bbh-workspace'
+        bbh_cwd.mkdir()
+        self.env['HOME'] = str(home)
+        (self.bin / 'python3').symlink_to(sys.executable)
+        self.fake_tools(self.observed())
+
+        # Follow the installed skill's index pointer and the inspector's usage link.
+        skill = (installed / 'SKILL.md').read_text()
+        self.assertIn('[scripts/README.md](scripts/README.md)', skill)
+        index = (installed / 'scripts/README.md').read_text()
+        self.assertIn('[usage](egress_inspect.md)', index)
+        usage = (installed / 'scripts/egress_inspect.md').read_text()
+        command = usage.split('```sh\n', 1)[1].split('\n```', 1)[0]
+        result = subprocess.run(['/bin/sh', '-c', command], cwd=bbh_cwd, env=self.env,
+                                capture_output=True, text=True, timeout=20)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        receipt = json.loads(result.stdout)
+        self.assertEqual(receipt['manager'], 'tailscale')
+        self.assertEqual(receipt['action'], 'none')
+        self.assertCountEqual((self.root / 'calls').read_text().splitlines(), self.observed())
+        self.assertFalse((self.root / 'state').exists())
+
     def test_standalone_connection_is_inferred_only_with_matching_observations(self):
         replies = self.observed()
         replies['tailscale get exit-node'] = [0, '']
