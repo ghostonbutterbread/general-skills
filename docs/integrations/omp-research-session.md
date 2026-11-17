@@ -5,7 +5,8 @@
 - **Branch:** `feat/omp-research-session`.
 - **Base:** `f17eaa16e90ddfc14bfb9de5f74065900c8e4a04`; intended integration target `beta`.
 - **Previous recovery checkpoint:** `3cb3aecf975873e733c47f9e15167251b180043c`.
-- **Previous entry implementation checkpoint:** `d0debc457530b20e1fd8454c56c84caa24111714`; the current tip also contains the first-run durability correction and this updated handoff.
+- **Previous entry implementation checkpoint:** `d0debc457530b20e1fd8454c56c84caa24111714`.
+- **Previous receipt-durability checkpoint:** `11840907f495c0d6e9f8fb9afc16b98f3f9fe9a8`; the current branch tip corrects its search-only ancestor regression.
 - **Dependency:** `feat/research-container-stdio` tip `2fa728f`; its `research_stdio.py` is not present on this branch. The two features need explicit combined integration and review.
 
 ## Intent and implemented contract
@@ -25,11 +26,15 @@ The extension resolves colocated stdio relative to its own file, uses the core's
 local socket selector and observes the daemon ID via `/info`, and pins the
 socket path in the transport subprocess environment. Its private per-task
 0600 JSONL receipt records and fsyncs exact container and observed daemon
-identity before start, and records the cleanup result and process outcome. The
-private task directory and its parent chain (to `/`, or the working directory for
-relative paths) are fsynced, including on retry after a failed first-run sync.
-An inaccessible or unsupported ancestor fsync fails closed before container start.
-Parent-readable findings are
+identity before start, and records the cleanup result and process outcome. It
+syncs the task directory and receipt entry, and on first creation syncs parents
+of directories created in that invocation. It does not open unrelated existing
+ancestors: a private existing root beneath a search-only directory remains usable.
+A required sync failure aborts that invocation before start with a diagnostic.
+Existing ancestor entries may not be crash durable, including directories left
+behind by a failed first-run sync; a retry cannot identify and sync those older
+entries. Pre-provision and sync the receipt root when recovery relies on it;
+filesystem and hardware guarantees still apply. Parent-readable findings are
 untrusted data, not instructions. Host credentials are not mounted or otherwise
 explicitly passed to the container.
 
@@ -41,9 +46,9 @@ profile, model credential, target or real container was modified.
 
 ## Evidence
 
-- First-run durability correction: `node --experimental-vm-modules --no-warnings tests/fixtures/omp_research_receipt_durability.mjs` passed locally on Node 22.23.2. It runs the actual extension and adapter against real temporary files and the fake Python stdio task, with a mocked SDK/model and injected `fsync` failures. It checks a fresh nested state directory, root-parent and higher-ancestor failure before start, retry after failed sync, identity-file sync failure before start, sync-before-start ordering, and private identity/cleanup receipts. It is not an OMP SDK integration test or a power-loss test. The first test version failed against `4c5d558` because the parent sync was absent.
-- The existing real OMP mock-provider offline fixture was not rerun after this correction: OMP is absent locally and SSH to Hoster timed out. Once Hoster is reachable, rerun `python3 tests/fixtures/omp_research_offline_runner.py <fresh-private-root> /home/ryushe/.local/bin/omp entry` using the corrected files and the stdio dependency, as in the earlier receipt below. No real provider/model, Docker, target or old container inspection is authorized.
-- Independent review accepted the prior functional offline behavior conditionally but identified the newly-created root parent durability gap. The parent should have the reviewer check this correction and its tests before integration.
+- Search-only regression: `node --experimental-vm-modules --no-warnings tests/fixtures/omp_research_receipt_durability.mjs` passed on Node 22.23.2, running the actual extension and adapter as unprivileged uid 1000 against temporary files and a fake Python stdio task, with mocked SDK/model. The test first failed against `1184090` with `EACCES` opening the `0100` direct parent of an existing private receipt root. After the correction it checks that path, private modes and rejection of an insecure root, first-run ancestor-sync failure and retry, required task-parent and identity-file fsync failures without start, a fresh first invocation and sync-before-start ordering. No power-loss test is claimed.
+- The real OMP mock-provider offline fixture remains unverified after this correction: no local OMP executable was found and a new bounded SSH connection to Hoster timed out. Once Hoster is reachable, copy this branch and the stdio dependency to a fresh private root and rerun `python3 tests/fixtures/omp_research_offline_runner.py <fresh-private-root> /home/ryushe/.local/bin/omp entry`. No real provider/model, Docker, target or old container inspection is authorized.
+- The parent should arrange independent review of this correction and its tests before integration.
 
 - Hoster `/home/ryushe/.local/bin/omp --version`: `omp/18.22.0`.
 - Hoster user-systemd unit `hoster-omp-entry-fixture-cdma` exited success. Its

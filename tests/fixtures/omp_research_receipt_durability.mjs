@@ -70,25 +70,50 @@ try {
   process.env.XDG_STATE_HOME = state;
   process.env.OMP_TEST_LOG = join(scratch, 'transport.log');
   for (const key of ['OMP_TEST_REAL_STDIO', 'OMP_TEST_BAD_CLOSE', 'OMP_TEST_CLOSE_DELAY', 'OMP_TEST_EXEC_DELAY']) delete process.env[key];
-  // Both the root parent and the first created ancestor's parent must sync.
-  for (const path of [state, scratch]) {
-    failPath = path;
-    await assert.rejects(invoke(), /injected fsync failure/);
-    assert.equal(started, 0);
-    assert.ok(synced.includes(path), `parent not synced: ${path}`);
+  // The actual user must be able to use an existing private root beneath a
+  // search-only ancestor, without gaining read permission on that ancestor.
+  const searchOnly = join(scratch, 'search-only');
+  const existingState = searchOnly;
+  await fs.mkdir(join(existingState, 'omp-research'), { recursive: true, mode: 0o700 });
+  await fs.chmod(searchOnly, 0o100);
+  try {
+    await assert.rejects(fs.readdir(searchOnly), { code: 'EACCES' });
+    process.env.XDG_STATE_HOME = existingState;
+    const existing = await invoke();
+    assert.equal((await fs.stat(existing.details.receiptDirectory)).mode & 0o077, 0);
+    assert.equal(started, 1);
+  } finally {
+    await fs.chmod(searchOnly, 0o700);
   }
+  started = 0;
+  synced.length = 0;
+  await fs.rm(process.env.OMP_TEST_LOG, { force: true });
+  process.env.XDG_STATE_HOME = state;
+  // A failed first-run ancestor sync fails before start; retry remains usable.
+  failPath = scratch;
+  await assert.rejects(invoke(), error => /Cannot sync research receipt directory/.test(error.message) && error.cause?.message === 'injected fsync failure');
+  assert.equal(started, 0);
+  assert.ok(synced.includes(scratch));
   failPath = undefined;
+  // The task entry's required sync must also fail closed before transport start.
+  failPath = root;
+  await assert.rejects(invoke(), error => /Cannot sync research receipt directory/.test(error.message) && error.cause?.message === 'injected fsync failure');
+  assert.equal(started, 0);
+  failPath = undefined;
+  await fs.chmod(root, 0o755);
+  await assert.rejects(invoke(), /owned by the user and private/);
+  assert.equal(started, 0);
+  await fs.chmod(root, 0o700);
   failIdentity = true;
   await assert.rejects(invoke(), error => error.cause?.message === 'injected fsync failure');
   assert.equal(started, 0);
-  // A retry sees directories left by failed attempts; they still need syncing.
+  // A retry uses existing directories; their older entries may remain unsynced.
   failIdentity = false;
   synced.length = 0;
   const result = await invoke();
   assert.equal(started, 1);
-  for (const path of [root, state, dirname(state), scratch]) {
-    assert.ok(syncsAtStart.includes(path), `directory not synced before start: ${path}`);
-  }
+  assert.ok(syncsAtStart.includes(root), 'task parent not synced before start');
+  assert.ok(!syncsAtStart.includes(scratch), 'retry must not require unrelated ancestors');
   const dir = result.details.receiptDirectory;
   const file = join(dir, 'receipts.jsonl');
   assert.ok(syncsAtStart.includes(dir), 'task directory not synced before start');

@@ -32,7 +32,17 @@ Each run creates a private `0700` task directory under
 `${XDG_STATE_HOME:-~/.local/state}/omp-research/`, containing a `0600`
 `receipts.jsonl`. Identity (exact name, observed daemon ID and socket) is
 fsynced before start; cleanup outcome, process status and diagnostics are also
-fsynced. Receipts can contain sensitive diagnostics; do not publish them. On
+fsynced. The task directory and its receipt entry are fsynced before start;
+when this invocation creates the receipt root and its parents, their new entries
+are also synced. A required directory fsync failure stops that invocation with
+an error; filesystems without directory fsync cannot provide this guarantee.
+Existing ancestors are not opened or synced, so an existing but not yet durable
+ancestor can disappear after a crash, taking the receipt with it. In particular,
+a retry after a failed first-run ancestor sync sees the leftover directories as
+existing and cannot establish their durability. Use a receipt root provisioned
+and synced by the operator when crash recovery depends on it. Successful fsync
+is still subject to filesystem and hardware guarantees. Receipts can contain
+sensitive diagnostics; do not publish them. On
 failure inspect the returned private receipt directory and reconcile **only**
 the saved exact name on the original daemon, including possible delayed daemon
 operations. A recorded `absent_at_check` is point-in-time, not proof of

@@ -25,18 +25,30 @@ async function selectDaemon() {
 
 async function receiptWriter() {
   const root = join(process.env.XDG_STATE_HOME || join(homedir(), '.local', 'state'), 'omp-research');
-  await mkdir(root, { recursive: true, mode: 0o700 });
+  const firstCreated = await mkdir(root, { recursive: true, mode: 0o700 });
   const st = await lstat(root);
   if (!st.isDirectory() || st.isSymbolicLink() || st.uid !== process.getuid?.() || (st.mode & 0o077)) throw Error('Research receipt directory must be owned by the user and private (0700)');
+  const syncDirectory = async (path: string) => {
+    try {
+      const h = await open(path, 'r'); try { await h.sync(); } finally { await h.close(); }
+    } catch (error) {
+      throw new Error('Cannot sync research receipt directory ' + path + '; task not started (directory fsync may be unsupported)', { cause: error });
+    }
+  };
+  // Only sync entries created by this mkdir, not unrelated existing ancestors.
+  // A failed earlier invocation may have left visible but unsynced ancestors;
+  // without persistent creation history a retry cannot identify those entries.
+  if (firstCreated) {
+    for (let p = dirname(root); ; p = dirname(p)) {
+      await syncDirectory(p);
+      if (p === dirname(firstCreated)) break;
+    }
+  }
   const dir = await mkdtemp(join(root, 'task-'));
   const file = await open(join(dir, 'receipts.jsonl'), 'wx', 0o600);
-  // Sync every parent entry, including recursively created ancestors. Repeat on
-  // retries: a previous failed sync may have left directories visible but not durable.
   try {
-    for (let p = dir; ; p = dirname(p)) {
-      const h = await open(p, 'r'); try { await h.sync(); } finally { await h.close(); }
-      if (dirname(p) === p) break;
-    }
+    await syncDirectory(root); // task directory entry
+    await syncDirectory(dir);  // receipt file entry
   } catch (error) { await file.close(); throw error; }
   return {
     dir,
