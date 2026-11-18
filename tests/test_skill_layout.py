@@ -24,6 +24,7 @@ EXPECTED_SKILLS = {
     "i-have-adhd",
     "nightly-learning",
     "papercuts",
+    "refresh-mega-sync",
     "resilio-sync",
     "safe-fetch",
     "script-manager",
@@ -41,6 +42,12 @@ class SkillLayoutTests(unittest.TestCase):
         for skill in EXPECTED_SKILLS:
             self.assertTrue((SKILLS / skill / "SKILL.md").is_file(), skill)
         self.assertTrue(LEGACY_CATEGORY_DIRECTORIES.isdisjoint(actual_skills))
+
+    def test_script_manager_discovery_links_resolve(self):
+        target = "skills/script-manager/SKILL.md"
+        self.assertTrue((ROOT / target).is_file())
+        for document in ("README.md", "SCRIPT_INDEX.md"):
+            self.assertIn(f"]({target})", (ROOT / document).read_text(), document)
 
     def test_dotfile_management_preserves_actual_application_paths(self):
         skill = (SKILLS / "dotfile-management" / "SKILL.md").read_text()

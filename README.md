@@ -14,7 +14,8 @@ Reusable local OpenClaw/Codex skills that are not tied to one bug bounty harness
 - `tmux` - Long-running session protocol for attachable recon, fuzzing, Arjun, scanner, and interactive CLI jobs; Hoster workloads defer to `hoster-ssh`.
 - `hoster-ssh` - Bounded Hoster SSH dispatch and lifecycle protocol: durable workloads run in named user-systemd services, not `ssh.service`.
 - `hoster-tmux-child-reaper` - Short-lived Hoster-entry cleanup sidecar: it reports or safely reaps only ownership-proven empty tmux scopes while the main worker begins its task; never timer-driven or a general pane cleaner.
-- `script_manager` - Reusable script promotion, storage, indexing, and handoff rules so repeated agent workflows become durable helpers.
+- `script-manager` - Reusable script promotion, storage, indexing, and handoff rules so repeated agent workflows become durable helpers.
+- `refresh-mega-sync` - Safely refresh Ghost and Hoster MEGA Shared-folder sync.
 - `resilio-sync` - Resilio Sync handoff rules for `/srv/resilio` and large local file-set sharing.
 - `daddy` - Relative model-up/down routing for CLI agents, with benchmark guardrails for cost and quality tradeoffs.
 - `account-manager` - Routes BBH account context to its canonical `account-management` registry; retains the legacy non-web table workflow outside BBH.
@@ -24,7 +25,7 @@ Reusable local OpenClaw/Codex skills that are not tied to one bug bounty harness
 - `mail` - General authorized inbox reading/searching through Composio CLI, with on-demand setup guidance and secure connection handoff.
 - `nightly-learning` - Report-only AppSec learning intake from a curated source registry, with safe-fetch provenance and manual promotion only.
 - `i-have-adhd` - ADHD-friendly output mode: lead with the next action, show state, suppress tangents, and cap lists at 15 items.
-- `dotfile_management` - GNU Stow dotfile migration using actual application configuration paths and `ln_dotfiles.sh`.
+- `dotfile-management` - GNU Stow dotfile migration using actual application configuration paths and `ln_dotfiles.sh`.
 
 All skills use the flat `skills/<skill>/SKILL.md` layout. This repository owns
 general shared skills; capability-specific skills belong in their dedicated
@@ -36,5 +37,5 @@ owned by BBH; report-writing guidance is no longer maintained in General Skills.
 ## Script Discovery
 
 Load the relevant skill and follow its script-reference pointer; see
-[Script Manager](skills/script_manager/SKILL.md). `SCRIPT_INDEX.md` is retained
+[Script Manager](skills/script-manager/SKILL.md). `SCRIPT_INDEX.md` is retained
 as a historical catalog, not a required discovery or maintenance step.

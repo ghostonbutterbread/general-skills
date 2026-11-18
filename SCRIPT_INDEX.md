@@ -1,7 +1,7 @@
 # General Skills Script Index
 
 > Historical catalog retained for reference. Its registry rules below are
-> superseded by [Script Manager](skills/script_manager/SKILL.md): load the
+> superseded by [Script Manager](skills/script-manager/SKILL.md): load the
 > relevant skill and follow its script-reference pointer. This catalog does
 > not require discovery or maintenance updates; keep current entries in the
 > owning skill's index instead.
@@ -18,7 +18,7 @@ homes and records; detailed usage belongs next to each script.
 
 | Scope | Home | Use when |
 |---|---|---|
-| General reusable automation | `skills/script_manager/scripts/` | The helper works across projects and belongs to no narrower skill. |
+| General reusable automation | `skills/script-manager/scripts/` | The helper works across projects and belongs to no narrower skill. |
 | One General Skills skill | `skills/<skill>/scripts/` | The helper supports one skill such as `faq`, `bitwarden`, or `tmux`. |
 | Another repository | Its root `SCRIPT_POLICY.md`, otherwise `<repo>/scripts/` or `<repo>/tools/` | The helper depends on that repository's code, schema, or fixtures. |
 | Host/runtime local | The runtime's configured local script directory | The helper is intentionally host-local and not canonical shared automation. |
@@ -56,4 +56,4 @@ homes and records; detailed usage belongs next to each script.
 - Last verified: General Skills beta `e7097ca`; focused tests and Hoster runtime
   projection.
 
-When adding a record, use `skills/script_manager/references/script-record-template.md`.
+When adding a record, use `skills/script-manager/references/script-record-template.md`.
