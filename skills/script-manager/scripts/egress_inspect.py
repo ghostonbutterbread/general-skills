@@ -9,19 +9,88 @@ import shutil
 import subprocess
 
 
-def run(*args):
+def run(*args, timeout=5.0):
     if shutil.which(args[0]) is None:
         # A non-executable PATH entry is a failure, not an absent command.
         found = any(os.path.lexists(os.path.join(p or os.curdir, args[0]))
                     for p in os.get_exec_path())
         return ('failed' if found else 'not-on-path'), None
     try:
-        result = subprocess.run(args, capture_output=True, text=True, timeout=5, check=False)
+        result = subprocess.run(args, capture_output=True, text=True, timeout=timeout, check=False)
         if result.returncode == 0:
             return 'ok', result.stdout.strip()
     except (OSError, subprocess.TimeoutExpired, UnicodeError):
         pass
     return 'failed', None
+
+
+def exit_identity_consistent(status):
+    """Check present exit identity against its peer without requiring enrichment."""
+    node = status.get('ExitNodeStatus')
+    if not isinstance(node, dict) or not isinstance(node.get('ID'), str) or not node['ID']:
+        return False
+    peers = status.get('Peer')
+    peers = list(peers.values()) if isinstance(peers, dict) else []
+    matched = [p for p in peers if isinstance(p, dict) and p.get('ID') == node['ID']]
+    if len(matched) > 1:
+        return False
+
+    def evidence(item):
+        values = {}
+        for key in ('HostName', 'DNSName'):
+            value = item.get(key)
+            if value is not None and value != '':
+                if not isinstance(value, str) or not value.strip() or value != value.strip():
+                    raise ValueError('invalid identity')
+                values[key] = value.lower().rstrip('.')
+                if not values[key]:
+                    raise ValueError('invalid identity')
+        ips = item.get('TailscaleIPs')
+        if ips is not None:
+            if not isinstance(ips, list) or any(not isinstance(ip, str) for ip in ips):
+                raise ValueError('invalid addresses')
+            values['TailscaleIPs'] = {str(ipaddress.ip_interface(ip).ip) for ip in ips}
+        return values
+
+    try:
+        direct = evidence(node)
+        peer = matched[0] if matched else None
+        actual = evidence(peer) if peer else {}
+        if (peer and type(peer.get('Online')) is bool and type(node.get('Online')) is bool
+                and peer['Online'] != node['Online']):
+            return False
+        for key in ('HostName', 'DNSName'):
+            if key in direct and key in actual and direct[key] != actual[key]:
+                return False
+        if direct.get('TailscaleIPs') and actual.get('TailscaleIPs') is not None:
+            if not direct['TailscaleIPs'] <= actual['TailscaleIPs']:
+                return False
+        for other in peers:
+            if not isinstance(other, dict) or other is peer:
+                continue
+            for key in ('HostName', 'DNSName', 'TailscaleIPs'):
+                # An unrelated unsupported field is not evidence of a conflict.
+                try:
+                    if key == 'TailscaleIPs' and isinstance(other.get(key), list):
+                        other_value = set()
+                        for ip in other[key]:
+                            try:
+                                other_value.update(evidence({key: [ip]})[key])
+                            except (TypeError, ValueError):
+                                continue
+                    else:
+                        other_value = evidence({key: other.get(key)}).get(key)
+                except (TypeError, ValueError):
+                    continue
+                for values in (direct, actual):
+                    if key == 'TailscaleIPs':
+                        if values.get(key, set()) & (other_value or set()):
+                            return False
+                    elif other_value and values.get(key) == other_value:
+                        return False
+        return True
+    except (TypeError, ValueError):
+        return False
 
 
 def inspect_host():
@@ -76,6 +145,8 @@ def inspect_host():
                 effective = 'online' if node['Online'] else 'offline'
                 if effective == 'offline':
                     issues.append('tailscale-exit-offline')
+                if not exit_identity_consistent(status):
+                    issues.append('tailscale-exit-identity-conflict')
                 aliases = {exit_id.lower()}
                 peers = status.get('Peer')
                 peers = peers.values() if isinstance(peers, dict) else ()

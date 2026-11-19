@@ -18,6 +18,9 @@ usage in associated documentation. Maintain this same index for new, renamed,
 or removed scripts; update the [skill pointer](../SKILL.md) if its location changes.
 
 - `egress_inspect.py` — Inspect local VPN manager and IPv4 route observations; see [usage](egress_inspect.md).
+- `egress_snapshot.py` — Record/check a host-direct IPv4 baseline; optional refresh may switch to a distinct same-manager, same-city VPN exit after checks. These checks are point-in-time only, not continuous protection; see [usage](egress_snapshot.md).
+- `egress_switch.py` — Internal same-manager switch/selection backend for `egress_snapshot.py`; not a standalone entrypoint.
+- `egress_candidates.py` — Internal live Tailscale exit identity and geography selector used by the switch backend.
 
 ## Unimplemented Idea (not an available script)
 
