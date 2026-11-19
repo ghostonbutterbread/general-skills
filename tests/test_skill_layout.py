@@ -82,6 +82,18 @@ class SkillLayoutTests(unittest.TestCase):
         self.assertIn("leave the stock installation unchanged", repair)
         self.assertIn("maintenance cost is explained", repair)
 
+    def test_mega_refresh_guidance_preserves_healthy_mappings(self):
+        skill = (SKILLS / "refresh-mega-sync" / "SKILL.md").read_text()
+
+        self.assertIn("Inspect both machines before changing anything", skill)
+        self.assertIn("missing file or content conflict alone is not evidence", skill)
+        self.assertIn("Rebuild only a demonstrably broken mapping", skill)
+        self.assertIn("never rebuild both by default", skill)
+        self.assertIn("only the IDs of mappings actually rebuilt", skill)
+        self.assertIn("explicit refresh request", skill)
+        self.assertNotIn("Rebuild Ghost's Shared mapping without deleting data", skill)
+        self.assertNotIn("Rebuild Hoster's Shared mapping the same way", skill)
+
     def test_bitwarden_skill_reminds_before_cli_use(self):
         skill = (SKILLS / "bitwarden" / "SKILL.md").read_text()
         description = skill.split("---", 2)[1]
